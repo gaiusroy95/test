@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { tenantApi } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
-import { PageHeader, LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { DataTable } from "@/components/shared/DataTable";
+import { LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
@@ -12,7 +14,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  Plus, MapPin, LayoutGrid, List, AlertTriangle, Pencil, Trash2, ChevronLeft, ChevronRight,
+  Plus, MapPin, LayoutGrid, List, AlertTriangle, Pencil, Trash2,
   Gauge, RefreshCw,
 } from "lucide-react";
 import type { Location, LocationLbFactor, KPI, UOM } from "@/types";
@@ -225,23 +227,28 @@ export default function LocationsPage() {
 
   const isSupport = useIsSupportSession();
   const isAdmin = user?.role === "COMPANY_ADMIN" && !isSupport;
-  const totalPages = Math.ceil(total / pageSize);
 
   return (
-    <div className="page-root">
-      <PageHeader title="Locations" description={`${total} location${total !== 1 ? "s" : ""} registered`} breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Locations" }]}>
+    <PageShell
+      title="Locations"
+      description={`${total} location${total !== 1 ? "s" : ""} registered`}
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Locations" }]}
+      actions={
         <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-white">
+          <div className="flex rounded-sm border border-border overflow-hidden bg-card" role="group" aria-label="View mode">
             <button
               onClick={() => toggleView("table")}
-              className={`p-2 transition-colors ${view === "table" ? "bg-slate-100 text-brand-navy" : "text-slate-400 hover:text-slate-600"}`}
+              aria-pressed={view === "table"}
+              aria-label="Table view"
+              className={`p-2 transition-colors ${view === "table" ? "bg-sunken text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               <List size={15} />
             </button>
             <button
               onClick={() => toggleView("grid")}
-              className={`p-2 transition-colors ${view === "grid" ? "bg-slate-100 text-brand-navy" : "text-slate-400 hover:text-slate-600"}`}
+              aria-pressed={view === "grid"}
+              aria-label="Grid view"
+              className={`p-2 transition-colors ${view === "grid" ? "bg-sunken text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             >
               <LayoutGrid size={15} />
             </button>
@@ -252,7 +259,8 @@ export default function LocationsPage() {
             </Button>
           )}
         </div>
-      </PageHeader>
+      }
+    >
 
       {loading ? (
         <div className="surface p-6"><LoadingSkeleton rows={6} cols={6} /></div>
@@ -268,37 +276,37 @@ export default function LocationsPage() {
         /* ── Grid View ── */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {locations.map((loc) => (
-            <div key={loc.location_id} className="surface p-5 hover:border-slate-300 hover:shadow-sm transition-all duration-200 group">
+            <div key={loc.location_id} className="surface p-5 hover:shadow-sm transition-all duration-200 group">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-[10px] bg-sky-50 flex items-center justify-center flex-shrink-0">
-                    <MapPin size={20} className="text-brand-accent" />
+                  <div className="w-10 h-10 rounded-sm bg-accent flex items-center justify-center flex-shrink-0">
+                    <MapPin size={20} className="text-primary" />
                   </div>
                   <div>
-                    <div className="text-[14px] font-bold text-brand-navy leading-snug">{loc.location_name}</div>
-                    <div className="text-[12px] text-slate-400 mt-0.5">
+                    <div className="text-ui font-bold text-foreground leading-snug">{loc.location_name}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       {[loc.city, loc.state, loc.country].filter(Boolean).join(", ") || "No address"}
                     </div>
                   </div>
                 </div>
                 {(loc as any).is_high_risk_location && (
-                  <Badge variant="warning" className="text-[10px] flex-shrink-0">
+                  <Badge variant="warning" className="text-2xs flex-shrink-0">
                     <AlertTriangle size={10} className="mr-1" /> HRL
                   </Badge>
                 )}
               </div>
-              {loc.address && <p className="text-[12px] text-slate-500 mb-3 leading-relaxed">{loc.address}</p>}
-              <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+              {loc.address && <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{loc.address}</p>}
+              <div className="flex justify-between items-center pt-2 border-t border-[hsl(var(--border-hairline))]">
                 <StatusBadge status={loc.is_active ? "ACTIVE" : "BLOCKED"} />
                 {isAdmin && (
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon-sm" onClick={() => openLbPanel(loc)} title="LB Factors" className="text-teal-600 hover:bg-teal-50">
+                    <Button variant="ghost" size="icon-sm" onClick={() => openLbPanel(loc)} title="LB Factors" className="text-brand-teal hover:bg-accent">
                       <Gauge size={13} />
                     </Button>
                     <Button variant="ghost" size="icon-sm" onClick={() => setEditData(loc)} title="Edit">
                       <Pencil size={13} />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="hover:bg-red-50 hover:text-red-500">
+                    <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="hover:bg-destructive-tint hover:text-destructive">
                       <Trash2 size={13} />
                     </Button>
                   </div>
@@ -308,8 +316,11 @@ export default function LocationsPage() {
           ))}
         </div>
       ) : (
-        /* ── Table View ── */
-        <div className="surface">
+        <DataTable
+          loading={loading}
+          pagination={{ page, pageSize, total, onPageChange: setPage }}
+          skeletonCols={7}
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -321,26 +332,26 @@ export default function LocationsPage() {
             <TableBody>
               {locations.map((loc) => (
                 <TableRow key={loc.location_id}>
-                  <TableCell className="font-semibold text-brand-navy">{loc.location_name}</TableCell>
-                  <TableCell className="text-slate-500">{loc.city || "—"}</TableCell>
-                  <TableCell className="text-slate-500">{loc.state || "—"}</TableCell>
-                  <TableCell className="text-slate-500">{loc.country || "—"}</TableCell>
+                  <TableCell className="font-semibold text-foreground">{loc.location_name}</TableCell>
+                  <TableCell className="text-muted-foreground">{loc.city || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{loc.state || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{loc.country || "—"}</TableCell>
                   <TableCell>
                     {(loc as any).is_high_risk_location ? (
-                      <Badge variant="warning" className="text-[10px]">
+                      <Badge variant="warning" className="text-2xs">
                         <AlertTriangle size={10} className="mr-1" /> Water Stress
                       </Badge>
-                    ) : <span className="text-slate-300">—</span>}
+                    ) : <span className="text-muted-foreground/40">—</span>}
                   </TableCell>
                   <TableCell><StatusBadge status={loc.is_active ? "ACTIVE" : "BLOCKED"} /></TableCell>
                   {isAdmin && (
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon-sm" onClick={() => openLbPanel(loc)} title="LB Factors" className="text-teal-600 hover:bg-teal-50">
+                        <Button variant="ghost" size="icon-sm" onClick={() => openLbPanel(loc)} title="LB Factors" className="text-brand-teal hover:bg-accent">
                           <Gauge size={13} />
                         </Button>
                         <Button variant="ghost" size="icon-sm" onClick={() => setEditData(loc)} title="Edit"><Pencil size={13} /></Button>
-                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="hover:bg-red-50 hover:text-red-500"><Trash2 size={13} /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="hover:bg-destructive-tint hover:text-destructive"><Trash2 size={13} /></Button>
                       </div>
                     </TableCell>
                   )}
@@ -348,18 +359,7 @@ export default function LocationsPage() {
               ))}
             </TableBody>
           </Table>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
-              <span className="text-[12px] text-slate-500">Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}</span>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft size={15} /></Button>
-                <span className="px-3 text-[12px] font-semibold text-brand-navy">{page} / {totalPages}</span>
-                <Button variant="outline" size="icon-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight size={15} /></Button>
-              </div>
-            </div>
-          )}
-        </div>
+        </DataTable>
       )}
 
       {/* ── LB Factors Dialog ──────────────────────────────────────────────── */}
@@ -367,7 +367,7 @@ export default function LocationsPage() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Gauge size={16} className="text-teal-600" /> LB Emission Factors
+              <Gauge size={16} className="text-brand-teal" /> LB Emission Factors
             </DialogTitle>
             <DialogDescription>{lbLocation?.location_name} — Location-based factors used alongside Market-Based factors for dual Scope 2 emissions. Company Admin is responsible for accuracy.</DialogDescription>
           </DialogHeader>
@@ -376,10 +376,10 @@ export default function LocationsPage() {
             {lbLoading ? (
               <LoadingSkeleton rows={4} cols={5} />
             ) : lbFactors.length === 0 ? (
-              <div className="text-center py-10 text-slate-400">
+              <div className="text-center py-10 text-muted-foreground">
                 <Gauge size={32} className="mx-auto mb-3 opacity-30" />
-                <p className="text-[13px] font-semibold">No LB factors set</p>
-                <p className="text-[11px] mt-1">Add LB factors for KPIs that have a scope assigned.</p>
+                <p className="text-ui font-semibold">No LB factors set</p>
+                <p className="text-label mt-1">Add LB factors for KPIs that have a scope assigned.</p>
               </div>
             ) : (
               <Table>
@@ -396,26 +396,26 @@ export default function LocationsPage() {
                     const isActive = f.valid_from <= today && (!f.valid_to || f.valid_to >= today);
                     return (
                       <TableRow key={f.lb_factor_id}>
-                        <TableCell className="font-semibold text-brand-navy">{f.kpi_name}</TableCell>
+                        <TableCell className="font-semibold text-foreground">{f.kpi_name}</TableCell>
                         <TableCell>
                           {f.scope_number ? (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Scope {f.scope_number}</span>
+                            <Badge variant="warning" className="text-2xs">Scope {f.scope_number}</Badge>
                           ) : "—"}
                         </TableCell>
-                        <TableCell className="font-semibold text-brand-navy">{f.lb_factor} <span className="text-slate-400 font-normal">{f.emission_uom}</span></TableCell>
-                        <TableCell className="text-slate-500">{f.grid_zone_name || "—"}</TableCell>
-                        <TableCell className="text-slate-500">{formatDate(f.valid_from)}</TableCell>
-                        <TableCell className="text-slate-500">{f.valid_to ? formatDate(f.valid_to) : <span className="text-slate-400">Ongoing</span>}</TableCell>
+                        <TableCell className="font-semibold text-foreground">{f.lb_factor} <span className="text-muted-foreground font-normal">{f.emission_uom}</span></TableCell>
+                        <TableCell className="text-muted-foreground">{f.grid_zone_name || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{formatDate(f.valid_from)}</TableCell>
+                        <TableCell className="text-muted-foreground">{f.valid_to ? formatDate(f.valid_to) : <span className="text-muted-foreground">Ongoing</span>}</TableCell>
                         <TableCell>
                           {isActive
-                            ? <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-500 text-white">Active</span>
-                            : <span className="text-[10px] text-slate-400">Expired</span>}
+                            ? <Badge variant="success" className="text-2xs">Active</Badge>
+                            : <span className="text-2xs text-muted-foreground">Expired</span>}
                         </TableCell>
                         {isAdmin && (
                           <TableCell>
                             <div className="flex gap-1">
                               <Button variant="ghost" size="icon-sm" onClick={() => setEditLb(f)} title="Edit"><Pencil size={12} /></Button>
-                              <Button variant="ghost" size="icon-sm" onClick={() => setDeleteLb(f)} title="Delete" className="hover:bg-red-50 hover:text-red-500"><Trash2 size={12} /></Button>
+                              <Button variant="ghost" size="icon-sm" onClick={() => setDeleteLb(f)} title="Delete" className="hover:bg-destructive-tint hover:text-destructive"><Trash2 size={12} /></Button>
                             </div>
                           </TableCell>
                         )}
@@ -465,6 +465,6 @@ export default function LocationsPage() {
         } : undefined}
       />
       <ConfirmDialog open={!!deleteLb} onClose={() => setDeleteLb(null)} onConfirm={handleDeleteLb} title="Delete LB Factor" message={`Delete the LB factor for "${deleteLb?.kpi_name}"? This will stop location-based calculation for future submissions.`} confirmLabel="Delete" variant="destructive" loading={actionLoading} />
-    </div>
+    </PageShell>
   );
 }

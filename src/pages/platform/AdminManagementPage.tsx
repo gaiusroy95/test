@@ -1,9 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { platformApi } from "@/api/client";
-import { Breadcrumb, LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { DataTable } from "@/components/shared/DataTable";
 import { RoleBadge } from "@/components/shared/StatusBadge";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Plus, Shield, ShieldOff, ShieldCheck } from "lucide-react";
 import type { PlatformUser } from "@/types";
@@ -71,64 +75,68 @@ export default function AdminManagementPage() {
   ];
 
   return (
-    <div className="p-6 max-w-[1200px]">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <Breadcrumb items={[{ label: "Platform Admin", href: "/platform" }, { label: "Admin Management" }]} />
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight">Admin Management</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">Manage platform admin accounts (PLATFORM_OWNER only)</p>
-        </div>
-        <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-accent text-[12px] font-semibold text-white hover:bg-brand-accentDk transition-colors">
+    <PageShell
+      title="Admin Management"
+      description="Manage platform admin accounts (PLATFORM_OWNER only)"
+      breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Admin Management" }]}
+      actions={
+        <Button onClick={() => setCreateOpen(true)} size="sm">
           <Plus size={14} /> Add Admin
-        </button>
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-6"><LoadingSkeleton rows={5} cols={6} /></div> : admins.length === 0 ? (
-          <EmptyState icon={Shield} title="No platform admins" description="Create your first platform admin to help manage companies." />
-        ) : (
-          <table className="w-full text-[13px]">
-            <thead><tr className="border-b-2 border-slate-100 bg-slate-50/60">
+        </Button>
+      }
+    >
+      <DataTable
+        loading={loading}
+        empty={admins.length === 0 ? {
+          icon: Shield,
+          title: "No platform admins",
+          description: "Create your first platform admin to help manage companies.",
+        } : undefined}
+        skeletonCols={7}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
               {["Name", "Email", "Role", "Status", "Last Login", "Created", "Actions"].map((h) => (
-                <th key={h} className="text-left px-4 py-2 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">{h}</th>
+                <TableHead key={h}>{h}</TableHead>
               ))}
-            </tr></thead>
-            <tbody>
-              {admins.map((a) => (
-                <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
-                  <td className="px-4 py-2 font-semibold text-brand-navy">{a.first_name} {a.last_name}</td>
-                  <td className="px-4 py-2 text-slate-500">{a.email}</td>
-                  <td className="px-4 py-2"><RoleBadge role={a.role} /></td>
-                  <td className="px-4 py-2">
-                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${a.blocked_at ? "bg-red-100 text-red-700" : a.is_active ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
-                      {a.blocked_at ? "Blocked" : a.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 text-slate-400 text-[12px]">{a.last_login_at ? formatDate(a.last_login_at) : "Never"}</td>
-                  <td className="px-4 py-2 text-slate-400 text-[12px]">{formatDate(a.created_at)}</td>
-                  <td className="px-4 py-2">
-                    {a.role !== "PLATFORM_OWNER" && (
-                      a.blocked_at ? (
-                        <button onClick={() => setUnblockTarget(a)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold text-green-600 hover:bg-green-50 transition-colors">
-                          <ShieldCheck size={13} /> Unblock
-                        </button>
-                      ) : (
-                        <button onClick={() => setBlockTarget(a)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold text-red-500 hover:bg-red-50 transition-colors">
-                          <ShieldOff size={13} /> Block
-                        </button>
-                      )
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {admins.map((a) => (
+              <TableRow key={a.id}>
+                <TableCell className="font-semibold text-foreground">{a.first_name} {a.last_name}</TableCell>
+                <TableCell className="text-muted-foreground">{a.email}</TableCell>
+                <TableCell><RoleBadge role={a.role} /></TableCell>
+                <TableCell>
+                  <Badge variant={a.blocked_at ? "destructive" : a.is_active ? "success" : "secondary"}>
+                    {a.blocked_at ? "Blocked" : a.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground text-xs">{a.last_login_at ? formatDate(a.last_login_at) : "Never"}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">{formatDate(a.created_at)}</TableCell>
+                <TableCell>
+                  {a.role !== "PLATFORM_OWNER" && (
+                    a.blocked_at ? (
+                      <Button variant="ghost" size="sm" onClick={() => setUnblockTarget(a)} className="text-ok hover:bg-ok-tint h-7 px-2">
+                        <ShieldCheck size={13} /> Unblock
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="sm" onClick={() => setBlockTarget(a)} className="text-destructive hover:bg-destructive-tint h-7 px-2">
+                        <ShieldOff size={13} /> Block
+                      </Button>
+                    )
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </DataTable>
 
       <FormDialog open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={handleCreate} title="Add Platform Admin" description="This user will be able to manage companies and system config" fields={fields} submitLabel="Create Admin" loading={actionLoading} />
       <ConfirmDialog open={!!blockTarget} onClose={() => setBlockTarget(null)} onConfirm={handleBlock} title="Block Admin" message={`Block "${blockTarget?.first_name} ${blockTarget?.last_name}"? They will be locked out immediately.`} confirmLabel="Block" variant="destructive" showReason loading={actionLoading} />
       <ConfirmDialog open={!!unblockTarget} onClose={() => setUnblockTarget(null)} onConfirm={handleUnblock} title="Unblock Admin" message={`Reactivate "${unblockTarget?.first_name} ${unblockTarget?.last_name}"?`} confirmLabel="Unblock" loading={actionLoading} />
-    </div>
+    </PageShell>
   );
 }

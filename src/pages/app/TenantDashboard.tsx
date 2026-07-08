@@ -4,7 +4,7 @@ import { useAuthStore } from "@/store/auth";
 import { tenantApi } from "@/api/client";
 import { getModuleIcon } from "@/lib/constants";
 import { useModulesStore } from "@/store/modules";
-import { StatCard, LoadingSkeleton } from "@/components/shared/PageComponents";
+import { StatCard, LoadingSkeleton, PageShell } from "@/components/shared/PageComponents";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,23 +91,17 @@ export default function TenantDashboard() {
   ];
 
   return (
-    <div className="page-root">
-      {/* Welcome header */}
-      <div className="mb-5">
-        <h1 className="text-[20px] font-bold text-brand-navy tracking-tight">
-          Welcome back, <span className="text-brand-accent">{user?.first_name}</span>
-        </h1>
-        <p className="text-[12px] text-slate-500 mt-0.5 font-medium">
-          {user?.company_name} · <span className="text-slate-400">{(user?.role || "").replace(/_/g, " ")}</span>
-        </p>
-      </div>
-
+    <PageShell
+      title={`Welcome back, ${user?.first_name || ""}`}
+      description={`${user?.company_name || ""} · ${(user?.role || "").replace(/_/g, " ")}`}
+      breadcrumb={[{ label: "Company Portal" }]}
+    >
       {/* Stat Tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-        <StatCard icon={MapPin}     label="Locations"      value={stats.locations} subtitle="Manage sites →"        accent="#0ea5e9" to="/app/locations" />
-        <StatCard icon={BarChart3}  label="KPIs"           value={stats.metrics}   subtitle="Configure tracking →"  accent="#14b8a6" to="/app/kpi-setup" />
-        <StatCard icon={Database}   label="Submissions"    value={stats.entries}   subtitle="This financial year"   accent="#f59e0b" to="/app/esg-input" />
-        <StatCard icon={UserCheck}  label="Pending Review" value={stats.pending}   subtitle="Awaiting approval"     accent="#ef4444" to="/app/review" />
+        <StatCard icon={MapPin}     label="Locations"      value={stats.locations} subtitle="Manage sites →"        to="/app/locations" />
+        <StatCard icon={BarChart3}  label="KPIs"           value={stats.metrics}   subtitle="Configure tracking →"  accent="hsl(var(--teal))" to="/app/kpi-setup" />
+        <StatCard icon={Database}   label="Submissions"    value={stats.entries}   subtitle="This financial year"   accent="hsl(var(--warn))" to="/app/esg-input" />
+        <StatCard icon={UserCheck}  label="Pending Review" value={stats.pending}   subtitle="Awaiting approval"     accent="hsl(var(--destructive))" to="/app/review" />
       </div>
 
       {/* Quick Actions */}
@@ -118,16 +112,16 @@ export default function TenantDashboard() {
             <button
               key={a.label}
               onClick={() => navigate(a.path)}
-              className="bg-white rounded-xl p-5 border border-slate-200 flex items-start gap-4 text-left cursor-pointer hover:border-slate-300 hover:shadow-sm transition-all duration-200 group"
+              className="bg-card rounded-md p-5 border border-border flex items-start gap-4 text-left cursor-pointer hover:border-border hover:shadow-elevated transition-all duration-200 group"
             >
-              <div className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-200" style={{ background: `${a.color}15` }}>
-                <Icon size={20} style={{ color: a.color }} />
+              <div className="w-10 h-10 rounded-sm flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-200" style={{ background: `${a.color}15` }}>
+                <Icon size={20} style={{ color: a.color }} aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-bold text-brand-navy group-hover:text-brand-accent transition-colors">{a.label}</div>
-                <div className="text-[12px] text-slate-400 mt-0.5">{a.desc}</div>
+                <div className="text-ui font-bold text-foreground group-hover:text-primary transition-colors">{a.label}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{a.desc}</div>
               </div>
-              <ArrowRight size={15} className="text-slate-300 group-hover:text-brand-accent group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0" />
+              <ArrowRight size={15} className="text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0" aria-hidden="true" />
             </button>
           );
         })}
@@ -218,6 +212,6 @@ export default function TenantDashboard() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

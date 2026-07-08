@@ -7,27 +7,33 @@ export default {
     container: { center: true, padding: "2rem", screens: { "2xl": "1400px" } },
     extend: {
       colors: {
+        /* brand.* maps to design tokens — brand-accent === primary indigo */
         brand: {
-          navy:      "#0f172a",
-          navyLight: "#1e293b",
-          navyMid:   "#334155",
-          accent:    "#0ea5e9",
-          accentDk:  "#0284c7",
-          teal:      "#14b8a6",
-          tealDk:    "#0d9488",
+          navy:      "hsl(var(--foreground))",
+          navyLight: "hsl(222 47% 18%)",
+          navyMid:   "hsl(215 19% 35%)",
+          accent:    "hsl(var(--primary))",
+          accentDk:  "hsl(var(--primary-dark))",
+          teal:      "hsl(var(--teal))",
+          tealDk:    "hsl(var(--teal-dark))",
         },
         border:      "hsl(var(--border))",
         input:       "hsl(var(--input))",
         ring:        "hsl(var(--ring))",
         background:  "hsl(var(--background))",
         foreground:  "hsl(var(--foreground))",
-        primary:     { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+        primary:     { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))", dark: "hsl(var(--primary-dark))" },
         secondary:   { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
-        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
+        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))", tint: "hsl(var(--destructive-tint))" },
         muted:       { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
         accent:      { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
         popover:     { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
         card:        { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+        ok:          { DEFAULT: "hsl(var(--ok))", tint: "hsl(var(--ok-tint))" },
+        warn:        { DEFAULT: "hsl(var(--warn))", tint: "hsl(var(--warn-tint))" },
+        info:        { DEFAULT: "hsl(var(--info))", tint: "hsl(var(--info-tint))" },
+        sunken:      "hsl(var(--surface-sunken))",
+        placeholder: "hsl(var(--placeholder))",
         sidebar:     {
           DEFAULT: "hsl(var(--sidebar-background))", foreground: "hsl(var(--sidebar-foreground))",
           primary: "hsl(var(--sidebar-primary))", "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
@@ -35,36 +41,42 @@ export default {
           border: "hsl(var(--sidebar-border))", ring: "hsl(var(--sidebar-ring))",
         },
       },
-      borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
+      borderRadius: {
+        lg: "var(--radius-lg)",
+        md: "var(--radius-md)",
+        sm: "var(--radius)",
+      },
       fontFamily: {
         sans:  ['"Inter"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
         mono:  ['"IBM Plex Mono"', '"JetBrains Mono"', 'Menlo', 'Consolas', 'monospace'],
       },
-      // ── UI Type Scale ──────────────────────────────────────────────
-      // Use these named classes instead of arbitrary text-[Xpx] values.
-      // Tailwind defaults (do NOT re-add these):
-      //   text-xs   = 12px  → small secondary text
-      //   text-sm   = 14px  → body prose
-      //   text-base = 16px  → section / card headers
-      //   text-lg   = 18px  → page <h1>
-      //   text-xl   = 20px  → dashboard welcome heading
-      //   text-2xl  = 24px  → stat card numbers
-      // Custom additions (sizes Tailwind doesn't have):
-      //   text-2xs  = 10px  → uppercase tracking labels, taglines, sidebar portal label
-      //   text-label= 11px  → table column headers, badges, meta info, form sub-labels
-      //   text-ui   = 13px  → primary UI text: buttons, inputs, table cells, nav items
+      // Type scale:
+      //   text-2xs  = 10px  → uppercase labels, taglines
+      //   text-label= 11px  → table headers, badges, meta
+      //   text-ui   = 13px  → buttons, inputs, table cells, nav
+      //   text-xs   = 12px  → secondary body (Tailwind default)
+      //   text-sm   = 14px  → body (Tailwind default)
+      //   text-base = 16px  → section headers (Tailwind default)
+      //   text-lg   = 18px  → page h1 (Tailwind default)
       fontSize: {
         "2xs":   ["10px", { lineHeight: "1.2",  letterSpacing: "0.04em" }],
         "label": ["11px", { lineHeight: "1.4" }],
         "ui":    ["13px", { lineHeight: "1.5" }],
       },
+      boxShadow: {
+        "surface": "0 1px 2px rgba(28, 26, 22, 0.05)",
+        "elevated": "0 4px 12px rgba(28, 26, 22, 0.08), 0 0 0 1px rgba(28, 26, 22, 0.04)",
+        "modal": "0 16px 48px rgba(28, 26, 22, 0.16), 0 0 0 1px rgba(28, 26, 22, 0.04)",
+      },
       keyframes: {
         "fade-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },
         "slide-in-right": { from: { transform: "translateX(100%)" }, to: { transform: "translateX(0)" } },
+        "slide-in-left": { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(0)" } },
       },
       animation: {
         "fade-in": "fade-in 0.2s ease-out",
         "slide-in-right": "slide-in-right 0.25s ease-out",
+        "slide-in-left": "slide-in-left 0.25s ease-out",
       },
     },
   },

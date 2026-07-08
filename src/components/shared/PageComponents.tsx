@@ -1,62 +1,12 @@
-import { Fragment } from "react";
 import type { LucideIcon } from "lucide-react";
-import { TrendingUp, TrendingDown, Inbox, ChevronRight } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
+import { TrendingUp, TrendingDown, Inbox } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-// ═══ BREADCRUMB ═══
-export function Breadcrumb({ items }: { items: Array<{ label: string; href?: string }> }) {
-  return (
-    <nav className="flex items-center gap-1 mb-1" aria-label="Breadcrumb">
-      {items.map((item, i) => {
-        const isLast = i === items.length - 1;
-        return (
-          <Fragment key={i}>
-            {i > 0 && <ChevronRight size={11} className="text-slate-300 flex-shrink-0" />}
-            {item.href && !isLast ? (
-              <Link
-                to={item.href}
-                className="text-label text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                {item.label}
-              </Link>
-            ) : (
-              <span className={`text-label ${isLast ? "text-slate-500 font-medium" : "text-slate-400"}`}>
-                {item.label}
-              </span>
-            )}
-          </Fragment>
-        );
-      })}
-    </nav>
-  );
-}
-
-// ═══ PAGE HEADER ═══
-export function PageHeader({
-  title,
-  description,
-  breadcrumb,
-  children,
-}: {
-  title: string;
-  description?: string;
-  breadcrumb?: Array<{ label: string; href?: string }>;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className="mb-5 pb-4 border-b border-slate-100">
-      {breadcrumb && <Breadcrumb items={breadcrumb} />}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight">{title}</h1>
-          {description && <p className="text-[11px] text-slate-500 mt-0.5">{description}</p>}
-        </div>
-        {children && <div className="flex items-center gap-2 flex-shrink-0">{children}</div>}
-      </div>
-    </div>
-  );
-}
+// Re-export PageShell pieces so existing imports keep working
+export { Breadcrumb, PageHeader, PageShell } from "@/components/shared/PageShell";
+export type { BreadcrumbItem } from "@/components/shared/PageShell";
 
 // ═══ STAT CARD (clickable) ═══
 export function StatCard({
@@ -66,7 +16,7 @@ export function StatCard({
   subtitle,
   change,
   changeType,
-  accent = "#0ea5e9",
+  accent,
   to,
 }: {
   icon: LucideIcon;
@@ -75,45 +25,62 @@ export function StatCard({
   subtitle?: string;
   change?: string;
   changeType?: "up" | "down";
+  /** CSS color or hsl — defaults to primary token */
   accent?: string;
   to?: string;
 }) {
   const navigate = useNavigate();
+  const accentColor = accent || "hsl(var(--primary))";
+
   return (
     <div
-      className={`bg-white rounded-xl p-5 border border-slate-200/80 flex flex-col gap-3 group relative overflow-hidden transition-all duration-200
-        shadow-[0_1px_3px_rgba(15,23,42,0.06),0_0_0_1px_rgba(15,23,42,0.03)]
-        ${to ? "cursor-pointer hover:shadow-[0_6px_20px_rgba(15,23,42,0.10),0_0_0_1px_rgba(15,23,42,0.05)] hover:-translate-y-px" : ""}`}
+      role={to ? "link" : undefined}
+      tabIndex={to ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (to && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          navigate(to);
+        }
+      }}
+      className={cn(
+        "bg-card rounded-md p-5 border border-border flex flex-col gap-3 group relative overflow-hidden transition-all duration-200 shadow-surface",
+        to && "cursor-pointer hover:shadow-elevated hover:-translate-y-px"
+      )}
       onClick={() => to && navigate(to)}
     >
-      {/* subtle gradient accent bar on the left */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl opacity-80"
-        style={{ background: accent }}
+        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-md opacity-80"
+        style={{ background: accentColor }}
+        aria-hidden="true"
       />
       <div className="flex justify-between items-start pl-2">
         <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105 duration-200"
-          style={{ background: `${accent}18` }}
+          className="w-9 h-9 rounded-sm flex items-center justify-center transition-transform group-hover:scale-105 duration-200"
+          style={{ background: `${accentColor}18` }}
         >
-          <Icon size={18} style={{ color: accent }} />
+          <Icon size={18} style={{ color: accentColor }} aria-hidden="true" />
         </div>
         {change && (
-          <span className={`text-[11px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-full ${
-            changeType === "up" ? "text-green-700 bg-green-50" :
-            changeType === "down" ? "text-red-600 bg-red-50" :
-            "text-slate-500 bg-slate-100"
-          }`}>
-            {changeType === "up" && <TrendingUp size={11} />}
-            {changeType === "down" && <TrendingDown size={11} />}
+          <span
+            className={cn(
+              "text-label font-bold flex items-center gap-1 px-2 py-0.5 rounded-full",
+              changeType === "up" && "text-ok bg-ok-tint",
+              changeType === "down" && "text-destructive bg-destructive-tint",
+              !changeType && "text-muted-foreground bg-sunken"
+            )}
+          >
+            {changeType === "up" && <TrendingUp size={11} aria-hidden="true" />}
+            {changeType === "down" && <TrendingDown size={11} aria-hidden="true" />}
             {change}
           </span>
         )}
       </div>
       <div className="pl-2">
-        <div className="text-[24px] font-bold text-brand-navy leading-none tracking-tight tabular-nums">{value}</div>
-        <div className="text-[12px] font-medium text-slate-500 mt-1">{label}</div>
-        {subtitle && <div className="text-[11px] text-slate-500 mt-0.5">{subtitle}</div>}
+        <div className="text-2xl font-bold text-foreground leading-none tracking-tight tabular-nums">
+          {value}
+        </div>
+        <div className="text-xs font-medium text-muted-foreground mt-1">{label}</div>
+        {subtitle && <div className="text-label text-muted-foreground mt-0.5">{subtitle}</div>}
       </div>
     </div>
   );
@@ -132,35 +99,74 @@ export function EmptyState({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-      <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center mb-3 ring-1 ring-slate-200">
-        <Icon size={22} className="text-slate-400" />
+    <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+      <div className="w-11 h-11 rounded-md bg-sunken flex items-center justify-center mb-3 ring-1 ring-border">
+        <Icon size={22} className="text-muted-foreground" aria-hidden="true" />
       </div>
-      <h3 className="text-[14px] font-bold text-brand-navy mb-1">{title}</h3>
-      {description && <p className="text-[12px] text-slate-500 max-w-sm leading-relaxed">{description}</p>}
+      <h3 className="text-sm font-bold text-foreground mb-1">{title}</h3>
+      {description && (
+        <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">{description}</p>
+      )}
       {children && <div className="mt-4">{children}</div>}
     </div>
   );
 }
 
 // ═══ LOADING SKELETON ═══
-export function LoadingSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: number }) {
+export function LoadingSkeleton({
+  rows = 5,
+  cols = 4,
+  variant = "table",
+}: {
+  rows?: number;
+  cols?: number;
+  variant?: "table" | "cards";
+}) {
+  if (variant === "cards") {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: cols }).map((_, i) => (
+          <div key={i} className="surface p-5 space-y-3">
+            <Skeleton className="h-9 w-9 rounded-sm" />
+            <Skeleton className="h-7 w-20" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      {/* Header row */}
       <div className="flex gap-4 mb-2">
         {Array.from({ length: cols }).map((_, i) => (
           <Skeleton key={i} className="h-4 flex-1" />
         ))}
       </div>
-      {/* Data rows */}
       {Array.from({ length: rows }).map((_, r) => (
         <div key={r} className="flex gap-4">
           {Array.from({ length: cols }).map((_, c) => (
-            <Skeleton key={c} className="h-[14px] flex-1 opacity-70" />
+            <Skeleton key={c} className="h-3.5 flex-1 opacity-70" />
           ))}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Page content loading skeleton used during route transitions */
+export function PageLoadingSkeleton() {
+  return (
+    <div className="page-root" aria-busy="true" aria-label="Loading page">
+      <div className="mb-5 pb-4 border-b border-[hsl(var(--border-hairline))] space-y-2">
+        <Skeleton className="h-3 w-40" />
+        <Skeleton className="h-6 w-56" />
+        <Skeleton className="h-3 w-72" />
+      </div>
+      <LoadingSkeleton variant="cards" cols={4} />
+      <div className="mt-5 surface p-6">
+        <LoadingSkeleton rows={6} cols={4} />
+      </div>
     </div>
   );
 }

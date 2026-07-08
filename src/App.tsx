@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
 import { RequirePlatform, RequireTenant } from "@/components/shared/RequireAuth";
 import { PlatformLayout, TenantLayout } from "@/components/layout/Layouts";
+import { PageLoadingSkeleton } from "@/components/shared/PageComponents";
 
 // Auth — small, load eagerly
 import LoginPage from "@/pages/auth/LoginPage";
@@ -37,9 +38,8 @@ const AuditorRemarksPage    = lazy(() => import("@/pages/app/AuditorRemarksPage"
 const ESGLibraryPage        = lazy(() => import("@/pages/app/ESGLibraryPage"));
 const HelpAndSupportPage    = lazy(() => import("@/pages/app/HelpAndSupportPage"));
 
-// Minimal fallback shown during chunk load — just a blank white flash, no spinner
 function PageLoading() {
-  return <div className="flex-1 bg-white" />;
+  return <PageLoadingSkeleton />;
 }
 
 export default function App() {

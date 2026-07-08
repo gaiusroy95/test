@@ -169,7 +169,7 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
       >
         {/* ── Logo + collapse toggle ── */}
         <div className={`flex items-center border-b border-white/10 ${collapsed ? "flex-col gap-3 px-3 py-4" : "px-4 py-4 gap-3"}`}>
-          <div className="w-[36px] h-[36px] rounded-[10px] bg-gradient-to-br from-brand-teal to-brand-accent flex items-center justify-center flex-shrink-0">
+          <div className="w-[36px] h-[36px] rounded-md bg-gradient-to-br from-brand-teal to-primary flex items-center justify-center flex-shrink-0">
             <Leaf size={19} className="text-white" />
           </div>
           {!collapsed && (
@@ -217,7 +217,7 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                   onClick={() => navigate(item.path)}
                   className={`flex items-center gap-3 rounded-lg border-none cursor-pointer w-full text-left transition-all duration-150
                     ${collapsed ? "px-[14px] py-[9px] justify-center" : "px-4 py-[9px]"}
-                    ${active ? "bg-brand-accent/[0.14] text-brand-accent font-semibold" : "bg-transparent text-slate-400 font-medium hover:bg-white/[0.06] hover:text-slate-200"}
+                    ${active ? "bg-primary/15 text-primary font-semibold" : "bg-transparent text-slate-400 font-medium hover:bg-white/[0.06] hover:text-slate-200"}
                   `}
                   style={{ fontSize: 13.5 }}
                 >
@@ -288,7 +288,7 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button className="w-full flex justify-center py-2 rounded-lg hover:bg-white/10 transition-colors outline-none">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-accent to-brand-teal flex items-center justify-center text-white text-[11px] font-bold">
+                      <div className="w-8 h-8 rounded-sm bg-gradient-to-br from-primary to-brand-teal flex items-center justify-center text-white text-label font-bold">
                         {initials}
                       </div>
                     </button>

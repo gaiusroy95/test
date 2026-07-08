@@ -1,9 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { Fragment, useEffect, useState, useCallback } from "react";
 import { platformApi } from "@/api/client";
-import { Breadcrumb, LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { PageShell } from "@/components/shared/PageShell";
+import { DataTable } from "@/components/shared/DataTable";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { FileText, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, ChevronDown } from "lucide-react";
 import type { AuditLogEntry } from "@/types";
 import { formatDateTime } from "@/lib/utils";
 
@@ -55,83 +57,86 @@ export default function AuditLogPage() {
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  const totalPages = Math.ceil(total / pageSize);
-
   return (
-    <div className="p-6 max-w-[1400px]">
-      {/* Compact toolbar: title + filter in one row */}
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <div>
-          <Breadcrumb items={[{ label: "Platform Admin", href: "/platform" }, { label: "Audit Log" }]} />
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight">Audit Log</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">{total} platform actions recorded</p>
-        </div>
-        <select value={actionFilter} onChange={(e) => { setActionFilter(e.target.value); setPage(1); }} className="py-1.5 px-3 rounded-lg border border-slate-200 text-[12px] bg-white outline-none text-brand-navy">
-          <option value="">All Actions</option>
-          {ACTIONS.map((a) => <option key={a} value={a}>{a.replace(/_/g, " ")}</option>)}
-        </select>
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {loading ? <div className="p-6"><LoadingSkeleton rows={10} cols={5} /></div> : entries.length === 0 ? (
-          <EmptyState icon={FileText} title="No audit entries" description={actionFilter ? "No entries match this filter" : "Platform actions will be logged here automatically"} />
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
-                <thead><tr className="border-b-2 border-slate-100 bg-slate-50/60">
-                  {["Action", "Target Company", "Target Admin", "Reason", "Date/Time", ""].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr></thead>
-                <tbody>
-                  {entries.map((e) => (
-                    <>
-                      <tr key={e.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors cursor-pointer" onClick={() => setExpandedId(expandedId === e.id ? null : e.id)}>
-                        <td className="px-4 py-2">
-                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 whitespace-nowrap">
-                            {e.action.replace(/_/g, " ")}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-slate-600 text-[12px]">{e.target_company_id ? (companyMap[e.target_company_id] || e.target_company_id.slice(0, 8)) : "—"}</td>
-                        <td className="px-4 py-2 text-slate-600 text-[12px]">{e.target_platform_user_id ? (adminMap[e.target_platform_user_id] || e.target_platform_user_id.slice(0, 8)) : "—"}</td>
-                        <td className="px-4 py-2 text-slate-500 text-[12px] truncate max-w-[250px]">{e.reason || "—"}</td>
-                        <td className="px-4 py-2 text-slate-400 text-[12px] whitespace-nowrap">{formatDateTime(e.actioned_at)}</td>
-                        <td className="px-4 py-2">
-                          {e.metadata && (
-                            <ChevronDown size={14} className={`text-slate-400 transition-transform ${expandedId === e.id ? "rotate-180" : ""}`} />
-                          )}
-                        </td>
-                      </tr>
-                      {expandedId === e.id && e.metadata && (
-                        <tr key={`${e.id}-detail`}>
-                          <td colSpan={6} className="px-6 py-4 bg-slate-50/80 border-b border-slate-100">
-                            <div className="text-[11px] font-semibold text-slate-500 mb-2 uppercase tracking-wider">Metadata</div>
-                            <pre className="text-[11px] text-slate-600 bg-white p-3 rounded-lg border border-slate-100 overflow-x-auto font-mono">
-                              {JSON.stringify(e.metadata, null, 2)}
-                            </pre>
-                          </td>
-                        </tr>
+    <PageShell
+      title="Audit Log"
+      description={`${total} platform actions recorded`}
+      breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Audit Log" }]}
+      actions={
+        <Select value={actionFilter || "__all__"} onValueChange={(v) => { setActionFilter(v === "__all__" ? "" : v); setPage(1); }}>
+          <SelectTrigger className="w-[180px] h-8 text-xs">
+            <SelectValue placeholder="All Actions" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Actions</SelectItem>
+            {ACTIONS.map((a) => (
+              <SelectItem key={a} value={a}>{a.replace(/_/g, " ")}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      }
+    >
+      <DataTable
+        loading={loading}
+        empty={entries.length === 0 ? {
+          icon: FileText,
+          title: "No audit entries",
+          description: actionFilter ? "No entries match this filter" : "Platform actions will be logged here automatically",
+        } : undefined}
+        pagination={{ page, pageSize, total, onPageChange: setPage }}
+        skeletonCols={6}
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full text-ui">
+            <thead>
+              <tr className="border-b border-border bg-sunken">
+                {["Action", "Target Company", "Target Admin", "Reason", "Date/Time", ""].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-label font-semibold uppercase tracking-wider text-muted-foreground">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((e) => (
+                <Fragment key={e.id}>
+                  <tr
+                    className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken transition-colors cursor-pointer"
+                    onClick={() => setExpandedId(expandedId === e.id ? null : e.id)}
+                  >
+                    <td className="px-4 py-2">
+                      <span className="text-2xs font-bold px-2.5 py-1 rounded-full bg-sunken text-muted-foreground whitespace-nowrap">
+                        {e.action.replace(/_/g, " ")}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground text-xs">
+                      {e.target_company_id ? (companyMap[e.target_company_id] || e.target_company_id.slice(0, 8)) : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground text-xs">
+                      {e.target_platform_user_id ? (adminMap[e.target_platform_user_id] || e.target_platform_user_id.slice(0, 8)) : "—"}
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground text-xs truncate max-w-[250px]">{e.reason || "—"}</td>
+                    <td className="px-4 py-2 text-muted-foreground text-xs whitespace-nowrap">{formatDateTime(e.actioned_at)}</td>
+                    <td className="px-4 py-2">
+                      {e.metadata && (
+                        <ChevronDown size={14} className={`text-muted-foreground transition-transform ${expandedId === e.id ? "rotate-180" : ""}`} aria-hidden="true" />
                       )}
-                    </>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-                <span className="text-[12px] text-slate-500">Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}</span>
-                <div className="flex items-center gap-1">
-                  <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronLeft size={16} className="text-slate-500" /></button>
-                  <span className="px-3 text-[12px] font-semibold text-brand-navy">{page} / {totalPages}</span>
-                  <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronRight size={16} className="text-slate-500" /></button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+                    </td>
+                  </tr>
+                  {expandedId === e.id && e.metadata && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 bg-sunken border-b border-[hsl(var(--border-hairline))]">
+                        <div className="text-label font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Metadata</div>
+                        <pre className="text-label text-muted-foreground bg-card p-3 rounded-sm border border-border overflow-x-auto font-mono">
+                          {JSON.stringify(e.metadata, null, 2)}
+                        </pre>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </DataTable>
+    </PageShell>
   );
 }

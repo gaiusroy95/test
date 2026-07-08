@@ -4,11 +4,11 @@
 
 @layer base {
   :root {
-    /* ── Surfaces — warm neutral, not cool slate ── */
+    /* ── Surfaces — warm neutral ── */
     --background:        36 25% 97%;    /* #FBFAF7 — warm paper */
     --card:              0 0% 100%;     /* #FFFFFF — cards / inputs */
     --surface-sunken:    36 20% 94%;    /* #F4F2ED — wells, table stripes */
-    --border:            36 20% 90%;    /* #E8E4DA — rules, borders */
+    --border:            36 12% 88%;    /* slightly more visible borders */
     --border-hairline:   36 20% 93%;    /* #EFECE5 — lightest divider */
 
     /* ── Ink — warm near-blacks ── */
@@ -16,12 +16,13 @@
     --muted-foreground:  25 7% 47%;     /* #7A746B — secondary / meta */
     --placeholder:       25 7% 63%;     /* #A9A298 — disabled / placeholder */
 
-    /* ── Accent — deep indigo (replaces sky blue) ── */
+    /* ── Accent — deep indigo (single source of truth) ── */
     --primary:           240 53% 47%;   /* #3A3AB8 */
     --primary-foreground: 0 0% 100%;
+    --primary-dark:      240 53% 38%;   /* #2D2D94 — hover */
     --ring:              240 53% 47%;
 
-    /* ── Accent tint (focus ring bg) ── */
+    /* ── Accent tint (focus / selected bg) ── */
     --accent:            240 55% 95%;   /* #ECECF9 */
     --accent-foreground: 240 53% 47%;
 
@@ -35,17 +36,21 @@
     --info:              210 58% 43%;   /* #2E6BB0 */
     --info-tint:         210 55% 92%;   /* #E0EAF5 */
 
-    /* ── Legacy shadcn tokens (kept for compatibility) ── */
+    /* ── Teal — secondary brand (module accents, logo) ── */
+    --teal:              173 58% 39%;   /* #14b8a6 */
+    --teal-dark:         175 77% 26%;   /* #0d9488 */
+
+    /* ── Legacy shadcn tokens ── */
     --card-foreground: 30 9% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 30 9% 10%;
     --secondary: 36 20% 94%;
     --secondary-foreground: 30 9% 10%;
     --muted: 36 20% 94%;
-    --input: 36 20% 90%;
+    --input: 36 12% 88%;
     --destructive-foreground: 0 0% 100%;
 
-    /* ── Sidebar — keep existing dark navy ── */
+    /* ── Sidebar — dark navy ── */
     --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 210 40% 96%;
     --sidebar-primary:   240 53% 47%;
@@ -55,7 +60,15 @@
     --sidebar-border:    217 33% 17%;
     --sidebar-ring:      240 53% 47%;
 
-    --radius: 0.25rem;   /* 4px — tighter, more enterprise */
+    /* ── Radius tiers ── */
+    --radius: 0.375rem;       /* 6px — default (inputs, badges) */
+    --radius-md: 0.5rem;      /* 8px — cards, panels */
+    --radius-lg: 0.75rem;     /* 12px — modals, drawers */
+
+    /* ── Density (overridden by data-density attr in M3) ── */
+    --density-row: 2.25rem;   /* 36px */
+    --density-pad-x: 1rem;
+    --density-pad-y: 0.5rem;
   }
 
   *, *::before, *::after { @apply border-border; }
@@ -75,70 +88,72 @@
     letter-spacing: -0.01em;
   }
 
-  /* Crisp focus outlines for keyboard navigation */
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
     border-radius: var(--radius);
   }
 
-  /* Selection color */
   ::selection {
-    background-color: rgba(14, 165, 233, 0.15);
-    color: #0f172a;
+    background-color: hsl(var(--primary) / 0.15);
+    color: hsl(var(--foreground));
   }
 
-  /* Slim, elegant scrollbars */
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
 
-  /* Typography hierarchy */
   h1, h2, h3, h4, h5, h6 {
     letter-spacing: -0.025em;
     font-weight: 700;
+    color: hsl(var(--foreground));
   }
 }
 
 @layer components {
-  /* Page container */
   .page-root {
-    @apply p-6 max-w-[1600px] animate-page-in;
+    @apply p-6 max-w-[1600px] w-full mx-auto animate-page-in;
   }
 
-  /* Standardised content padding — use on full-page panel views */
   .page-content {
     @apply px-6 py-5;
   }
 
-  /* Card surface */
   .surface {
-    @apply bg-white border border-[hsl(var(--border))];
-    border-radius: var(--radius);
-    box-shadow: 0 1px 2px rgba(28,26,22,0.05);
+    @apply bg-card border border-border;
+    border-radius: var(--radius-md);
+    box-shadow: 0 1px 2px rgba(28, 26, 22, 0.05);
   }
 
-  /* Module/section card header — no tinted background */
   .card-header {
     @apply flex items-center gap-2.5 px-4 py-2.5 border-b border-[hsl(var(--border-hairline))];
     background: transparent;
   }
 
-  /* Standard data row */
   .data-row {
     @apply flex items-center gap-3 px-4 py-2.5 border-b border-[hsl(var(--border-hairline))]
            last:border-b-0 transition-colors hover:bg-[hsl(var(--surface-sunken))];
   }
 
-  /* Column/meta label */
   .data-label {
-    @apply font-sans text-[11px] font-semibold uppercase tracking-[0.07em] text-[hsl(var(--muted-foreground))];
+    @apply font-sans text-label font-semibold uppercase tracking-[0.07em] text-muted-foreground;
   }
 
-  /* Metric number */
   .metric-value {
     @apply font-mono text-[22px] font-medium leading-none tracking-tight tabular-nums;
+  }
+
+  /* Skip-to-content for accessibility */
+  .skip-to-content {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100]
+           focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground
+           focus:rounded-md focus:text-ui focus:font-semibold;
   }
 }
 
@@ -155,20 +170,16 @@
   to   { background-position: 200% 0; }
 }
 .shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background: linear-gradient(
+    90deg,
+    hsl(var(--surface-sunken)) 25%,
+    hsl(var(--border)) 50%,
+    hsl(var(--surface-sunken)) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
 
-/* ── Support (read-only) session styles ──
-   In support sessions the tenant content shell gets `.support-readonly`.
-   Write controls (Save/Submit/Delete/Add/Edit/Approve etc.) are HIDDEN at
-   the React level via <WriteOnly> (see components/shared/WriteOnly.tsx),
-   so navigation, tabs, dialogs-for-viewing, filters, pagination, and read
-   actions all remain fully interactive. Backend is the source of truth and
-   returns 403 for any non-GET in support mode — this class is just a hook
-   for any subtle visual cue we may want later (e.g. a thin amber border).
-   Do NOT add pointer-events: none here — that broke navigation in V1. */
 .support-readonly { position: relative; }
 .support-readonly input[readonly],
 .support-readonly textarea[readonly] {

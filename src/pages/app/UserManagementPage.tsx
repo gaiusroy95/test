@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { tenantApi } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
-import { Breadcrumb, LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { DataTable } from "@/components/shared/DataTable";
 import { RoleBadge } from "@/components/shared/StatusBadge";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
@@ -16,7 +17,7 @@ import {
   DialogTitle, DialogBody, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Users, Search, Pencil, UserX, UserCheck, ChevronLeft, ChevronRight, MapPin, Trash2 } from "lucide-react";
+import { Plus, Users, Pencil, UserX, UserCheck, MapPin, Trash2 } from "lucide-react";
 import type { User, Location } from "@/types";
 import { formatDate, getApiError } from "@/lib/utils";
 import { getModuleIcon } from "@/lib/constants";
@@ -263,27 +264,20 @@ export default function UserManagementPage() {
     finally { setActionLoading(false); }
   };
 
-  const totalPages = Math.ceil(total / pageSize);
-
-  // Reusable input class
-  const inputCls = "w-full h-9 px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-brand-navy outline-none focus:border-brand-accent transition-colors bg-white focus:ring-2 focus:ring-brand-accent/20";
+  // Reusable input class for dialogs
+  const inputCls = "w-full h-9 px-3 py-2 rounded-sm border border-input text-ui text-foreground outline-none focus:border-primary transition-colors bg-card focus:ring-2 focus:ring-primary/20";
 
   return (
-    <div className="page-root">
-      {/* Compact toolbar: title + filters + action in one row */}
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <div>
-          <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "User Management" }]} />
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight">User Management</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">{total} user{total !== 1 ? "s" : ""} in your organization</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or email…" className="pl-8 w-[220px] h-8 text-[12px]" />
-          </div>
+    <PageShell
+      title="User Management"
+      description={`${total} user${total !== 1 ? "s" : ""} in your organization`}
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "User Management" }]}
+    >
+      <DataTable
+        search={{ value: search, onChange: setSearch, placeholder: "Search name or email…" }}
+        filters={
           <Select value={roleFilter || "__all__"} onValueChange={(v) => { setRoleFilter(v === "__all__" ? "" : v); setPage(1); }}>
-            <SelectTrigger className="w-[140px] h-8 text-[12px]">
+            <SelectTrigger className="w-[140px] h-8 text-xs">
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
@@ -294,120 +288,106 @@ export default function UserManagementPage() {
               <SelectItem value="AUDITOR">Auditor</SelectItem>
             </SelectContent>
           </Select>
-          {isAdmin && (
-            <Button onClick={openCreate} className="h-8 text-[12px] px-3">
-              <Plus size={14} /> Add User
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="surface">
-        {loading ? (
-          <div className="p-6"><LoadingSkeleton rows={8} cols={7} /></div>
-        ) : users.length === 0 ? (
-          <EmptyState icon={Users} title="No users found" description={search || roleFilter ? "Try adjusting your filters" : "Add your first team member"}>
-            {isAdmin && !search && !roleFilter && (
-              <Button onClick={openCreate}><Plus size={14} /> Add User</Button>
-            )}
-          </EmptyState>
-        ) : (
-          <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {["Name", "Email", "Role", "Modules", "Locations", "Status", "Last Login", "Created", ...(isAdmin ? [""] : [])].map((h, i) => (
-                    <TableHead key={i}>{h}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((u) => (
-                  <TableRow key={u.user_id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-accent to-brand-teal flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
-                          {u.first_name[0]}{u.last_name[0]}
-                        </div>
-                        <span className="font-semibold text-brand-navy">{u.first_name} {u.last_name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-slate-500">{u.email}</TableCell>
-                    <TableCell><RoleBadge role={u.role} /></TableCell>
-                    <TableCell><ModulePills moduleIds={u.assigned_module_ids ?? []} role={u.role} /></TableCell>
-                    <TableCell>
-                      {u.role !== "LOCATION_USER" ? (
-                        <span className="text-[11px] font-semibold text-slate-400">All</span>
-                      ) : (u.assigned_location_ids ?? []).length === 0 ? (
-                        <Badge variant="warning" className="text-[10px]">None</Badge>
-                      ) : (
-                        <div className="flex flex-wrap gap-1">
-                          {(u.assigned_location_ids ?? []).slice(0, 2).map(lid => {
-                            const loc = locations.find(l => l.location_id === lid);
-                            return loc ? (
-                              <span key={lid} className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">
-                                <MapPin size={9} /> {loc.location_name}
-                              </span>
-                            ) : null;
-                          })}
-                          {(u.assigned_location_ids ?? []).length > 2 && (
-                            <span className="text-[10px] text-slate-400 self-center">+{(u.assigned_location_ids ?? []).length - 2}</span>
-                          )}
-                        </div>
+        }
+        actions={isAdmin ? (
+          <Button onClick={openCreate} size="sm">
+            <Plus size={14} /> Add User
+          </Button>
+        ) : undefined}
+        loading={loading}
+        empty={users.length === 0 ? {
+          icon: Users,
+          title: "No users found",
+          description: search || roleFilter ? "Try adjusting your filters" : "Add your first team member",
+          children: isAdmin && !search && !roleFilter ? (
+            <Button onClick={openCreate}><Plus size={14} /> Add User</Button>
+          ) : undefined,
+        } : undefined}
+        pagination={{ page, pageSize, total, onPageChange: setPage }}
+        skeletonCols={8}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {["Name", "Email", "Role", "Modules", "Locations", "Status", "Last Login", "Created", ...(isAdmin ? [""] : [])].map((h, i) => (
+                <TableHead key={i}>{h}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((u) => (
+              <TableRow key={u.user_id}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-sm bg-primary text-primary-foreground flex items-center justify-center text-label font-bold flex-shrink-0">
+                      {u.first_name[0]}{u.last_name[0]}
+                    </div>
+                    <span className="font-semibold text-foreground">{u.first_name} {u.last_name}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                <TableCell><RoleBadge role={u.role} /></TableCell>
+                <TableCell><ModulePills moduleIds={u.assigned_module_ids ?? []} role={u.role} /></TableCell>
+                <TableCell>
+                  {u.role !== "LOCATION_USER" ? (
+                    <span className="text-label font-semibold text-muted-foreground">All</span>
+                  ) : (u.assigned_location_ids ?? []).length === 0 ? (
+                    <Badge variant="warning">None</Badge>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {(u.assigned_location_ids ?? []).slice(0, 2).map(lid => {
+                        const loc = locations.find(l => l.location_id === lid);
+                        return loc ? (
+                          <span key={lid} className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm bg-sunken text-muted-foreground text-2xs font-semibold">
+                            <MapPin size={9} aria-hidden="true" /> {loc.location_name}
+                          </span>
+                        ) : null;
+                      })}
+                      {(u.assigned_location_ids ?? []).length > 2 && (
+                        <span className="text-2xs text-muted-foreground self-center">+{(u.assigned_location_ids ?? []).length - 2}</span>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={u.anonymised_at ? "destructive" : u.is_active ? "success" : "secondary"} className="text-[10px]">
-                        {u.anonymised_at ? "Erased" : u.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-slate-400 text-[12px]">{u.last_login_at ? formatDate(u.last_login_at) : "Never"}</TableCell>
-                    <TableCell className="text-slate-400 text-[12px]">{formatDate(u.created_at)}</TableCell>
-                    {isAdmin && (
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon-sm" onClick={() => openEdit(u)} title="Edit">
-                            <Pencil size={14} />
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={u.anonymised_at ? "destructive" : u.is_active ? "success" : "secondary"}>
+                    {u.anonymised_at ? "Erased" : u.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-muted-foreground text-xs">{u.last_login_at ? formatDate(u.last_login_at) : "Never"}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">{formatDate(u.created_at)}</TableCell>
+                {isAdmin && (
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(u)} aria-label="Edit user">
+                        <Pencil size={14} />
+                      </Button>
+                      {u.is_active ? (
+                        u.user_id !== currentUser?.id && (
+                          <Button variant="ghost" size="icon-sm" onClick={() => setDeactivateTarget(u)} aria-label="Deactivate user" className="hover:bg-destructive-tint hover:text-destructive">
+                            <UserX size={14} />
                           </Button>
-                          {u.is_active ? (
-                            u.user_id !== currentUser?.id && (
-                              <Button variant="ghost" size="icon-sm" onClick={() => setDeactivateTarget(u)} title="Deactivate" className="hover:bg-red-50 hover:text-red-500">
-                                <UserX size={14} />
-                              </Button>
-                            )
-                          ) : (
-                            <>
-                              <Button variant="ghost" size="icon-sm" onClick={() => setReactivateTarget(u)} title="Reactivate" className="hover:bg-green-50 hover:text-green-600">
-                                <UserCheck size={14} />
-                              </Button>
-                              {!u.anonymised_at && (
-                                <Button variant="ghost" size="icon-sm" onClick={() => setEraseTarget(u)} title="Erase personal data (GDPR)" className="hover:bg-red-50 hover:text-red-600">
-                                  <Trash2 size={14} />
-                                </Button>
-                              )}
-                            </>
+                        )
+                      ) : (
+                        <>
+                          <Button variant="ghost" size="icon-sm" onClick={() => setReactivateTarget(u)} aria-label="Reactivate user" className="hover:bg-ok-tint hover:text-ok">
+                            <UserCheck size={14} />
+                          </Button>
+                          {!u.anonymised_at && (
+                            <Button variant="ghost" size="icon-sm" onClick={() => setEraseTarget(u)} aria-label="Erase personal data" className="hover:bg-destructive-tint hover:text-destructive">
+                              <Trash2 size={14} />
+                            </Button>
                           )}
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
-                <span className="text-[12px] text-slate-500">Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}</span>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft size={15} /></Button>
-                  <span className="px-3 text-[12px] font-semibold text-brand-navy">{page} / {totalPages}</span>
-                  <Button variant="outline" size="icon-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight size={15} /></Button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </DataTable>
 
       {/* ── Create User Dialog ── */}
       <ShadDialog open={createOpen} onOpenChange={(v) => { if (!v) setCreateOpen(false); }}>
@@ -522,6 +502,6 @@ export default function UserManagementPage() {
         variant="destructive"
         loading={actionLoading}
       />
-    </div>
+    </PageShell>
   );
 }
