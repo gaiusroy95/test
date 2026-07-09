@@ -1,15 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { tenantApi } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
-import { PageHeader, LoadingSkeleton } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { LoadingSkeleton } from "@/components/shared/PageComponents";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Save, ClipboardList, Settings2, ChevronLeft, ChevronRight, ShieldAlert } from "lucide-react";
+import { Save, ClipboardList, Settings2, ChevronLeft, ChevronRight, ShieldAlert, Palette } from "lucide-react";
 import { getApiError, formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SupportAccessInbox } from "@/components/tenant/SupportAccessInbox";
+import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
 
 const MONTH_OPTIONS = [
   { value: "1", label: "January" }, { value: "2", label: "February" },
@@ -65,14 +68,20 @@ function actionLabel(action: string) {
   return action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-type Tab = "config" | "support" | "compliance";
+type Tab = "config" | "appearance" | "support" | "compliance";
 
 export default function SettingsPage() {
+  const [searchParams] = useSearchParams();
   const { user } = useAuthStore();
   const isSupport = useIsSupportSession();
   const isAdmin = user?.role === "COMPANY_ADMIN" && !isSupport;
 
-  const [tab, setTab] = useState<Tab>("config");
+  const initialTab = (searchParams.get("tab") as Tab | null);
+  const [tab, setTab] = useState<Tab>(
+    initialTab === "appearance" || initialTab === "support" || initialTab === "compliance" || initialTab === "config"
+      ? initialTab
+      : "config"
+  );
 
   // ── Config tab ─────────────────────────────────────────────────────────────
   const [values, setValues]   = useState<SettingValues>(DEFAULTS);
@@ -143,36 +152,50 @@ export default function SettingsPage() {
   const auditPages = Math.ceil(auditTotal / auditPageSize);
 
   // ── Render ──────────────────────────────────────────────────────────────────
-  if (loading) return <div className="p-6"><LoadingSkeleton rows={6} cols={1} /></div>;
+  const tabBar = (
+    <div className="flex items-end border-b border-border -mb-px">
+      {([
+        { key: "config" as Tab,     label: "Company Config",   icon: Settings2 },
+        { key: "appearance" as Tab, label: "Appearance",      icon: Palette },
+        ...(isAdmin ? [{ key: "support" as Tab,    label: "Support Access",         icon: ShieldAlert }] : []),
+        ...(isAdmin ? [{ key: "compliance" as Tab, label: "Compliance & Audit Log", icon: ClipboardList }] : []),
+      ]).map(({ key, label, icon: Icon }) => (
+        <button
+          key={key}
+          onClick={() => setTab(key)}
+          className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${
+            tab === key
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground/90 hover:border-border"
+          }`}
+        >
+          <Icon size={14} /> {label}
+        </button>
+      ))}
+    </div>
+  );
 
-  return (
-    <div className="p-6 max-w-[1000px]">
-      <PageHeader
+  if (loading) {
+    return (
+      <PageShell
         title="Settings"
         description="Company configuration and compliance audit trail"
         breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Settings" }]}
-      />
+        className="max-w-[1000px]"
+      >
+        <LoadingSkeleton rows={6} cols={1} />
+      </PageShell>
+    );
+  }
 
-      {/* Tab bar */}
-      <div className="flex items-end border-b border-slate-200 mb-6">
-        {([
-          { key: "config",     label: "Company Config",   icon: Settings2 },
-          ...(isAdmin ? [{ key: "support",    label: "Support Access",         icon: ShieldAlert }] : []),
-          ...(isAdmin ? [{ key: "compliance", label: "Compliance & Audit Log", icon: ClipboardList }] : []),
-        ] as { key: Tab; label: string; icon: any }[]).map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${
-              tab === key
-                ? "border-brand-accent text-brand-accent"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-            }`}
-          >
-            <Icon size={14} /> {label}
-          </button>
-        ))}
-      </div>
+  return (
+    <PageShell
+      title="Settings"
+      description="Company configuration and compliance audit trail"
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Settings" }]}
+      toolbar={tabBar}
+      className="max-w-[1000px]"
+    >
 
       {/* ── Config tab ─────────────────────────────────────────────────────── */}
       {tab === "config" && (
@@ -211,13 +234,15 @@ export default function SettingsPage() {
 
           <div className="mt-7 flex items-center gap-3">
             <button onClick={handleSave} disabled={!isDirty || saving}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-accent text-white text-[13px] font-semibold hover:bg-brand-accentDk disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primaryDk disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
               <Save size={15} /> {saving ? "Saving…" : "Save Changes"}
             </button>
             {isDirty && <span className="text-[12px] text-amber-500 font-medium">Unsaved changes</span>}
           </div>
         </div>
       )}
+
+      {tab === "appearance" && <AppearanceSettings />}
 
       {/* ── Support Access tab ─────────────────────────────────────────────── */}
       {tab === "support" && isAdmin && <SupportAccessInbox />}
@@ -226,18 +251,18 @@ export default function SettingsPage() {
       {tab === "compliance" && isAdmin && (
         <div>
           <div className="mb-4">
-            <p className="text-[12px] text-slate-500">
+            <p className="text-[12px] text-muted-foreground">
               Append-only record of all significant actions in your organisation.
               Required for GDPR / DPDP accountability obligations.
-              {auditTotal > 0 && <span className="ml-2 font-semibold text-brand-navy">{auditTotal} entries</span>}
+              {auditTotal > 0 && <span className="ml-2 font-semibold text-foreground">{auditTotal} entries</span>}
             </p>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="surface-elevated overflow-hidden">
             {auditLoading ? (
               <div className="p-6"><LoadingSkeleton rows={8} cols={4} /></div>
             ) : auditLog.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <ClipboardList size={32} className="mb-2 opacity-40" />
                 <p className="text-[13px]">No audit events recorded yet</p>
               </div>
@@ -256,7 +281,7 @@ export default function SettingsPage() {
                   <TableBody>
                     {auditLog.map((row) => (
                       <TableRow key={row.id}>
-                        <TableCell className="text-[12px] text-slate-500 whitespace-nowrap">
+                        <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">
                           {row.actioned_at ? formatDateTime(row.actioned_at) : "—"}
                         </TableCell>
                         <TableCell>
@@ -264,20 +289,20 @@ export default function SettingsPage() {
                             {actionLabel(row.action)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-[12px] text-slate-600">
-                          {row.actor_email ?? <span className="text-slate-300 italic">System</span>}
+                        <TableCell className="text-[12px] text-muted-foreground">
+                          {row.actor_email ?? <span className="text-muted-foreground/40 italic">System</span>}
                         </TableCell>
-                        <TableCell className="text-[12px] text-slate-500">
+                        <TableCell className="text-[12px] text-muted-foreground">
                           {row.target_type && (
                             <span className="capitalize">{row.target_type}</span>
                           )}
                           {row.target_id && (
-                            <span className="ml-1 font-mono text-[10px] text-slate-400">
+                            <span className="ml-1 font-mono text-[10px] text-muted-foreground">
                               {row.target_id.length > 8 ? `${row.target_id.slice(0, 8)}…` : row.target_id}
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-[12px] text-slate-500 max-w-[240px] truncate">
+                        <TableCell className="text-[12px] text-muted-foreground max-w-[240px] truncate">
                           {row.notes ?? "—"}
                         </TableCell>
                       </TableRow>
@@ -286,14 +311,14 @@ export default function SettingsPage() {
                 </Table>
 
                 {auditPages > 1 && (
-                  <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
-                    <span className="text-[12px] text-slate-500">
+                  <div className="flex items-center justify-between px-5 py-3 border-t border-[hsl(var(--border-hairline))]">
+                    <span className="text-[12px] text-muted-foreground">
                       {(auditPage - 1) * auditPageSize + 1}–{Math.min(auditPage * auditPageSize, auditTotal)} of {auditTotal}
                     </span>
                     <div className="flex items-center gap-1">
                       <Button variant="outline" size="icon-sm" disabled={auditPage <= 1}
                         onClick={() => setAuditPage(p => p - 1)}><ChevronLeft size={15} /></Button>
-                      <span className="px-3 text-[12px] font-semibold text-brand-navy">{auditPage} / {auditPages}</span>
+                      <span className="px-3 text-[12px] font-semibold text-foreground">{auditPage} / {auditPages}</span>
                       <Button variant="outline" size="icon-sm" disabled={auditPage >= auditPages}
                         onClick={() => setAuditPage(p => p + 1)}><ChevronRight size={15} /></Button>
                     </div>
@@ -304,23 +329,23 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full py-2.5 px-3 rounded-lg border border-slate-200 text-[13px] outline-none text-brand-navy " +
-  "placeholder:text-slate-400 focus:border-brand-accent transition-colors bg-white";
+  "w-full py-2.5 px-3 rounded-lg border border-border text-[13px] outline-none text-foreground " +
+  "placeholder:text-muted-foreground focus:border-primary transition-colors bg-card";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/60">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title}</h3>
+    <div className="surface-elevated overflow-hidden">
+      <div className="px-5 py-3 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
       </div>
-      <div className="divide-y divide-slate-100">{children}</div>
+      <div className="divide-y divide-border/60">{children}</div>
     </div>
   );
 }
@@ -329,8 +354,8 @@ function Field({ label, description, children }: { label: string; description: s
   return (
     <div className="px-5 py-4 grid grid-cols-[1fr_1.4fr] gap-8 items-start">
       <div>
-        <div className="text-[13px] font-semibold text-brand-navy">{label}</div>
-        <div className="text-[12px] text-slate-400 mt-0.5 leading-relaxed">{description}</div>
+        <div className="text-[13px] font-semibold text-foreground">{label}</div>
+        <div className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">{description}</div>
       </div>
       <div>{children}</div>
     </div>

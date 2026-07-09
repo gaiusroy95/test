@@ -4,13 +4,14 @@ import { useAuthStore } from "@/store/auth";
 import { tenantApi } from "@/api/client";
 import { getModuleIcon } from "@/lib/constants";
 import { useModulesStore } from "@/store/modules";
-import { StatCard, LoadingSkeleton, PageShell } from "@/components/shared/PageComponents";
+import { StatCard, LoadingSkeleton } from "@/components/shared/PageComponents";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MapPin, BarChart3, Database, UserCheck, Plus, ClipboardCheck,
-  FileText, ChevronRight, ArrowRight,
+  FileText, ChevronRight, ArrowRight, Sparkles, CheckCircle2, Circle,
 } from "lucide-react";
 import type { Notification } from "@/types";
 import { formatDateTime } from "@/lib/utils";
@@ -32,9 +33,11 @@ export default function TenantDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [moduleProgress, setModuleProgress] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
+  const [reportingYears, setReportingYears] = useState<any[]>([]);
+  const [selectedYearId, setSelectedYearId] = useState<string>("");
 
   useEffect(() => {
-    if (modules.length === 0) return; // Wait for modules to load from store
+    if (modules.length === 0) return;
     async function load() {
       try {
         const safe = async (fn: () => Promise<any>, fallback: any): Promise<any> => {
@@ -44,7 +47,11 @@ export default function TenantDashboard() {
         const yearsRes = await safe(() => tenantApi.listReportingYears(), { data: [] });
         const yearsData = (yearsRes as any).data;
         const years: any[] = Array.isArray(yearsData) ? yearsData : (yearsData?.items ?? []);
-        const currentYearId: number | undefined = years.sort((a: any, b: any) => b.year_id - a.year_id)[0]?.year_id;
+        const sorted = [...years].sort((a: any, b: any) => b.year_id - a.year_id);
+        setReportingYears(sorted);
+        const fyId = selectedYearId || String(sorted[0]?.year_id ?? "");
+        if (!selectedYearId && fyId) setSelectedYearId(fyId);
+        const currentYearId: number | undefined = fyId ? Number(fyId) : undefined;
 
         const [locRes, metRes, dataRes, pendRes, notifRes, ...modResults] = await Promise.all([
           safe(() => tenantApi.listLocations({ size: 1 }), { data: { total: 0 } }),
@@ -79,85 +86,194 @@ export default function TenantDashboard() {
       }
     }
     load();
-  }, [modules]);
+  }, [modules, selectedYearId]);
+
+  const selectedFyLabel = reportingYears.find((y) => String(y.year_id) === selectedYearId)?.financial_year?.fy_label
+    ?? reportingYears.find((y) => String(y.year_id) === selectedYearId)?.fy_label
+    ?? "Current FY";
+
+  const onboardingSteps = [
+    { label: "Add locations", done: stats.locations > 0, path: "/app/locations" },
+    { label: "Configure KPIs", done: stats.metrics > 0, path: "/app/kpi-setup" },
+    { label: "Invite users", done: false, path: "/app/users" },
+    { label: "First submission", done: stats.entries > 0, path: "/app/esg-input" },
+  ];
+  const showOnboarding = stats.locations === 0 || stats.metrics === 0 || stats.entries === 0;
 
   const maxModuleCount = Math.max(...modules.map((m) => moduleProgress[m.module_id] ?? 0), 1);
 
   const quickActions = [
-    { label: "Submit ESG Data", icon: Plus, desc: "Submit new ESG data", path: "/app/esg-input", color: "#0ea5e9" },
-    { label: "Review Submissions", icon: ClipboardCheck, desc: "Approve or reject entries", path: "/app/review", color: "#14b8a6" },
-    { label: "Manage Locations", icon: MapPin, desc: "Add or edit sites", path: "/app/locations", color: "#f59e0b" },
-    { label: "View Reports", icon: FileText, desc: "Analytics & charts", path: "/app/reports", color: "#64748b" },
+    { label: "Submit ESG Data", icon: Plus, desc: "Enter environmental data", path: "/app/esg-input", gradient: "from-info to-primary" },
+    { label: "Review Submissions", icon: ClipboardCheck, desc: "Approve or reject entries", path: "/app/review", gradient: "from-teal to-ok" },
+    { label: "Manage Locations", icon: MapPin, desc: "Sites and facilities", path: "/app/locations", gradient: "from-warn to-warn" },
+    { label: "View Reports", icon: FileText, desc: "Analytics and charts", path: "/app/reports", gradient: "from-muted-foreground to-foreground" },
   ];
 
   return (
-    <PageShell
-      title={`Welcome back, ${user?.first_name || ""}`}
-      description={`${user?.company_name || ""} · ${(user?.role || "").replace(/_/g, " ")}`}
-      breadcrumb={[{ label: "Company Portal" }]}
-    >
-      {/* Stat Tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+    <div className="page-root">
+      {/* Hero welcome band */}
+      <div className="dashboard-hero">
+        <div className="pl-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-label font-semibold text-primary mb-1">
+              <Sparkles size={13} />
+              ESG Command Centre
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              Welcome back, {user?.first_name || "there"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {user?.company_name || "Your company"} · {(user?.role || "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            {reportingYears.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-label font-semibold text-muted-foreground">FY</span>
+                <Select value={selectedYearId} onValueChange={setSelectedYearId}>
+                  <SelectTrigger className="h-9 w-[140px] text-ui bg-card">
+                    <SelectValue placeholder="Select FY" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reportingYears.map((y) => (
+                      <SelectItem key={y.year_id} value={String(y.year_id)}>
+                        {y.financial_year?.fy_label || y.fy_label || `FY ${y.year_id}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {stats.pending > 0 && (
+              <Button onClick={() => navigate("/app/review")} className="shrink-0 shadow-primary">
+                <UserCheck size={16} />
+                {stats.pending} pending review{stats.pending !== 1 ? "s" : ""}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <StatCard icon={MapPin}     label="Locations"      value={stats.locations} subtitle="Manage sites →"        to="/app/locations" />
         <StatCard icon={BarChart3}  label="KPIs"           value={stats.metrics}   subtitle="Configure tracking →"  accent="hsl(var(--teal))" to="/app/kpi-setup" />
-        <StatCard icon={Database}   label="Submissions"    value={stats.entries}   subtitle="This financial year"   accent="hsl(var(--warn))" to="/app/esg-input" />
+        <StatCard icon={Database}   label="Submissions"    value={stats.entries}   subtitle={selectedFyLabel}              accent="hsl(var(--info))" to="/app/esg-input" />
         <StatCard icon={UserCheck}  label="Pending Review" value={stats.pending}   subtitle="Awaiting approval"     accent="hsl(var(--destructive))" to="/app/review" />
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-        {quickActions.map((a) => {
-          const Icon = a.icon;
-          return (
-            <button
-              key={a.label}
-              onClick={() => navigate(a.path)}
-              className="bg-card rounded-md p-5 border border-border flex items-start gap-4 text-left cursor-pointer hover:border-border hover:shadow-elevated transition-all duration-200 group"
-            >
-              <div className="w-10 h-10 rounded-sm flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-200" style={{ background: `${a.color}15` }}>
-                <Icon size={20} style={{ color: a.color }} aria-hidden="true" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-ui font-bold text-foreground group-hover:text-primary transition-colors">{a.label}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{a.desc}</div>
-              </div>
-              <ArrowRight size={15} className="text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0" aria-hidden="true" />
-            </button>
-          );
-        })}
+      {/* Actions required */}
+      {(stats.pending > 0 || notifications.some((n) => !n.is_read)) && (
+        <div className="surface-elevated p-4 mb-6">
+          <h2 className="text-sm font-bold text-foreground mb-3">Actions Required</h2>
+          <div className="flex flex-col gap-2">
+            {stats.pending > 0 && (
+              <button onClick={() => navigate("/app/review")} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-sunken transition-colors text-left">
+                <span className="text-ui font-semibold text-foreground">{stats.pending} submission{stats.pending !== 1 ? "s" : ""} awaiting review</span>
+                <ChevronRight size={16} className="text-muted-foreground" />
+              </button>
+            )}
+            {notifications.filter((n) => !n.is_read).slice(0, 2).map((n) => (
+              <button
+                key={n.notification_id}
+                onClick={() => {
+                  if (n.type === "SUBMITTED" || n.type === "APPROVED" || n.type === "REJECTED") {
+                    navigate(n.record_id ? `/app/review/${n.record_id}` : "/app/review");
+                  } else {
+                    navigate("/app/esg-input");
+                  }
+                }}
+                className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-sunken transition-colors text-left"
+              >
+                <span className="text-ui text-foreground truncate">{n.title}</span>
+                <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showOnboarding && (
+        <div className="surface-elevated p-4 mb-6">
+          <h2 className="text-sm font-bold text-foreground mb-3">Getting Started</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {onboardingSteps.map((step) => (
+              <button
+                key={step.label}
+                onClick={() => navigate(step.path)}
+                className="flex items-center gap-2.5 p-3 rounded-lg border border-border hover:bg-sunken transition-colors text-left"
+              >
+                {step.done ? (
+                  <CheckCircle2 size={16} className="text-ok shrink-0" />
+                ) : (
+                  <Circle size={16} className="text-muted-foreground shrink-0" />
+                )}
+                <span className={`text-ui font-medium ${step.done ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                  {step.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick actions */}
+      <div className="mb-6">
+        <h2 className="text-sm font-bold text-foreground mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {quickActions.map((a) => {
+            const Icon = a.icon;
+            return (
+              <button
+                key={a.label}
+                onClick={() => navigate(a.path)}
+                className="group surface-elevated p-4 flex items-center gap-3 text-left cursor-pointer hover:shadow-elevated hover:border-primary/20 transition-all duration-200"
+              >
+                <div className={`w-10 h-10 rounded-xl brand-gradient flex items-center justify-center flex-shrink-0 shadow-primary group-hover:scale-105 transition-transform`}>
+                  <Icon size={18} className="text-white" aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{a.label}</div>
+                  <div className="text-label text-muted-foreground">{a.desc}</div>
+                </div>
+                <ArrowRight size={15} className="text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* Module Progress */}
-        <div className="lg:col-span-3 surface p-6">
-          <div className="flex justify-between items-center mb-6">
+        {/* Module progress */}
+        <div className="lg:col-span-3 surface-elevated p-6">
+          <div className="flex justify-between items-center mb-5">
             <div>
-              <h3 className="text-[15px] font-bold text-brand-navy">Module Progress</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Approved entries this financial year</p>
+              <h3 className="text-base font-bold text-foreground">Module Progress</h3>
+              <p className="text-label text-muted-foreground mt-0.5">Approved entries this financial year</p>
             </div>
           </div>
           {loading ? (
             <LoadingSkeleton rows={4} cols={1} />
           ) : (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-4">
               {modules.map((m) => {
                 const Icon = getModuleIcon(m.icon_name);
                 const count = moduleProgress[m.module_id] ?? 0;
                 const pct = Math.round((count / maxModuleCount) * 100);
                 return (
-                  <div key={m.key} className="flex items-center gap-4">
-                    <div className="w-9 h-9 rounded-[9px] flex items-center justify-center flex-shrink-0" style={{ background: m.bg_color }}>
+                  <div key={m.key} className="flex items-center gap-4 p-3 rounded-lg hover:bg-sunken/60 transition-colors">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-surface" style={{ background: m.bg_color }}>
                       <Icon size={18} style={{ color: m.color }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[13px] font-semibold text-brand-navy">{m.module_name}</span>
-                        <span className="text-[12px] font-bold text-brand-navy tabular-nums">{count} approved</span>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-sm font-semibold text-foreground">{m.module_name}</span>
+                        <span className="text-label font-bold text-foreground tabular-nums">{count} approved</span>
                       </div>
                       <Progress
                         value={pct}
-                        className="h-[6px] bg-slate-100"
-                        indicatorClassName="transition-all duration-700"
+                        className="h-2 bg-sunken"
+                        indicatorClassName="transition-all duration-700 rounded-full"
                         indicatorStyle={{ background: m.color }}
                       />
                     </div>
@@ -168,27 +284,27 @@ export default function TenantDashboard() {
           )}
         </div>
 
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 surface p-6">
+        {/* Recent activity */}
+        <div className="lg:col-span-2 surface-elevated p-6">
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h3 className="text-[15px] font-bold text-brand-navy">Recent Activity</h3>
-              <p className="text-[11px] text-slate-500 mt-0.5">Latest notifications</p>
+              <h3 className="text-base font-bold text-foreground">Recent Activity</h3>
+              <p className="text-label text-muted-foreground mt-0.5">Latest notifications</p>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/app/notifications")} className="text-brand-accent text-[12px] h-7 px-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/app/notifications")} className="text-primary text-label h-7 px-2">
               View all <ChevronRight size={13} className="ml-0.5" />
             </Button>
           </div>
           {loading ? (
             <LoadingSkeleton rows={5} cols={1} />
           ) : notifications.length === 0 ? (
-            <div className="text-[13px] text-slate-400 py-10 text-center">No recent activity</div>
+            <div className="text-sm text-muted-foreground py-10 text-center">No recent activity</div>
           ) : (
-            <div className="flex flex-col divide-y divide-slate-100">
+            <div className="flex flex-col divide-y divide-border/60">
               {notifications.map((n) => (
                 <div
                   key={n.notification_id}
-                  className={`py-3 cursor-pointer hover:bg-slate-50 rounded-lg px-2 transition-colors ${!n.is_read ? "bg-sky-50/40" : ""}`}
+                  className={`py-3 cursor-pointer hover:bg-accent/50 rounded-lg px-2 -mx-2 transition-colors ${!n.is_read ? "bg-accent/30" : ""}`}
                   onClick={() => {
                     if (!n.record_id) return;
                     if (n.type === "SUBMITTED" || n.type === "APPROVED" || n.type === "REJECTED") {
@@ -199,19 +315,19 @@ export default function TenantDashboard() {
                   }}
                 >
                   <div className="flex items-start justify-between gap-2 mb-0.5">
-                    <div className="text-[13px] font-semibold text-brand-navy leading-snug">{n.title}</div>
-                    <Badge variant={notifBadgeVariant[n.type] || "secondary"} className="text-[10px] flex-shrink-0 mt-0.5">
+                    <div className="text-sm font-semibold text-foreground leading-snug">{n.title}</div>
+                    <Badge variant={notifBadgeVariant[n.type] || "secondary"} className="text-2xs flex-shrink-0">
                       {n.type}
                     </Badge>
                   </div>
-                  {n.message && <div className="text-[12px] text-slate-500 truncate">{n.message}</div>}
-                  <div className="text-[11px] text-slate-400 mt-1">{formatDateTime(n.created_at)}</div>
+                  {n.message && <div className="text-label text-muted-foreground truncate">{n.message}</div>}
+                  <div className="text-2xs text-muted-foreground mt-1">{formatDateTime(n.created_at)}</div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
-    </PageShell>
+    </div>
   );
 }

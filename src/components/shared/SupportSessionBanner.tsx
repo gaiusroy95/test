@@ -99,7 +99,7 @@ export function SupportSessionBanner() {
         <span className="opacity-90">Write actions are hidden — you can browse, but not change anything.</span>
         <button
           onClick={() => { logout(); window.close(); }}
-          className="ml-auto flex items-center gap-1 text-[11px] bg-white/15 hover:bg-white/25 rounded px-2 py-0.5 transition-colors"
+          className="ml-auto flex items-center gap-1 text-[11px] bg-card/15 hover:bg-card/25 rounded px-2 py-0.5 transition-colors"
           title="End session"
         >
           <X size={12} /> End session
@@ -110,7 +110,7 @@ export function SupportSessionBanner() {
 
   // Company Admin's view — amber, alarmed
   return (
-    <div className="bg-amber-500 text-white text-[12px] py-1.5 px-4 flex items-center gap-2 shadow-sm">
+    <div className="bg-warn text-white text-[12px] py-1.5 px-4 flex items-center gap-2 shadow-sm">
       <ShieldAlert size={14} />
       <span className="font-semibold">Platform support is viewing your data (read-only)</span>
       <span className="opacity-80">·</span>
@@ -122,7 +122,7 @@ export function SupportSessionBanner() {
       <button
         onClick={handleRevoke}
         disabled={revoking}
-        className="ml-auto flex items-center gap-1 text-[11px] bg-white/15 hover:bg-white/25 rounded px-2 py-0.5 transition-colors disabled:opacity-60"
+        className="ml-auto flex items-center gap-1 text-[11px] bg-card/15 hover:bg-card/25 rounded px-2 py-0.5 transition-colors disabled:opacity-60"
       >
         <X size={12} /> {revoking ? "Revoking…" : "Revoke now"}
       </button>

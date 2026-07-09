@@ -33,7 +33,7 @@ export function PageTabs({ tabs, value, onChange, className }: PageTabsProps) {
             aria-selected={active}
             onClick={() => onChange(tab.key)}
             className={cn(
-              "flex items-center gap-1.5 px-4 py-2.5 text-ui font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap",
+              "flex items-center gap-1.5 px-3 py-2 text-ui font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap",
               active
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"

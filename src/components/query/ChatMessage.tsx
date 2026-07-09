@@ -19,8 +19,8 @@ export default function ChatMessage({ message, onSuggestionClick, loading }: Pro
       <div
         className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
           isUser
-            ? "bg-brand-accent text-white"
-            : "bg-slate-100 text-slate-500"
+            ? "bg-primary text-white"
+            : "bg-sunken text-muted-foreground"
         }`}
       >
         {isUser ? <User size={15} /> : <Bot size={15} />}
@@ -31,19 +31,19 @@ export default function ChatMessage({ message, onSuggestionClick, loading }: Pro
         <div
           className={`rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed ${
             isUser
-              ? "bg-brand-accent text-white rounded-tr-md"
-              : "bg-white border border-slate-200 text-brand-navy rounded-tl-md shadow-sm"
+              ? "bg-primary text-white rounded-tr-md"
+              : "bg-card border border-border text-foreground rounded-tl-md shadow-sm"
           }`}
         >
           {/* Engine badge (system messages only) */}
           {!isUser && message.engine_used && (
             <div className="flex items-center gap-1 mb-2">
               {message.engine_used === "LLM" ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
                   <Sparkles size={9} /> AI Powered
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sunken text-muted-foreground">
                   <Cpu size={9} /> Standard
                 </span>
               )}
@@ -70,7 +70,7 @@ export default function ChatMessage({ message, onSuggestionClick, loading }: Pro
         )}
 
         {/* Timestamp */}
-        <div className={`text-[10px] text-slate-400 mt-1 ${isUser ? "text-right" : "text-left"}`}>
+        <div className={`text-[10px] text-muted-foreground mt-1 ${isUser ? "text-right" : "text-left"}`}>
           {message.timestamp.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
         </div>
       </div>

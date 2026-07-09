@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { tenantApi } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
-import { Breadcrumb, LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Calendar, Lock, Unlock, ChevronRight, LockKeyhole, UnlockKeyhole } from "lucide-react";
 import type { ReportingYear, PeriodStatus, FinancialYear } from "@/types";
@@ -128,44 +130,47 @@ export default function ReportingPage() {
   const unlockedCount = periods.filter((p) => !p.is_locked).length;
 
   return (
-    <div className="p-6 max-w-[1400px]">
-      {/* Compact toolbar: title + FY selector + action in one row */}
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <div>
-          <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "Reporting Years" }]} />
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight">Reporting Years</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">Assign financial years and manage monthly period locks</p>
-        </div>
+    <PageShell
+      title="Reporting Years"
+      description="Assign financial years and manage monthly period locks"
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Reporting Years" }]}
+      actions={
         <div className="flex items-center gap-2">
-          {!loading && reportingYears.length > 1 && (
-            <>
-              <label className="text-[12px] font-semibold text-slate-500">Jump to FY:</label>
-              <select
-                value={selectedYear?.year_id || ""}
-                onChange={(e) => {
-                  const ry = reportingYears.find((r) => r.year_id === Number(e.target.value));
+          {!loading && reportingYears.length > 1 && selectedYear && (
+            <div className="flex items-center gap-2">
+              <span className="text-label font-semibold text-muted-foreground">Jump to FY</span>
+              <Select
+                value={String(selectedYear.year_id)}
+                onValueChange={(v) => {
+                  const ry = reportingYears.find((r) => r.year_id === Number(v));
                   if (ry) selectYear(ry);
                 }}
-                className="py-1.5 px-3 rounded-lg border border-slate-200 text-[12px] bg-white outline-none focus:border-brand-accent transition-colors text-brand-navy"
               >
-                {reportingYears.map((r) => (
-                  <option key={r.year_id} value={r.year_id}>{r.financial_year?.fy_label || `FY ${r.year_id}`}</option>
-                ))}
-              </select>
-            </>
+                <SelectTrigger className="h-8 w-[140px] text-ui">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {reportingYears.map((r) => (
+                    <SelectItem key={r.year_id} value={String(r.year_id)}>
+                      {r.financial_year?.fy_label || `FY ${r.year_id}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
           {isAdmin && (
-            <button onClick={() => setAssignOpen(true)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-accent text-[12px] font-semibold text-white hover:bg-brand-accentDk transition-colors">
+            <button onClick={() => setAssignOpen(true)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-primary text-[12px] font-semibold text-white hover:bg-primaryDk transition-colors">
               <Plus size={14} /> Assign FY
             </button>
           )}
         </div>
-      </div>
-
+      }
+    >
       {loading ? <LoadingSkeleton rows={3} cols={3} /> : reportingYears.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200">
+        <div className="bg-card rounded-xl border border-border">
           <EmptyState icon={Calendar} title="No financial years assigned" description="Assign a financial year to start tracking ESG data by period.">
-            {isAdmin && <button onClick={() => setAssignOpen(true)} className="mt-2 px-4 py-2 rounded-lg bg-brand-accent text-white text-[13px] font-semibold"><Plus size={14} className="inline mr-1" /> Assign FY</button>}
+            {isAdmin && <button onClick={() => setAssignOpen(true)} className="mt-2 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold"><Plus size={14} className="inline mr-1" /> Assign FY</button>}
           </EmptyState>
         </div>
       ) : (
@@ -178,15 +183,15 @@ export default function ReportingPage() {
                 onClick={() => selectYear(ry)}
                 className={`px-5 py-3.5 rounded-xl border-2 text-left transition-all ${
                   selectedYear?.year_id === ry.year_id
-                    ? "border-brand-accent bg-sky-50/50 shadow-sm"
-                    : "border-slate-200 bg-white hover:border-slate-300"
+                    ? "border-primary bg-info-tint/50 shadow-sm"
+                    : "border-border bg-card hover:border-border"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Calendar size={16} className={selectedYear?.year_id === ry.year_id ? "text-brand-accent" : "text-slate-400"} />
-                  <span className="text-[15px] font-bold text-brand-navy">{ry.financial_year?.fy_label || `FY ${ry.year_id}`}</span>
+                  <Calendar size={16} className={selectedYear?.year_id === ry.year_id ? "text-primary" : "text-muted-foreground"} />
+                  <span className="text-[15px] font-bold text-foreground">{ry.financial_year?.fy_label || `FY ${ry.year_id}`}</span>
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1">
+                <div className="text-[11px] text-muted-foreground mt-1">
                   Start month: {ry.financial_year?.start_month_name || `Month ${ry.fy_start_month || 4}`}
                 </div>
               </button>
@@ -195,18 +200,18 @@ export default function ReportingPage() {
 
           {/* Period Status Grid */}
           {selectedYear && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="bg-card rounded-xl border border-border p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="text-[16px] font-bold text-brand-navy">
+                  <h3 className="text-[16px] font-bold text-foreground">
                     {selectedYear.financial_year?.fy_label || "Selected FY"} — Period Status
                   </h3>
-                  <p className="text-[12px] text-slate-400 mt-0.5">
+                  <p className="text-[12px] text-muted-foreground mt-0.5">
                     {lockedCount} locked · {unlockedCount} open
                   </p>
                 </div>
                 {isAdmin && unlockedCount > 0 && (
-                  <button onClick={handleBulkLock} disabled={actionLoading} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+                  <button onClick={handleBulkLock} disabled={actionLoading} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-[13px] font-semibold text-muted-foreground hover:bg-sunken disabled:opacity-60">
                     <LockKeyhole size={15} /> Lock All
                   </button>
                 )}
@@ -221,17 +226,17 @@ export default function ReportingPage() {
                         key={p.id || p.month_id}
                         className={`rounded-xl border-2 p-4 text-center transition-all ${
                           p.is_locked
-                            ? "border-slate-200 bg-slate-50"
+                            ? "border-border bg-sunken"
                             : "border-green-200 bg-green-50/50"
                         }`}
                       >
                         <div className={`w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center ${
-                          p.is_locked ? "bg-slate-200" : "bg-green-100"
+                          p.is_locked ? "bg-border" : "bg-ok-tint"
                         }`}>
-                          {p.is_locked ? <Lock size={18} className="text-slate-500" /> : <Unlock size={18} className="text-green-600" />}
+                          {p.is_locked ? <Lock size={18} className="text-muted-foreground" /> : <Unlock size={18} className="text-green-600" />}
                         </div>
-                        <div className="text-[13px] font-bold text-brand-navy mb-0.5">{monthName}</div>
-                        <div className={`text-[11px] font-semibold mb-3 ${p.is_locked ? "text-slate-400" : "text-green-600"}`}>
+                        <div className="text-[13px] font-bold text-foreground mb-0.5">{monthName}</div>
+                        <div className={`text-[11px] font-semibold mb-3 ${p.is_locked ? "text-muted-foreground" : "text-green-600"}`}>
                           {p.is_locked ? "Locked" : "Open"}
                         </div>
                         {isAdmin && (
@@ -239,8 +244,8 @@ export default function ReportingPage() {
                             onClick={() => setConfirmLock({ period: p, action: p.is_locked ? "unlock" : "lock" })}
                             className={`w-full py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
                               p.is_locked
-                                ? "border border-slate-200 text-slate-500 hover:bg-white"
-                                : "border border-amber-200 text-amber-600 hover:bg-amber-50"
+                                ? "border border-border text-muted-foreground hover:bg-card"
+                                : "border border-warn/30 text-warn hover:bg-warn-tint"
                             }`}
                           >
                             {p.is_locked ? "Unlock" : "Lock Period"}
@@ -271,6 +276,6 @@ export default function ReportingPage() {
         variant={confirmLock?.action === "lock" ? "default" : "default"}
         loading={actionLoading}
       />
-    </div>
+    </PageShell>
   );
 }

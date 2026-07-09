@@ -270,14 +270,18 @@ export const demoDashboardCards = [
 export function getDemoResponse(url: string | undefined, method = "GET") {
   const normalized = (url || "").replace(/^\/+/, "");
 
-  if (normalized.includes("/auth/login")) {
-    return { data: { access_token: "demo-access-token", refresh_token: "demo-refresh-token", token_type: "bearer", user: DEMO_TENANT_USER } };
-  }
-  if (normalized.includes("/platform/auth/login")) {
+  // Platform auth paths must be checked before generic /auth/login (substring overlap).
+  if (normalized.includes("platform/auth/login")) {
     return { data: { access_token: "demo-platform-token", refresh_token: "demo-platform-refresh", token_type: "bearer", user: DEMO_PLATFORM_USER } };
   }
-  if (normalized.includes("/auth/me") || normalized.includes("/platform/auth/me")) {
-    return { data: { user: normalized.includes("platform") ? DEMO_PLATFORM_USER : DEMO_TENANT_USER } };
+  if (normalized.includes("auth/login")) {
+    return { data: { access_token: "demo-access-token", refresh_token: "demo-refresh-token", token_type: "bearer", user: DEMO_TENANT_USER } };
+  }
+  if (normalized.includes("platform/auth/me")) {
+    return { data: { user: DEMO_PLATFORM_USER } };
+  }
+  if (normalized.includes("auth/me")) {
+    return { data: { user: DEMO_TENANT_USER } };
   }
   // Endpoints that return arrays directly (not paginated)
   if (normalized.includes("/modules") && !normalized.includes("/platform")) {

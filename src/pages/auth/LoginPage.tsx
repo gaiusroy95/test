@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
 import { authApi } from "@/api/client";
+import { DEMO_PLATFORM_USER } from "@/lib/demoData";
 import { APP_NAME, APP_TAGLINE, MODULE_ICON_MAP } from "@/lib/constants";
 import { Leaf, LogIn, Eye, EyeOff, AlertCircle, Info, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,12 +41,34 @@ export default function LoginPage() {
     if (!email || !password) { setError("Please enter email and password"); return; }
     setError("");
     setLoading(true);
-    try {
+
+    const wantsPlatform = demoMode && email.toLowerCase().includes("platform");
+
+    const loginTenant = async () => {
       const { data } = await authApi.tenantLogin(email, password);
       login({ ...data.user, user_type: "tenant" }, data.access_token, data.refresh_token);
       navigate("/app");
+    };
+
+    const loginPlatform = async () => {
+      const { data } = await authApi.platformLogin(email, password);
+      login({ ...data.user, user_type: "platform" }, data.access_token, data.refresh_token);
+      navigate("/platform");
+    };
+
+    try {
+      if (wantsPlatform) {
+        await loginPlatform();
+        return;
+      }
+      await loginTenant();
       return;
     } catch (tenantErr: any) {
+      if (demoMode) {
+        setError("Demo login failed. For platform admin use an email containing \"platform\".");
+        setLoading(false);
+        return;
+      }
       const status = tenantErr.response?.status;
       if (status !== 401 && status !== 403 && status !== 422) {
         setError(tenantErr.response?.data?.detail || "Login failed. Please check your credentials.");
@@ -54,9 +77,7 @@ export default function LoginPage() {
       }
     }
     try {
-      const { data } = await authApi.platformLogin(email, password);
-      login({ ...data.user, user_type: "platform" }, data.access_token, data.refresh_token);
-      navigate("/platform");
+      await loginPlatform();
     } catch {
       setError("Invalid email or password. Please try again.");
     } finally {
@@ -229,8 +250,10 @@ export default function LoginPage() {
                   Sign in to continue to your workspace
                 </p>
                 {demoMode && (
-                  <div className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-200">
-                    Demo mode enabled. Use any email/password to explore the UI.
+                  <div className="mt-3 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5 text-[12px] text-emerald-200 space-y-1">
+                    <p className="font-semibold text-emerald-100">Demo mode — any password works</p>
+                    <p><span className="font-medium">Company portal:</span> any email (e.g. <code className="text-emerald-50">demo@esmos.com</code>)</p>
+                    <p><span className="font-medium">Platform admin:</span> email must include <code className="text-emerald-50">platform</code> (e.g. <code className="text-emerald-50">{DEMO_PLATFORM_USER.email}</code>)</p>
                   </div>
                 )}
               </div>

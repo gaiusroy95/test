@@ -23,6 +23,7 @@ export default {
         background:  "hsl(var(--background))",
         foreground:  "hsl(var(--foreground))",
         primary:     { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))", dark: "hsl(var(--primary-dark))" },
+        primaryDk:   "hsl(var(--primary-dark))",
         secondary:   { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
         destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))", tint: "hsl(var(--destructive-tint))" },
         muted:       { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
@@ -47,7 +48,7 @@ export default {
         sm: "var(--radius)",
       },
       fontFamily: {
-        sans:  ['"Inter"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        sans:  ['"Plus Jakarta Sans"', '"Inter"', 'system-ui', 'sans-serif'],
         mono:  ['"IBM Plex Mono"', '"JetBrains Mono"', 'Menlo', 'Consolas', 'monospace'],
       },
       // Type scale:
@@ -64,9 +65,11 @@ export default {
         "ui":    ["13px", { lineHeight: "1.5" }],
       },
       boxShadow: {
-        "surface": "0 1px 2px rgba(28, 26, 22, 0.05)",
-        "elevated": "0 4px 12px rgba(28, 26, 22, 0.08), 0 0 0 1px rgba(28, 26, 22, 0.04)",
-        "modal": "0 16px 48px rgba(28, 26, 22, 0.16), 0 0 0 1px rgba(28, 26, 22, 0.04)",
+        "surface": "0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.02)",
+        "elevated": "0 8px 24px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04)",
+        "modal": "0 24px 64px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.05)",
+        "primary": "0 4px 14px hsl(230 85% 55% / 0.35)",
+        "sidebar": "4px 0 24px rgba(15, 23, 42, 0.06)",
       },
       keyframes: {
         "fade-in": { from: { opacity: "0", transform: "translateY(4px)" }, to: { opacity: "1", transform: "translateY(0)" } },

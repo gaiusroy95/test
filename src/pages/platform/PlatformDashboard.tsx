@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { platformApi } from "@/api/client";
 import { PageShell, StatCard, LoadingSkeleton } from "@/components/shared/PageComponents";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -9,6 +10,7 @@ import type { Company, AuditLogEntry, SubscriptionPlan } from "@/types";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 export default function PlatformDashboard() {
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [totalCompanies, setTotalCompanies] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
@@ -50,11 +52,24 @@ export default function PlatformDashboard() {
   }, []);
 
   return (
-    <PageShell
-      title="Platform Dashboard"
-      description="Overview of all companies and platform activity"
-      breadcrumb={[{ label: "Platform Admin" }]}
-    >
+    <PageShell compact title="Platform Overview" fullWidth>
+      {suspendedCount > 0 && (
+        <div className="mb-5 flex items-center gap-3 p-4 rounded-xl border border-warn/30 bg-warn-tint">
+          <AlertTriangle size={18} className="text-warn shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-ui font-semibold text-foreground">
+              {suspendedCount} compan{suspendedCount !== 1 ? "ies" : "y"} suspended or blocked
+            </p>
+            <p className="text-label text-muted-foreground">Review and restore access from Company Management</p>
+          </div>
+          <button
+            onClick={() => navigate("/platform/companies?status=SUSPENDED")}
+            className="text-ui font-semibold text-primary hover:underline shrink-0"
+          >
+            View suspended →
+          </button>
+        </div>
+      )}
       {/* Stat tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
         <StatCard icon={Building2}     label="Total Companies"      value={totalCompanies}  subtitle="Manage companies →"    to="/platform/companies" />
@@ -65,7 +80,7 @@ export default function PlatformDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
         {/* Recent Companies */}
-        <div className="lg:col-span-2 surface">
+        <div className="lg:col-span-2 surface-elevated">
           <div className="px-6 py-4 border-b border-[hsl(var(--border-hairline))]">
             <h3 className="text-base font-bold text-foreground">Recent Companies</h3>
             <p className="text-label text-muted-foreground mt-0.5">Latest onboarded companies</p>
@@ -85,7 +100,11 @@ export default function PlatformDashboard() {
               </TableHeader>
               <TableBody>
                 {companies.map((c) => (
-                  <TableRow key={c.company_id}>
+                  <TableRow
+                    key={c.company_id}
+                    className="cursor-pointer hover:bg-sunken/60"
+                    onClick={() => navigate(`/platform/companies?highlight=${c.company_id}`)}
+                  >
                     <TableCell className="font-semibold text-foreground">{c.company_name}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">{c.company_code}</TableCell>
                     <TableCell>

@@ -29,19 +29,19 @@ export function ConfirmDialog({
         <DialogBody className="pt-6">
           <div className="flex items-start gap-4">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-              variant === "destructive" ? "bg-red-50" : "bg-amber-50"
+              variant === "destructive" ? "bg-destructive-tint" : "bg-warn-tint"
             }`}>
-              <AlertTriangle size={20} className={variant === "destructive" ? "text-red-500" : "text-amber-500"} />
+              <AlertTriangle size={20} className={variant === "destructive" ? "text-destructive" : "text-amber-500"} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-[16px] font-bold text-brand-navy mb-1">{title}</h3>
-              <p className="text-[13px] text-slate-500 leading-relaxed">{message}</p>
+              <h3 className="text-[16px] font-bold text-foreground mb-1">{title}</h3>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">{message}</p>
             </div>
           </div>
 
           {showReason && (
             <div className="mt-5 flex flex-col gap-1.5">
-              <Label className="text-[12px] font-semibold text-brand-navy">Reason (optional)</Label>
+              <Label className="text-[12px] font-semibold text-foreground">Reason (optional)</Label>
               <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}

@@ -31,11 +31,11 @@ interface SupportAccessRequest {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  PENDING:  "bg-amber-50 text-amber-700 border-amber-200",
-  APPROVED: "bg-green-50 text-green-700 border-green-200",
-  DENIED:   "bg-red-50 text-red-700 border-red-200",
-  EXPIRED:  "bg-slate-50 text-slate-500 border-slate-200",
-  REVOKED:  "bg-slate-50 text-slate-500 border-slate-200",
+  PENDING:  "bg-warn-tint text-warn border-warn/30",
+  APPROVED: "bg-green-50 text-ok border-green-200",
+  DENIED:   "bg-destructive-tint text-destructive border-destructive/30",
+  EXPIRED:  "bg-sunken text-muted-foreground border-border",
+  REVOKED:  "bg-sunken text-muted-foreground border-border",
 };
 
 export function SupportAccessInbox() {
@@ -97,14 +97,14 @@ export function SupportAccessInbox() {
   };
 
   if (loading) {
-    return <div className="text-[13px] text-slate-400 text-center py-10">Loading…</div>;
+    return <div className="text-[13px] text-muted-foreground text-center py-10">Loading…</div>;
   }
 
   return (
     <div className="space-y-5">
-      <div className="bg-amber-50/40 border border-amber-100 rounded-md p-3 flex items-start gap-3">
-        <ShieldAlert size={16} className="text-amber-600 mt-0.5 shrink-0" />
-        <div className="text-[12px] text-slate-700">
+      <div className="bg-warn-tint/40 border border-warn/30 rounded-md p-3 flex items-start gap-3">
+        <ShieldAlert size={16} className="text-warn mt-0.5 shrink-0" />
+        <div className="text-[12px] text-foreground/90">
           <p className="font-semibold mb-0.5">What is Support Access?</p>
           <p>
             When platform support needs to investigate an issue with your data, they must request your explicit consent here.
@@ -115,9 +115,9 @@ export function SupportAccessInbox() {
       </div>
 
       {requests.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-slate-200 rounded-lg">
-          <ShieldAlert size={28} className="mx-auto text-slate-300 mb-2" />
-          <p className="text-[13px] text-slate-500">No support access requests have been made for your company.</p>
+        <div className="text-center py-12 border border-dashed border-border rounded-lg">
+          <ShieldAlert size={28} className="mx-auto text-muted-foreground/40 mb-2" />
+          <p className="text-[13px] text-muted-foreground">No support access requests have been made for your company.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -125,40 +125,40 @@ export function SupportAccessInbox() {
             const isPending = r.status === "PENDING";
             const isActive  = r.status === "APPROVED";
             return (
-              <div key={r.request_id} className="border border-slate-200 rounded-md px-4 py-3 bg-white">
+              <div key={r.request_id} className="border border-border rounded-md px-4 py-3 bg-card">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${STATUS_STYLES[r.status]}`}>
                         {r.status}
                       </span>
-                      <span className="text-[12px] font-semibold text-brand-navy">
+                      <span className="text-[12px] font-semibold text-foreground">
                         {r.requestor_name ?? r.requestor_email ?? "Platform staff"}
                       </span>
                       {r.requestor_email && r.requestor_name && (
-                        <span className="text-[11px] text-slate-500">· {r.requestor_email}</span>
+                        <span className="text-[11px] text-muted-foreground">· {r.requestor_email}</span>
                       )}
-                      <span className="text-[11px] text-slate-500">· requested {formatDateTime(r.requested_at)}</span>
+                      <span className="text-[11px] text-muted-foreground">· requested {formatDateTime(r.requested_at)}</span>
                       {r.expires_at && r.status === "APPROVED" && (
-                        <span className="text-[11px] text-slate-500 inline-flex items-center gap-1">
+                        <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                           <Clock size={10} /> expires {formatDateTime(r.expires_at)}
                         </span>
                       )}
                       {r.use_count > 0 && (
-                        <span className="text-[10px] text-slate-400">used {r.use_count}×</span>
+                        <span className="text-[10px] text-muted-foreground">used {r.use_count}×</span>
                       )}
                     </div>
-                    <p className="text-[12.5px] text-slate-700 mb-1">
-                      <span className="text-[11px] text-slate-500 mr-1">Reason:</span>
+                    <p className="text-[12.5px] text-foreground/90 mb-1">
+                      <span className="text-[11px] text-muted-foreground mr-1">Reason:</span>
                       {r.reason}
                     </p>
                     {r.decided_at && r.decider_name && (
-                      <p className="text-[10px] text-slate-500">
+                      <p className="text-[10px] text-muted-foreground">
                         Decided by {r.decider_name} · {formatDateTime(r.decided_at)}
                       </p>
                     )}
                     {r.revoke_reason && (
-                      <p className="text-[10px] text-slate-400 italic">Revoke reason: {r.revoke_reason}</p>
+                      <p className="text-[10px] text-muted-foreground italic">Revoke reason: {r.revoke_reason}</p>
                     )}
                   </div>
                   <div className="flex flex-col gap-1.5 items-stretch shrink-0">
@@ -186,7 +186,7 @@ export function SupportAccessInbox() {
                         variant="outline"
                         onClick={() => handleRevoke(r)}
                         disabled={actingId === r.request_id}
-                        className="text-[12px] h-7 px-3 inline-flex items-center gap-1.5 border-red-200 text-red-600 hover:bg-red-50"
+                        className="text-[12px] h-7 px-3 inline-flex items-center gap-1.5 border-destructive/30 text-destructive hover:bg-destructive-tint"
                       >
                         <X size={12} /> Revoke
                       </Button>

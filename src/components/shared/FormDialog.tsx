@@ -76,8 +76,8 @@ export function FormDialog({
           <div className="flex flex-col gap-4">
             {fields.map((f) => (
               <div key={f.key} className="flex flex-col gap-1.5">
-                <Label htmlFor={`field-${f.key}`} className="text-[13px] font-semibold text-brand-navy">
-                  {f.label}{f.required && <span className="text-red-400 ml-0.5">*</span>}
+                <Label htmlFor={`field-${f.key}`} className="text-[13px] font-semibold text-foreground">
+                  {f.label}{f.required && <span className="text-destructive ml-0.5">*</span>}
                 </Label>
 
                 {f.type === "select" ? (
@@ -110,12 +110,12 @@ export function FormDialog({
                       checked={!!formData[f.key]}
                       onCheckedChange={(v) => handleChange(f.key, v)}
                     />
-                    <span className="text-[13px] text-slate-500">{formData[f.key] ? "Enabled" : "Disabled"}</span>
+                    <span className="text-[13px] text-muted-foreground">{formData[f.key] ? "Enabled" : "Disabled"}</span>
                   </div>
                 ) : f.disabled ? (
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-slate-200 bg-slate-50 text-[13px] text-slate-400 min-h-[36px]">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-sunken text-[13px] text-muted-foreground min-h-[36px]">
                     <span className="flex-1">{formData[f.key] ?? "—"}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300 flex-shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/40 flex-shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   </div>
                 ) : (
                   <Input
@@ -127,7 +127,7 @@ export function FormDialog({
                   />
                 )}
 
-                {f.helpText && <p className="text-[11px] text-slate-400">{f.helpText}</p>}
+                {f.helpText && <p className="text-[11px] text-muted-foreground">{f.helpText}</p>}
               </div>
             ))}
           </div>

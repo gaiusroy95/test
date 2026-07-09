@@ -56,21 +56,21 @@ export default function IconPicker({ value, onChange, accentColor = "#0ea5e9" }:
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 bg-white text-[13px] text-slate-600 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border hover:border-border bg-card text-[13px] text-muted-foreground transition-colors"
       >
         <CurrentIcon size={16} style={{ color: accentColor }} />
         <span className="font-medium">{value || "Choose icon"}</span>
         <ChevronDown
           size={13}
-          className={`ml-1 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`ml-1 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
 
       {/* Inline expanding panel */}
       {open && (
-        <div className="mt-2 border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+        <div className="mt-2 border border-border rounded-xl bg-card shadow-sm overflow-hidden">
           {/* Category tabs */}
-          <div className="flex border-b border-slate-100">
+          <div className="flex border-b border-[hsl(var(--border-hairline))]">
             {CATEGORIES.map((c, i) => (
               <button
                 key={c.label}
@@ -78,8 +78,8 @@ export default function IconPicker({ value, onChange, accentColor = "#0ea5e9" }:
                 onClick={() => setCat(i)}
                 className={`flex-1 py-2 text-[11px] font-semibold transition-colors border-b-2 -mb-px ${
                   cat === i
-                    ? "text-brand-accent border-brand-accent"
-                    : "text-slate-400 border-transparent hover:text-slate-600"
+                    ? "text-primary border-primary"
+                    : "text-muted-foreground border-transparent hover:text-muted-foreground"
                 }`}
               >
                 {c.label}
@@ -100,7 +100,7 @@ export default function IconPicker({ value, onChange, accentColor = "#0ea5e9" }:
                   title={name}
                   onClick={() => { onChange(name); setOpen(false); }}
                   className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all ${
-                    sel ? "ring-2 ring-offset-1 ring-slate-300" : "hover:bg-slate-100"
+                    sel ? "ring-2 ring-offset-1 ring-border" : "hover:bg-sunken"
                   }`}
                   style={sel ? { background: accentColor + "18" } : {}}
                 >

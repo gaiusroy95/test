@@ -129,10 +129,10 @@ export const CALC_METHODS: { value: Scope3CalcMethod; label: string; hint: strin
 ];
 
 const METHOD_COLORS: Record<Scope3CalcMethod, string> = {
-  SUPPLIER_SPECIFIC: "text-emerald-700 bg-emerald-50 border-emerald-200",
-  AVERAGE_DATA:      "text-sky-700 bg-sky-50 border-sky-200",
-  SPEND_BASED:       "text-amber-700 bg-amber-50 border-amber-200",
-  DIRECT_ESTIMATE:   "text-slate-600 bg-slate-50 border-slate-200",
+  SUPPLIER_SPECIFIC: "text-ok bg-ok-tint border-ok/30",
+  AVERAGE_DATA:      "text-info bg-info-tint border-info/30",
+  SPEND_BASED:       "text-warn bg-warn-tint border-warn/30",
+  DIRECT_ESTIMATE:   "text-muted-foreground bg-sunken border-border",
 };
 
 /* ── Helpers ─────────────────────────────────────────────────────────────────── */
@@ -162,11 +162,11 @@ function factorSummary(fi: Scope3FactorItem): string {
 /* ── Styles ──────────────────────────────────────────────────────────────────── */
 
 const inputCls =
-  "w-full py-1 px-2 text-[12px] text-brand-navy border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-accent bg-white";
+  "w-full py-1 px-2 text-[12px] text-foreground border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary bg-card";
 const selectCls =
-  "w-full py-1 px-2 text-[12px] text-brand-navy border border-slate-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-brand-accent";
+  "w-full py-1 px-2 text-[12px] text-foreground border border-border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary";
 const disabledCellCls =
-  "w-full py-1 px-2 text-[12px] text-slate-300 text-center select-none";
+  "w-full py-1 px-2 text-[12px] text-muted-foreground/40 text-center select-none";
 
 /* ── Per-entry doc panel ─────────────────────────────────────────────────────── */
 
@@ -218,34 +218,34 @@ function EntryDocPanel({
   };
 
   return (
-    <tr className="bg-violet-50/40 border-b border-slate-100">
+    <tr className="bg-accent/40 border-b border-[hsl(var(--border-hairline))]">
       <td colSpan={colSpan} className="px-4 py-2">
         <div className="flex items-center gap-3 flex-wrap">
           {docs.map((doc: any) => (
-            <div key={doc.document_id} className="flex items-center gap-1.5 bg-white border border-slate-200 rounded px-2 py-1">
-              <FileText size={11} className="text-slate-400 flex-shrink-0" />
+            <div key={doc.document_id} className="flex items-center gap-1.5 bg-card border border-border rounded px-2 py-1">
+              <FileText size={11} className="text-muted-foreground flex-shrink-0" />
               <button
                 onClick={() => handleDownload(doc.document_id, doc.file_name)}
-                className="text-[11px] text-brand-accent hover:underline max-w-[160px] truncate"
+                className="text-[11px] text-primary hover:underline max-w-[160px] truncate"
               >
                 {doc.file_name}
               </button>
               {!readOnly && (
-                <button onClick={() => handleDelete(doc.document_id)} className="text-slate-300 hover:text-red-400">
+                <button onClick={() => handleDelete(doc.document_id)} className="text-muted-foreground/40 hover:text-destructive">
                   <Trash2 size={10} />
                 </button>
               )}
             </div>
           ))}
           {docs.length === 0 && (
-            <span className="text-[11px] text-slate-400">No documents attached.</span>
+            <span className="text-[11px] text-muted-foreground">No documents attached.</span>
           )}
           {!readOnly && (
             <>
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
-                className="flex items-center gap-1 text-[11px] text-violet-600 hover:text-violet-800 font-medium"
+                className="flex items-center gap-1 text-[11px] text-accent-foreground hover:text-accent-foreground font-medium"
               >
                 <Upload size={11} />
                 {uploading ? "Uploading..." : "Attach file"}
@@ -275,7 +275,7 @@ function CategoryDetailPanel({
 
   const NumField = ({ field, label, placeholder }: { field: keyof LocalEntry; label: string; placeholder?: string }) => (
     <label className="flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{label}</span>
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
       <input
         className={inputCls}
         type="number" step="any"
@@ -288,7 +288,7 @@ function CategoryDetailPanel({
   );
   const TxtField = ({ field, label, placeholder }: { field: keyof LocalEntry; label: string; placeholder?: string }) => (
     <label className="flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">{label}</span>
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</span>
       <input
         className={inputCls}
         placeholder={placeholder}
@@ -373,15 +373,15 @@ function CategoryDetailPanel({
   const canAllocate = ALLOCATION_SUPPORTED.has(ghgCategoryId);
 
   return (
-    <tr className="bg-sky-50/40 border-b border-slate-100">
+    <tr className="bg-info-tint/40 border-b border-[hsl(var(--border-hairline))]">
       <td colSpan={colSpan} className="px-4 py-3">
         <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Sliders size={12} className="text-sky-600" />
-            <span className="text-[11px] font-semibold text-sky-700">Category-specific inputs (Appendix D)</span>
+            <Sliders size={12} className="text-info" />
+            <span className="text-[11px] font-semibold text-info">Category-specific inputs (Appendix D)</span>
           </div>
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-1.5 text-[11px] text-slate-600">
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <input
                 type="radio"
                 name={`mode-${k}`}
@@ -392,7 +392,7 @@ function CategoryDetailPanel({
               />
               Direct entry
             </label>
-            <label className="flex items-center gap-1.5 text-[11px] text-slate-600">
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <input
                 type="radio"
                 name={`mode-${k}`}
@@ -404,7 +404,7 @@ function CategoryDetailPanel({
               Compute from these fields
             </label>
             {canAllocate && (
-              <label className="flex items-center gap-1.5 text-[11px] text-slate-600">
+              <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <input
                   type="radio"
                   name={`mode-${k}`}
@@ -546,7 +546,7 @@ export default function Scope3EntryForm({
           <button
             onClick={() => onAddHybridChild(k)}
             title="Add sub-component to this hybrid row"
-            className="flex items-center justify-center w-6 h-6 rounded text-emerald-600 hover:bg-emerald-50"
+            className="flex items-center justify-center w-6 h-6 rounded text-ok hover:bg-ok-tint"
           >
             <Plus size={13} />
           </button>
@@ -557,10 +557,10 @@ export default function Scope3EntryForm({
             title="Category-specific details (Appendix D inputs)"
             className={`flex items-center justify-center w-6 h-6 rounded transition-colors
               ${catOpen
-                ? "bg-sky-100 text-sky-600"
+                ? "bg-sky-100 text-info"
                 : entry.computation_mode === "CATEGORY"
-                  ? "text-sky-500 hover:bg-sky-50"
-                  : "text-slate-400 hover:text-sky-500 hover:bg-sky-50"}`}
+                  ? "text-sky-500 hover:bg-info-tint"
+                  : "text-muted-foreground hover:text-sky-500 hover:bg-info-tint"}`}
           >
             <Sliders size={12} />
           </button>
@@ -570,18 +570,18 @@ export default function Scope3EntryForm({
           title={isSaved ? "Attach documents" : "Save Draft first to attach documents"}
           className={`flex items-center justify-center w-6 h-6 rounded transition-colors
             ${docOpen
-              ? "bg-violet-100 text-violet-600"
-              : "text-slate-400 hover:text-violet-500 hover:bg-violet-50"}`}
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:text-violet-500 hover:bg-accent"}`}
         >
           <Paperclip size={12} />
         </button>
         {!readOnly && (
-          <button onClick={() => onDelete(k)} className="text-slate-400 hover:text-red-500 p-0.5">
+          <button onClick={() => onDelete(k)} className="text-muted-foreground hover:text-destructive p-0.5">
             <Trash2 size={13} />
           </button>
         )}
         {hasError && (
-          <span title={entry.error_message || "Error"} className="text-red-500">
+          <span title={entry.error_message || "Error"} className="text-destructive">
             <AlertCircle size={13} />
           </span>
         )}
@@ -590,21 +590,21 @@ export default function Scope3EntryForm({
   );
 
   const rowBg = hasError
-    ? "bg-red-50/50"
+    ? "bg-destructive-tint/50"
     : isHybridParent
-      ? "bg-emerald-50/50"
+      ? "bg-ok-tint/50"
       : isChild
-        ? "bg-slate-50/60"
-        : "hover:bg-slate-50/40";
+        ? "bg-sunken/60"
+        : "hover:bg-sunken/40";
 
   return (
     <Fragment>
-      <tr className={`border-b border-slate-100 ${rowBg}`}>
+      <tr className={`border-b border-[hsl(var(--border-hairline))] ${rowBg}`}>
 
         {/* 1. Description — activity_label for all methods */}
         <td className={`px-2 py-1.5 min-w-[160px] ${isChild ? "pl-8" : ""}`}>
           <div className="flex items-center gap-1">
-            {isChild && <GitBranch size={11} className="text-slate-400 flex-shrink-0" />}
+            {isChild && <GitBranch size={11} className="text-muted-foreground flex-shrink-0" />}
             <input
               className={inputCls}
               placeholder={
@@ -671,7 +671,7 @@ export default function Scope3EntryForm({
                 className={`flex items-center justify-center w-6 h-6 rounded text-[10px] font-bold flex-shrink-0 border
                   ${isHybridParent
                     ? "bg-emerald-600 text-white border-emerald-600"
-                    : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}`}
+                    : "text-ok border-ok/30 hover:bg-ok-tint"}`}
               >
                 H
               </button>
@@ -708,7 +708,7 @@ export default function Scope3EntryForm({
         <td className="px-2 py-1.5 w-[70px]">
           {isQtyBased ? (
             <input
-              className={`${inputCls} ${unitLockedByFactor ? "bg-slate-50 text-slate-500" : ""}`}
+              className={`${inputCls} ${unitLockedByFactor ? "bg-sunken text-muted-foreground" : ""}`}
               placeholder="unit"
               value={entry.quantity_unit || ""}
               onChange={(e) => onChange(k, "quantity_unit", e.target.value)}
@@ -769,7 +769,7 @@ export default function Scope3EntryForm({
                   disabled={readOnly}
                 />
                 <select
-                  className="py-1 px-1 text-[10px] text-brand-navy border border-slate-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-brand-accent w-[72px] flex-shrink-0"
+                  className="py-1 px-1 text-[10px] text-foreground border border-border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary w-[72px] flex-shrink-0"
                   value={entry.manual_ef_unit || "kgCO2e"}
                   onChange={(e) => onChange(k, "manual_ef_unit", e.target.value)}
                   disabled={readOnly}
@@ -798,7 +798,7 @@ export default function Scope3EntryForm({
               </select>
               {/* Fix 4 + Fix 6: Show resolved EF value + WTT below dropdown */}
               {selectedFI && (
-                <span className="block mt-0.5 text-[10px] text-slate-400 truncate" title={factorSummary(selectedFI)}>
+                <span className="block mt-0.5 text-[10px] text-muted-foreground truncate" title={factorSummary(selectedFI)}>
                   {factorSummary(selectedFI)}
                 </span>
               )}
@@ -827,7 +827,7 @@ export default function Scope3EntryForm({
             />
           ) : (
             <span className={`block text-right text-[12px] font-mono px-2 py-1
-              ${computedTco2e !== null ? "text-brand-navy font-semibold" : "text-slate-300"}`}>
+              ${computedTco2e !== null ? "text-foreground font-semibold" : "text-muted-foreground/40"}`}>
               {computedTco2e !== null ? computedTco2e.toFixed(4) : "—"}
             </span>
           )}
@@ -870,7 +870,7 @@ export default function Scope3EntryForm({
 /* ── Unified table headers ───────────────────────────────────────────────────── */
 
 export function EntryTableHeaders({ allowedMethods }: { allowedMethods: Scope3CalcMethod[] }) {
-  const hdrCls = "px-2 py-2 text-[10px] uppercase tracking-wider text-slate-500 font-semibold text-left";
+  const hdrCls = "px-2 py-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-left";
 
   const factorLabel = (() => {
     if (allowedMethods.includes("SUPPLIER_SPECIFIC") && allowedMethods.length === 1)
@@ -887,7 +887,7 @@ export function EntryTableHeaders({ allowedMethods }: { allowedMethods: Scope3Ca
     ? "Currency" : "Unit / Curr";
 
   return (
-    <tr className="border-b border-slate-200">
+    <tr className="border-b border-border">
       <th className={hdrCls} style={{ minWidth: 160 }}>Description</th>
       <th className={hdrCls} style={{ width: 140 }}>Supplier</th>
       <th className={hdrCls} style={{ width: 135 }}>Method</th>

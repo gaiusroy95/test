@@ -75,31 +75,31 @@ export default function Scope3CSVImport({ batchId, onUploaded, disabled }: Props
           <Upload size={13} /> Import CSV
         </Button>
       ) : (
-        <div className="border border-slate-200 rounded-md p-3 bg-slate-50">
+        <div className="border border-border rounded-md p-3 bg-sunken">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[12px] text-brand-navy font-medium">{file.name}</span>
-            <button onClick={reset} className="text-slate-400 hover:text-slate-600">
+            <span className="text-[12px] text-foreground font-medium">{file.name}</span>
+            <button onClick={reset} className="text-muted-foreground hover:text-muted-foreground">
               <X size={14} />
             </button>
           </div>
 
           {result ? (
             <div className="text-[12px] space-y-1">
-              <div className="flex items-center gap-1.5 text-emerald-600">
+              <div className="flex items-center gap-1.5 text-ok">
                 <CheckCircle2 size={13} /> {result.valid_rows} valid rows
               </div>
               {result.error_rows > 0 && (
-                <div className="flex items-center gap-1.5 text-red-600">
+                <div className="flex items-center gap-1.5 text-destructive">
                   <AlertCircle size={13} /> {result.error_rows} errors
                 </div>
               )}
               {result.errors.length > 0 && (
-                <div className="mt-1 max-h-[100px] overflow-y-auto text-[11px] text-red-600 space-y-0.5">
+                <div className="mt-1 max-h-[100px] overflow-y-auto text-[11px] text-destructive space-y-0.5">
                   {result.errors.slice(0, 10).map((e, i) => (
                     <div key={i}>Row {e.row}: {e.message}</div>
                   ))}
                   {result.errors.length > 10 && (
-                    <div className="text-slate-400">... and {result.errors.length - 10} more</div>
+                    <div className="text-muted-foreground">... and {result.errors.length - 10} more</div>
                   )}
                 </div>
               )}

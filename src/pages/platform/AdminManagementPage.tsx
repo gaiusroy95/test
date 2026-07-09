@@ -2,12 +2,14 @@ import { useEffect, useState, useCallback } from "react";
 import { platformApi } from "@/api/client";
 import { PageShell } from "@/components/shared/PageShell";
 import { DataTable } from "@/components/shared/DataTable";
+import { FormField as WorkspaceField } from "@/components/shared/FormField";
+import { FormRow, FormSection } from "@/components/shared/FormWorkspace";
 import { RoleBadge } from "@/components/shared/StatusBadge";
-import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { Plus, Shield, ShieldOff, ShieldCheck } from "lucide-react";
 import type { PlatformUser } from "@/types";
@@ -20,6 +22,12 @@ export default function AdminManagementPage() {
   const [blockTarget, setBlockTarget] = useState<PlatformUser | null>(null);
   const [unblockTarget, setUnblockTarget] = useState<PlatformUser | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+  });
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -41,6 +49,16 @@ export default function AdminManagementPage() {
       fetch();
     } catch (err: any) { toast.error(getApiError(err, "Failed to create admin")); }
     finally { setActionLoading(false); }
+  };
+
+  const openCreate = () => {
+    setCreateForm({
+      first_name: "",
+      last_name: "",
+      email: "",
+      password: "",
+    });
+    setCreateOpen(true);
   };
 
   const handleBlock = async (reason?: string) => {
@@ -67,20 +85,13 @@ export default function AdminManagementPage() {
     finally { setActionLoading(false); }
   };
 
-  const fields: FormField[] = [
-    { key: "first_name", label: "First Name", required: true, placeholder: "Admin" },
-    { key: "last_name", label: "Last Name", required: true, placeholder: "User" },
-    { key: "email", label: "Email", type: "email", required: true, placeholder: "admin@esmos.com" },
-    { key: "password", label: "Password", type: "password", required: true, placeholder: "Strong password" },
-  ];
-
   return (
     <PageShell
       title="Admin Management"
       description="Manage platform admin accounts (PLATFORM_OWNER only)"
       breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Admin Management" }]}
       actions={
-        <Button onClick={() => setCreateOpen(true)} size="sm">
+        <Button onClick={openCreate} size="sm">
           <Plus size={14} /> Add Admin
         </Button>
       }
@@ -134,7 +145,62 @@ export default function AdminManagementPage() {
         </Table>
       </DataTable>
 
-      <FormDialog open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={handleCreate} title="Add Platform Admin" description="This user will be able to manage companies and system config" fields={fields} submitLabel="Create Admin" loading={actionLoading} />
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent className="max-w-[680px]">
+          <SheetHeader>
+            <SheetTitle>Add Platform Admin</SheetTitle>
+            <p className="text-[12px] text-muted-foreground mt-0.5">
+              This user will be able to manage companies and system configuration.
+            </p>
+          </SheetHeader>
+          <SheetBody className="space-y-5">
+            <FormSection title="Admin Identity" description="Create a new platform-level administrator account">
+              <FormRow cols={2}>
+                <WorkspaceField label="First Name" required>
+                  <input
+                    value={createForm.first_name}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, first_name: e.target.value }))}
+                    placeholder="Admin"
+                    className="field-input"
+                  />
+                </WorkspaceField>
+                <WorkspaceField label="Last Name" required>
+                  <input
+                    value={createForm.last_name}
+                    onChange={(e) => setCreateForm((prev) => ({ ...prev, last_name: e.target.value }))}
+                    placeholder="User"
+                    className="field-input"
+                  />
+                </WorkspaceField>
+              </FormRow>
+              <WorkspaceField label="Email" required className="mt-4">
+                <input
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, email: e.target.value }))}
+                  placeholder="admin@esmos.com"
+                  className="field-input"
+                />
+              </WorkspaceField>
+              <WorkspaceField label="Password" required className="mt-4">
+                <input
+                  type="password"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, password: e.target.value }))}
+                  placeholder="Strong password"
+                  className="field-input"
+                />
+              </WorkspaceField>
+            </FormSection>
+          </SheetBody>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={actionLoading}>Cancel</Button>
+            <Button onClick={() => handleCreate(createForm)} disabled={actionLoading}>
+              {actionLoading ? "Creating..." : "Create Admin"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       <ConfirmDialog open={!!blockTarget} onClose={() => setBlockTarget(null)} onConfirm={handleBlock} title="Block Admin" message={`Block "${blockTarget?.first_name} ${blockTarget?.last_name}"? They will be locked out immediately.`} confirmLabel="Block" variant="destructive" showReason loading={actionLoading} />
       <ConfirmDialog open={!!unblockTarget} onClose={() => setUnblockTarget(null)} onConfirm={handleUnblock} title="Unblock Admin" message={`Reactivate "${unblockTarget?.first_name} ${unblockTarget?.last_name}"?`} confirmLabel="Unblock" loading={actionLoading} />
     </PageShell>

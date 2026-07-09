@@ -72,7 +72,7 @@ export default function NotificationsPage() {
   const handleClick = (n: Notification) => {
     if (!n.is_read && !isSupport) markRead(n.notification_id);
     if (n.type === "SUBMITTED" || n.type === "APPROVED" || n.type === "REJECTED") {
-      navigate("/app/review");
+      navigate(n.record_id ? `/app/review/${n.record_id}` : "/app/review");
     } else if (n.type === "LOCKED" || n.type === "EDITED" || n.type === "REMINDER" || n.record_id) {
       navigate("/app/esg-input");
     }

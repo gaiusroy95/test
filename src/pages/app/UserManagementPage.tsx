@@ -13,9 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Dialog as ShadDialog, DialogContent, DialogHeader as ShadDialogHeader,
-  DialogTitle, DialogBody, DialogFooter,
-} from "@/components/ui/dialog";
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter,
+} from "@/components/ui/sheet";
+import { FormSection, FormRow } from "@/components/shared/FormWorkspace";
+import { FormField } from "@/components/shared/FormField";
 import { toast } from "sonner";
 import { Plus, Users, Pencil, UserX, UserCheck, MapPin, Trash2 } from "lucide-react";
 import type { User, Location } from "@/types";
@@ -32,7 +33,7 @@ function ModuleSelector({ selectedIds, onChange }: { selectedIds: number[]; onCh
   };
   return (
     <div>
-      <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Assigned Modules</Label>
+      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Assigned Modules</Label>
       <div className="flex flex-wrap gap-2 mt-2">
         {modules.map((m) => {
           const Icon = getModuleIcon(m.icon_name);
@@ -43,7 +44,7 @@ function ModuleSelector({ selectedIds, onChange }: { selectedIds: number[]; onCh
               type="button"
               onClick={() => toggle(m.module_id)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border-2 transition-all ${
-                checked ? "text-white border-transparent" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                checked ? "text-white border-transparent" : "bg-card text-muted-foreground border-border hover:border-border"
               }`}
               style={checked ? { background: m.color, borderColor: m.color } : {}}
             >
@@ -53,7 +54,7 @@ function ModuleSelector({ selectedIds, onChange }: { selectedIds: number[]; onCh
         })}
       </div>
       {selectedIds.length === 0 && (
-        <p className="text-[11px] text-amber-600 mt-1.5">No modules assigned — this user will see nothing when they log in.</p>
+        <p className="text-[11px] text-warn mt-1.5">No modules assigned — this user will see nothing when they log in.</p>
       )}
     </div>
   );
@@ -63,8 +64,8 @@ function ModuleSelector({ selectedIds, onChange }: { selectedIds: number[]; onCh
 
 function ModulePills({ moduleIds, role }: { moduleIds: number[]; role: string }) {
   const modules = useModulesStore((s) => s.modules);
-  if (role !== "LOCATION_USER") return <span className="text-[11px] font-semibold text-slate-400">All</span>;
-  if (moduleIds.length === 0) return <span className="text-[11px] text-slate-300 italic">None</span>;
+  if (role !== "LOCATION_USER") return <span className="text-[11px] font-semibold text-muted-foreground">All</span>;
+  if (moduleIds.length === 0) return <span className="text-[11px] text-muted-foreground/40 italic">None</span>;
   return (
     <div className="flex flex-wrap gap-1">
       {moduleIds.map((id) => {
@@ -89,7 +90,7 @@ function LocationSelector({ selectedIds, locations, onChange }: { selectedIds: s
   };
   return (
     <div>
-      <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Assigned Locations</Label>
+      <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Assigned Locations</Label>
       <div className="flex flex-wrap gap-2 mt-2">
         {locations.map(loc => {
           const checked = selectedIds.includes(loc.location_id);
@@ -99,13 +100,13 @@ function LocationSelector({ selectedIds, locations, onChange }: { selectedIds: s
               type="button"
               onClick={() => toggle(loc.location_id)}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold border-2 transition-all flex items-center gap-1.5
-                ${checked ? "bg-brand-navy text-white border-brand-navy" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}
+                ${checked ? "bg-primary text-white border-primary" : "bg-card text-muted-foreground border-border hover:border-border"}`}
             >
               <MapPin size={12} /> {loc.location_name}
             </button>
           );
         })}
-        {locations.length === 0 && <p className="text-[11px] text-slate-400">No locations configured yet.</p>}
+        {locations.length === 0 && <p className="text-[11px] text-muted-foreground">No locations configured yet.</p>}
       </div>
       {selectedIds.length === 0 && locations.length > 0 && (
         <p className="text-[11px] text-amber-500 mt-1.5">No locations assigned — user won't see any data</p>
@@ -389,106 +390,111 @@ export default function UserManagementPage() {
         </Table>
       </DataTable>
 
-      {/* ── Create User Dialog ── */}
-      <ShadDialog open={createOpen} onOpenChange={(v) => { if (!v) setCreateOpen(false); }}>
-        <DialogContent className="max-w-lg">
-          <ShadDialogHeader>
-            <DialogTitle>Add User</DialogTitle>
-          </ShadDialogHeader>
-          <DialogBody>
-            <form id="create-user-form" onSubmit={handleCreate} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">First Name <span className="text-red-500">*</span></Label>
-                  <input value={createForm.first_name} onChange={(e) => setCreateForm({ ...createForm, first_name: e.target.value })} className={inputCls} placeholder="Priya" required />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Last Name <span className="text-red-500">*</span></Label>
-                  <input value={createForm.last_name} onChange={(e) => setCreateForm({ ...createForm, last_name: e.target.value })} className={inputCls} placeholder="Mehta" required />
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Email <span className="text-red-500">*</span></Label>
-                <input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} className={inputCls} placeholder="priya@company.com" required />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Password <span className="text-red-500">*</span></Label>
-                <input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} className={inputCls} placeholder="Min 8 characters" required />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Role <span className="text-red-500">*</span></Label>
-                <select value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value, module_ids: [] })} className={inputCls} required>
-                  <option value="">Select role…</option>
-                  <option value="COMPANY_ADMIN">Company Admin</option>
-                  <option value="REVIEWER">Reviewer</option>
-                  <option value="LOCATION_USER">Location User</option>
-                  <option value="AUDITOR">Auditor</option>
-                </select>
-              </div>
-              {createForm.role === "LOCATION_USER" && (
-                <>
-                  <ModuleSelector selectedIds={createForm.module_ids} onChange={(ids) => setCreateForm({ ...createForm, module_ids: ids })} />
-                  <LocationSelector selectedIds={createForm.location_ids} locations={locations} onChange={(ids) => setCreateForm({ ...createForm, location_ids: ids })} />
-                </>
-              )}
+      {/* ── Create User — wide panel ── */}
+      <Sheet open={createOpen} onOpenChange={(v) => { if (!v) setCreateOpen(false); }}>
+        <SheetContent className="max-w-2xl w-full">
+          <SheetHeader>
+            <SheetTitle>Add User</SheetTitle>
+          </SheetHeader>
+          <SheetBody>
+            <form id="create-user-form" onSubmit={handleCreate} className="space-y-5">
+              <FormSection title="Personal Information">
+                <FormRow cols={2}>
+                  <FormField label="First Name" required>
+                    <input id="create-first" value={createForm.first_name} onChange={(e) => setCreateForm({ ...createForm, first_name: e.target.value })} className={inputCls} placeholder="Priya" required />
+                  </FormField>
+                  <FormField label="Last Name" required>
+                    <input id="create-last" value={createForm.last_name} onChange={(e) => setCreateForm({ ...createForm, last_name: e.target.value })} className={inputCls} placeholder="Mehta" required />
+                  </FormField>
+                </FormRow>
+                <FormField label="Email" required className="mt-4">
+                  <input id="create-email" type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} className={inputCls} placeholder="priya@company.com" required />
+                </FormField>
+                <FormField label="Password" required hint="Minimum 8 characters" className="mt-4">
+                  <input id="create-pwd" type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} className={inputCls} placeholder="Min 8 characters" required />
+                </FormField>
+              </FormSection>
+              <FormSection title="Role & Access">
+                <FormField label="Role" required>
+                  <Select value={createForm.role || "__none__"} onValueChange={(v) => setCreateForm({ ...createForm, role: v === "__none__" ? "" : v, module_ids: [] })}>
+                    <SelectTrigger id="create-role"><SelectValue placeholder="Select role…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select role…</SelectItem>
+                      <SelectItem value="COMPANY_ADMIN">Company Admin</SelectItem>
+                      <SelectItem value="REVIEWER">Reviewer</SelectItem>
+                      <SelectItem value="LOCATION_USER">Location User</SelectItem>
+                      <SelectItem value="AUDITOR">Auditor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                {createForm.role === "LOCATION_USER" && (
+                  <div className="mt-4 space-y-4">
+                    <ModuleSelector selectedIds={createForm.module_ids} onChange={(ids) => setCreateForm({ ...createForm, module_ids: ids })} />
+                    <LocationSelector selectedIds={createForm.location_ids} locations={locations} onChange={(ids) => setCreateForm({ ...createForm, location_ids: ids })} />
+                  </div>
+                )}
+              </FormSection>
             </form>
-          </DialogBody>
-          <DialogFooter>
+          </SheetBody>
+          <SheetFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={actionLoading}>Cancel</Button>
             <Button type="submit" form="create-user-form" disabled={actionLoading}>
               {actionLoading ? "Creating…" : "Create User"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </ShadDialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      {/* ── Edit User Dialog ── */}
-      <ShadDialog open={!!editUser} onOpenChange={(v) => { if (!v) setEditUser(null); }}>
-        <DialogContent className="max-w-lg">
-          <ShadDialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-          </ShadDialogHeader>
-          <DialogBody>
-            <form id="edit-user-form" onSubmit={handleEdit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">First Name <span className="text-red-500">*</span></Label>
-                  <input value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} className={inputCls} required />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Last Name <span className="text-red-500">*</span></Label>
-                  <input value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} className={inputCls} required />
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Email <span className="text-red-500">*</span></Label>
-                <input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className={inputCls} required />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Role <span className="text-red-500">*</span></Label>
-                <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value, module_ids: [] })} className={inputCls} required>
-                  <option value="COMPANY_ADMIN">Company Admin</option>
-                  <option value="REVIEWER">Reviewer</option>
-                  <option value="LOCATION_USER">Location User</option>
-                  <option value="AUDITOR">Auditor</option>
-                </select>
-              </div>
-              {editForm.role === "LOCATION_USER" && (
-                <>
-                  <ModuleSelector selectedIds={editForm.module_ids} onChange={(ids) => setEditForm({ ...editForm, module_ids: ids })} />
-                  <LocationSelector selectedIds={editForm.location_ids} locations={locations} onChange={(ids) => setEditForm({ ...editForm, location_ids: ids })} />
-                </>
-              )}
+      {/* ── Edit User — wide panel ── */}
+      <Sheet open={!!editUser} onOpenChange={(v) => { if (!v) setEditUser(null); }}>
+        <SheetContent className="max-w-2xl w-full">
+          <SheetHeader>
+            <SheetTitle>Edit User</SheetTitle>
+          </SheetHeader>
+          <SheetBody>
+            <form id="edit-user-form" onSubmit={handleEdit} className="space-y-5">
+              <FormSection title="Personal Information">
+                <FormRow cols={2}>
+                  <FormField label="First Name" required>
+                    <input id="edit-first" value={editForm.first_name} onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })} className={inputCls} required />
+                  </FormField>
+                  <FormField label="Last Name" required>
+                    <input id="edit-last" value={editForm.last_name} onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })} className={inputCls} required />
+                  </FormField>
+                </FormRow>
+                <FormField label="Email" required className="mt-4">
+                  <input id="edit-email" type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className={inputCls} required />
+                </FormField>
+              </FormSection>
+              <FormSection title="Role & Access">
+                <FormField label="Role" required>
+                  <Select value={editForm.role} onValueChange={(v) => setEditForm({ ...editForm, role: v, module_ids: [] })}>
+                    <SelectTrigger id="edit-role"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="COMPANY_ADMIN">Company Admin</SelectItem>
+                      <SelectItem value="REVIEWER">Reviewer</SelectItem>
+                      <SelectItem value="LOCATION_USER">Location User</SelectItem>
+                      <SelectItem value="AUDITOR">Auditor</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FormField>
+                {editForm.role === "LOCATION_USER" && (
+                  <div className="mt-4 space-y-4">
+                    <ModuleSelector selectedIds={editForm.module_ids} onChange={(ids) => setEditForm({ ...editForm, module_ids: ids })} />
+                    <LocationSelector selectedIds={editForm.location_ids} locations={locations} onChange={(ids) => setEditForm({ ...editForm, location_ids: ids })} />
+                  </div>
+                )}
+              </FormSection>
             </form>
-          </DialogBody>
-          <DialogFooter>
+          </SheetBody>
+          <SheetFooter>
             <Button variant="outline" onClick={() => setEditUser(null)} disabled={actionLoading}>Cancel</Button>
             <Button type="submit" form="edit-user-form" disabled={actionLoading}>
               {actionLoading ? "Saving…" : "Save Changes"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </ShadDialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog open={!!deactivateTarget} onClose={() => setDeactivateTarget(null)} onConfirm={handleDeactivate} title="Deactivate User" message={`Deactivate "${deactivateTarget?.first_name} ${deactivateTarget?.last_name}"? They will lose access immediately.`} confirmLabel="Deactivate" variant="destructive" loading={actionLoading} />
       <ConfirmDialog open={!!reactivateTarget} onClose={() => setReactivateTarget(null)} onConfirm={handleReactivate} title="Reactivate User" message={`Reactivate "${reactivateTarget?.first_name} ${reactivateTarget?.last_name}"? They will regain access immediately.`} confirmLabel="Reactivate" variant="default" loading={actionLoading} />

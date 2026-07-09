@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
+import { UserMenu, usePendingTicketCount } from "./UserMenu";
+import { AppStatusBar } from "./AppStatusBar";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { ConsentDialog } from "@/components/shared/ConsentDialog";
 import { SupportSessionBanner } from "@/components/shared/SupportSessionBanner";
 import { useModulesStore } from "@/store/modules";
@@ -9,7 +12,6 @@ import { useFeaturesStore } from "@/store/features";
 import { useVocabulariesStore } from "@/store/vocabularies";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
-import { APP_NAME } from "@/lib/constants";
 
 const LG_BREAKPOINT = 1024;
 
@@ -41,7 +43,6 @@ function AppShell({ portalType, children }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
-  const user = useAuthStore((s) => s.user);
 
   // Close mobile drawer on navigation
   useEffect(() => {
@@ -67,13 +68,10 @@ function AppShell({ portalType, children }: AppShellProps) {
   const sidebarCollapsed = isMobile ? false : collapsed; // always expanded when shown as overlay
   const showDesktopSidebar = !isMobile;
   const showMobileDrawer = isMobile && mobileOpen;
-
-  const contextLabel = portalType === "platform"
-    ? "Platform Admin"
-    : (user?.company_name || "Company Portal");
+  const pendingTicketCount = usePendingTicketCount(portalType);
 
   return (
-    <>
+    <div className="flex flex-1 min-h-0 overflow-hidden w-full">
       {/* Skip to content */}
       <a href="#main-content" className="skip-to-content">
         Skip to content
@@ -96,7 +94,7 @@ function AppShell({ portalType, children }: AppShellProps) {
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute inset-y-0 left-0 animate-slide-in-left shadow-modal">
+          <div className="absolute inset-y-0 left-0 h-full animate-slide-in-left shadow-modal">
             <Sidebar
               portalType={portalType}
               collapsed={false}
@@ -108,8 +106,7 @@ function AppShell({ portalType, children }: AppShellProps) {
 
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top context bar — always on mobile; slim on desktop */}
-        <header className="flex items-center gap-3 h-12 px-4 border-b border-border bg-card flex-shrink-0 z-10">
+        <header className="flex items-center gap-3 h-14 px-5 glass-header flex-shrink-0 z-10">
           {isMobile && (
             <Button
               variant="ghost"
@@ -121,30 +118,32 @@ function AppShell({ portalType, children }: AppShellProps) {
               <Menu size={18} />
             </Button>
           )}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="text-xs font-semibold text-foreground truncate">{APP_NAME}</span>
-            <span className="text-border hidden sm:inline" aria-hidden="true">·</span>
-            <span className="text-label text-muted-foreground truncate hidden sm:inline">{contextLabel}</span>
-          </div>
+          <div className="flex-1 min-w-0" />
+          <ThemeToggle />
+          <UserMenu portalType={portalType} pendingTicketCount={pendingTicketCount} />
         </header>
 
-        <main id="main-content" className="flex-1 overflow-y-auto bg-background">
+        <main id="main-content" className="flex-1 overflow-y-auto workspace-canvas min-h-0">
           {children}
         </main>
+
+        <AppStatusBar portalType={portalType} />
       </div>
-    </>
+    </div>
   );
 }
 
 export function PlatformLayout() {
   const { pathname } = useLocation();
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <AppShell portalType="platform">
-        <div key={pathname} className="animate-page-in h-full">
-          <Outlet />
-        </div>
-      </AppShell>
+    <div className="flex h-screen overflow-hidden bg-background flex-col">
+      <div className="flex flex-1 overflow-hidden min-h-0">
+        <AppShell portalType="platform">
+          <div key={pathname} className="animate-page-in h-full">
+            <Outlet />
+          </div>
+        </AppShell>
+      </div>
     </div>
   );
 }

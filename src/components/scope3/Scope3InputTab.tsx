@@ -161,12 +161,12 @@ function BatchDocPanel({ batchId, readOnly }: { batchId: string; readOnly: boole
   };
 
   return (
-    <div className="mt-4 border border-slate-200 rounded-lg overflow-hidden bg-white">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-slate-50/60">
+    <div className="mt-4 border border-border rounded-lg overflow-hidden bg-card">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
         <div className="flex items-center gap-2">
-          <Paperclip size={13} className="text-slate-400" />
-          <span className="text-[12px] font-bold text-brand-navy">Supporting Documents</span>
-          <span className="text-[11px] text-slate-400">
+          <Paperclip size={13} className="text-muted-foreground" />
+          <span className="text-[12px] font-bold text-foreground">Supporting Documents</span>
+          <span className="text-[11px] text-muted-foreground">
             {docs.length} file{docs.length !== 1 ? "s" : ""} — batch level
           </span>
         </div>
@@ -174,7 +174,7 @@ function BatchDocPanel({ batchId, readOnly }: { batchId: string; readOnly: boole
           <button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-1 text-[11px] text-violet-600 hover:text-violet-800 font-medium"
+            className="flex items-center gap-1 text-[11px] text-accent-foreground hover:text-accent-foreground font-medium"
           >
             <Upload size={12} />
             {uploading ? "Uploading..." : "Upload"}
@@ -183,29 +183,29 @@ function BatchDocPanel({ batchId, readOnly }: { batchId: string; readOnly: boole
         <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} />
       </div>
       {docs.length === 0 ? (
-        <div className="px-5 py-4 text-center text-[12px] text-slate-400">
+        <div className="px-5 py-4 text-center text-[12px] text-muted-foreground">
           No documents. Upload invoices, reports, or LCA studies here.
         </div>
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border/60">
           {docs.map((doc: any) => (
             <div key={doc.document_id} className="flex items-center gap-3 px-4 py-2.5">
-              <FileText size={13} className="text-slate-400 flex-shrink-0" />
+              <FileText size={13} className="text-muted-foreground flex-shrink-0" />
               <button
                 onClick={() => handleDownload(doc.document_id, doc.file_name)}
-                className="flex-1 text-[12px] font-medium text-brand-accent hover:underline truncate text-left"
+                className="flex-1 text-[12px] font-medium text-primary hover:underline truncate text-left"
               >
                 {doc.file_name}
               </button>
               {doc.file_size_bytes && (
-                <span className="text-[10px] text-slate-400">
+                <span className="text-[10px] text-muted-foreground">
                   {(doc.file_size_bytes / 1024).toFixed(1)} KB
                 </span>
               )}
               {!readOnly && (
                 <button
                   onClick={() => handleDelete(doc.document_id)}
-                  className="p-1 rounded hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors"
+                  className="p-1 rounded hover:bg-destructive-tint text-muted-foreground/40 hover:text-destructive transition-colors"
                 >
                   <Trash2 size={11} />
                 </button>
@@ -226,25 +226,25 @@ function MethodLegend({ allowedMethods }: { allowedMethods: Scope3CalcMethod[] }
     <div className="relative">
       <button
         onClick={() => setShow((s) => !s)}
-        className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600"
+        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-muted-foreground"
       >
         <HelpCircle size={12} />
         Method guide
       </button>
       {show && (
-        <div className="absolute right-0 top-6 z-20 w-72 bg-white border border-slate-200 rounded-lg shadow-lg p-3">
-          <p className="text-[11px] font-bold text-brand-navy mb-2">GHG Protocol Calculation Methods</p>
+        <div className="absolute right-0 top-6 z-20 w-72 bg-card border border-border rounded-lg shadow-lg p-3">
+          <p className="text-[11px] font-bold text-foreground mb-2">GHG Protocol Calculation Methods</p>
           <div className="space-y-2">
             {CALC_METHODS.filter((m) => allowedMethods.includes(m.value)).map((m) => (
               <div key={m.value}>
-                <p className="text-[11px] font-semibold text-slate-700">{m.label}</p>
-                <p className="text-[11px] text-slate-500">{m.hint}</p>
+                <p className="text-[11px] font-semibold text-foreground/90">{m.label}</p>
+                <p className="text-[11px] text-muted-foreground">{m.hint}</p>
               </div>
             ))}
           </div>
           <button
             onClick={() => setShow(false)}
-            className="mt-2 text-[10px] text-slate-400 hover:text-slate-600"
+            className="mt-2 text-[10px] text-muted-foreground hover:text-muted-foreground"
           >
             Close
           </button>
@@ -586,7 +586,7 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
 
   if (loadingMeta) {
     return (
-      <div className="p-8 text-center text-[13px] text-slate-400 animate-pulse">
+      <div className="p-8 text-center text-[13px] text-muted-foreground animate-pulse">
         Loading Scope 3 categories...
       </div>
     );
@@ -595,9 +595,9 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
   if (assignedCatIds.size === 0) {
     return (
       <div className="p-8 text-center">
-        <Package2 size={32} className="mx-auto text-slate-300 mb-2" />
-        <p className="text-[13px] text-slate-500">No Scope 3 categories assigned yet.</p>
-        <p className="text-[11px] text-slate-400 mt-1">
+        <Package2 size={32} className="mx-auto text-muted-foreground/40 mb-2" />
+        <p className="text-[13px] text-muted-foreground">No Scope 3 categories assigned yet.</p>
+        <p className="text-[11px] text-muted-foreground mt-1">
           Company Admin can assign categories in Scope 3 Setup.
         </p>
       </div>
@@ -616,14 +616,14 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
               onClick={() => setCatFilter(f)}
               className={`px-3 py-1 text-[11px] font-semibold rounded-full transition-colors ${
                 catFilter === f
-                  ? "bg-violet-100 text-violet-700"
-                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-muted-foreground hover:bg-sunken"
               }`}
             >
               {f === "all" ? "All" : f === "upstream" ? "Upstream (C1–C8)" : "Downstream (C9–C15)"}
             </button>
           ))}
-          <span className="ml-auto text-[11px] text-slate-400 flex items-center gap-1">
+          <span className="ml-auto text-[11px] text-muted-foreground flex items-center gap-1">
             <Info size={11} /> Company-level
           </span>
         </div>
@@ -637,7 +637,7 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
               className={`flex-shrink-0 px-3 py-1.5 rounded-md text-[11px] font-semibold transition-all whitespace-nowrap ${
                 activeCatId === cat.category_id
                   ? "bg-violet-600 text-white"
-                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                  : "text-muted-foreground hover:bg-sunken hover:text-foreground/90"
               }`}
             >
               {cat.code}: {cat.name}
@@ -648,13 +648,13 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
 
       {/* ── Batch content area ──────────────────────────────────────────── */}
       {!activeCatId ? (
-        <div className="text-[13px] text-slate-400 text-center py-8">Select a category above</div>
+        <div className="text-[13px] text-muted-foreground text-center py-8">Select a category above</div>
       ) : selMonth === "" ? (
-        <div className="text-[13px] text-slate-400 text-center py-8">
+        <div className="text-[13px] text-muted-foreground text-center py-8">
           Select a month to enter Scope 3 data
         </div>
       ) : loadingBatch ? (
-        <div className="text-[13px] text-slate-400 text-center py-8 animate-pulse">
+        <div className="text-[13px] text-muted-foreground text-center py-8 animate-pulse">
           Loading batch...
         </div>
       ) : (
@@ -664,15 +664,15 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
             <div className="flex items-center gap-3 mb-3 text-[12px]">
               <StatusBadge status={batch.status} />
               {batch.factor_set_name && (
-                <span className="text-slate-500">
-                  Factor set: <span className="font-semibold text-brand-navy">{batch.factor_set_name}</span>
+                <span className="text-muted-foreground">
+                  Factor set: <span className="font-semibold text-foreground">{batch.factor_set_name}</span>
                 </span>
               )}
               {isLocked && (
-                <span className="text-amber-600 font-semibold">Period locked</span>
+                <span className="text-warn font-semibold">Period locked</span>
               )}
               {batch.status === "REJECTED" && batch.rejection_reason && (
-                <span className="text-red-600 text-[11px]">
+                <span className="text-destructive text-[11px]">
                   Rejected: {batch.rejection_reason}
                 </span>
               )}
@@ -683,10 +683,10 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
           )}
 
           {/* Mini-spreadsheet */}
-          <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+          <div className="border border-border rounded-lg overflow-hidden bg-card">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="bg-sunken border-b border-border">
                   <EntryTableHeaders allowedMethods={allowedMethods} />
                 </thead>
                 <tbody>
@@ -711,7 +711,7 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
                   ))}
                   {localRows.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="text-center py-8 text-[12px] text-slate-400">
+                      <td colSpan={9} className="text-center py-8 text-[12px] text-muted-foreground">
                         No entries yet.{" "}
                         {!readOnly && 'Click "Add Row" to enter data or use "Import CSV".'}
                       </td>
@@ -722,10 +722,10 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
             </div>
 
             {!readOnly && (
-              <div className="border-t border-slate-100 px-3 py-2">
+              <div className="border-t border-[hsl(var(--border-hairline))] px-3 py-2">
                 <button
                   onClick={handleAddRow}
-                  className="flex items-center gap-1.5 text-[12px] text-violet-600 hover:text-violet-800 font-medium"
+                  className="flex items-center gap-1.5 text-[12px] text-accent-foreground hover:text-accent-foreground font-medium"
                 >
                   <Plus size={13} /> Add Row
                 </button>
@@ -736,21 +736,21 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
           {/* Totals footer */}
           <div className="flex items-center justify-between mt-3 text-[12px]">
             <div className="flex items-center gap-4">
-              <span className="text-slate-500">
-                Rows: <span className="font-semibold text-brand-navy">{localRows.length}</span>
+              <span className="text-muted-foreground">
+                Rows: <span className="font-semibold text-foreground">{localRows.length}</span>
               </span>
-              <span className="text-slate-500">
-                Total: <span className="font-semibold text-brand-navy">{totalEmissions.toFixed(4)} tCO₂e</span>
+              <span className="text-muted-foreground">
+                Total: <span className="font-semibold text-foreground">{totalEmissions.toFixed(4)} tCO₂e</span>
               </span>
               {batch && batch.error_rows > 0 && (
-                <span className="text-red-500 text-[11px]">
+                <span className="text-destructive text-[11px]">
                   {batch.error_rows} row{batch.error_rows > 1 ? "s" : ""} with errors
                 </span>
               )}
             </div>
             <button
               onClick={handleDownloadTemplate}
-              className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600"
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-muted-foreground"
             >
               <Download size={12} /> Template
             </button>
@@ -772,13 +772,13 @@ export default function Scope3InputTab({ selYear, selMonth, months, isLocked, ca
 
           {/* Action bar */}
           {canEdit && batch && (
-            <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-slate-200">
+            <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-border">
               {batch.ghg_category_id === 3 && (
                 <Button
                   variant="outline" size="sm"
                   onClick={handleAutoComputeC3}
                   disabled={autoComputing || readOnly}
-                  className="text-[12px] gap-1.5 text-sky-700 border-sky-200 hover:bg-sky-50"
+                  className="text-[12px] gap-1.5 text-info border-info/30 hover:bg-info-tint"
                   title="Populate this batch from approved Scope 1/2 energy data"
                 >
                   <Sliders size={13} />

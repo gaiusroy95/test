@@ -35,7 +35,7 @@ export default function QueryChart({ chart }: Props) {
       <div className="mt-4 h-48 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rechartData} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="name" tick={{ fontSize: 10 }} />
             <YAxis tickFormatter={tickFmt} tick={{ fontSize: 10 }} width={46} />
             <Tooltip formatter={tooltipFormatter} />
@@ -51,7 +51,7 @@ export default function QueryChart({ chart }: Props) {
       <div className="mt-4 h-48 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rechartData} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="name" tick={{ fontSize: 10 }} />
             <YAxis tickFormatter={tickFmt} tick={{ fontSize: 10 }} width={46} />
             <Tooltip formatter={tooltipFormatter} />
@@ -67,7 +67,7 @@ export default function QueryChart({ chart }: Props) {
       <div className="mt-4 h-48 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rechartData} layout="vertical" margin={{ top: 4, right: 20, bottom: 4, left: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
             <XAxis type="number" tickFormatter={tickFmt} tick={{ fontSize: 10 }} />
             <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
             <Tooltip formatter={tooltipFormatter} />

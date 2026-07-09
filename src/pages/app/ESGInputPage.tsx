@@ -12,8 +12,9 @@ import {
   ChevronDown, ChevronRight, CheckCircle2, Clock, XCircle,
   Upload, FileText, Trash2, Send, Save,
   MapPin, Calendar, BarChart3, Paperclip,
-  AlertTriangle, Download,
+  AlertTriangle, Download, Lock, Circle,
 } from "lucide-react";
+import { FormWorkspace, FormHeader, FormContextBar, FormBody, FormFooter } from "@/components/shared/FormWorkspace";
 import Scope3InputTab from "@/components/scope3/Scope3InputTab";
 import RichTextEditor from "@/components/shared/RichTextEditor";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
@@ -36,10 +37,10 @@ function passesShowWhen(ind: Indicator, formValues: Record<string, string>): boo
 
 // ── Status config ──────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  DRAFT:     { label: "Draft",        color: "text-slate-500",   bg: "bg-slate-100",   icon: Clock },
-  SUBMITTED: { label: "Under Review", color: "text-amber-600",   bg: "bg-amber-50",    icon: Clock },
-  APPROVED:  { label: "Approved",     color: "text-emerald-600", bg: "bg-emerald-50",  icon: CheckCircle2 },
-  REJECTED:  { label: "Rejected",     color: "text-red-600",     bg: "bg-red-50",      icon: XCircle },
+  DRAFT:     { label: "Draft",        color: "text-muted-foreground",   bg: "bg-sunken",   icon: Clock },
+  SUBMITTED: { label: "Under Review", color: "text-warn",   bg: "bg-warn-tint",    icon: Clock },
+  APPROVED:  { label: "Approved",     color: "text-ok", bg: "bg-ok-tint",  icon: CheckCircle2 },
+  REJECTED:  { label: "Rejected",     color: "text-destructive",     bg: "bg-destructive-tint",      icon: XCircle },
 };
 
 // ── Month strip chip ───────────────────────────────────────────────────
@@ -53,17 +54,17 @@ function MonthChip({
   isLocked: boolean;
   onClick: () => void;
 }) {
-  let dot = "—";
-  let dotColor = "text-[hsl(var(--placeholder))]";
+  let StatusIcon: typeof Circle = Circle;
+  let statusColor = "text-muted-foreground";
   let statusBg = "";
 
   if (isLocked) {
-    dot = "🔒"; dotColor = "text-[hsl(var(--muted-foreground))]"; statusBg = "bg-[hsl(var(--surface-sunken))]";
+    StatusIcon = Lock; statusColor = "text-muted-foreground"; statusBg = "bg-sunken";
   } else if (historyItem) {
-    if (historyItem.status === "APPROVED")  { dot = "✓"; dotColor = "text-[hsl(var(--ok))]"; statusBg = "bg-[hsl(var(--ok-tint))]"; }
-    else if (historyItem.status === "SUBMITTED") { dot = "⏳"; dotColor = "text-[hsl(var(--warn))]"; statusBg = "bg-[hsl(var(--warn-tint))]"; }
-    else if (historyItem.status === "REJECTED") { dot = "✗"; dotColor = "text-[hsl(var(--destructive))]"; statusBg = "bg-[hsl(var(--destructive-tint))]"; }
-    else { dot = "●"; dotColor = "text-[hsl(var(--muted-foreground))]"; statusBg = "bg-[hsl(var(--surface-sunken))]"; }
+    if (historyItem.status === "APPROVED")  { StatusIcon = CheckCircle2; statusColor = "text-ok"; statusBg = "bg-ok-tint"; }
+    else if (historyItem.status === "SUBMITTED") { StatusIcon = Clock; statusColor = "text-warn"; statusBg = "bg-warn-tint"; }
+    else if (historyItem.status === "REJECTED") { StatusIcon = XCircle; statusColor = "text-destructive"; statusBg = "bg-destructive-tint"; }
+    else { StatusIcon = Circle; statusColor = "text-muted-foreground"; statusBg = "bg-sunken"; }
   }
 
   const lockTitle = isLocked ? " — Locked (no edits allowed)" : "";
@@ -71,16 +72,17 @@ function MonthChip({
     <button
       onClick={onClick}
       title={`${month.month_name}${historyItem ? ` — ${historyItem.status}` : " — No data"}${lockTitle}`}
+      aria-label={`${month.month_name}${historyItem ? `, ${historyItem.status}` : ""}${lockTitle}`}
       className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap
         ${isActive
-          ? "bg-[hsl(var(--primary))] text-white border-2 border-[hsl(var(--primary))] shadow-sm"
+          ? "bg-primary text-white border-2 border-primary shadow-sm"
           : isCurrent
-          ? "border-2 border-[hsl(var(--primary))] text-[hsl(var(--foreground))] bg-white"
-          : `border ${isLocked ? "border-[hsl(var(--border))]" : "border-[hsl(var(--border-hairline))]"} text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--border))] hover:bg-[hsl(var(--surface-sunken))] ${statusBg}`
+          ? "border-2 border-primary text-foreground bg-card"
+          : `border ${isLocked ? "border-border" : "border-[hsl(var(--border-hairline))]"} text-muted-foreground hover:border-border hover:bg-sunken ${statusBg}`
         }`}
     >
-      <span className={isActive ? "text-white" : dotColor}>{dot}</span>
-      <span className={isActive ? "text-white/90 text-[10px]" : "text-[10px] text-[hsl(var(--muted-foreground))]"}>{month.month_name.slice(0, 3)}</span>
+      <StatusIcon size={12} className={isActive ? "text-white" : statusColor} aria-hidden="true" />
+      <span className={isActive ? "text-white/90 text-[10px]" : "text-[10px] text-muted-foreground"}>{month.month_name.slice(0, 3)}</span>
     </button>
   );
 }
@@ -102,7 +104,7 @@ function DocPanel({
 
   if (!recordId) {
     return (
-      <div className="px-5 py-3 bg-slate-50/60 border-t border-slate-100 text-[12px] text-slate-400 italic">
+      <div className="px-5 py-3 bg-sunken/60 border-t border-[hsl(var(--border-hairline))] text-[12px] text-muted-foreground italic">
         Save a value first to attach documents
       </div>
     );
@@ -143,16 +145,16 @@ function DocPanel({
   };
 
   return (
-    <div className="bg-slate-50/60 border-t border-slate-100 px-5 py-3 space-y-2">
+    <div className="bg-sunken/60 border-t border-[hsl(var(--border-hairline))] px-5 py-3 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
           Attachments ({docs.length})
         </span>
         {isEditable && (
           <button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-1 px-2 py-1 rounded bg-brand-accent/10 text-brand-accent text-[11px] font-semibold hover:bg-brand-accent/20 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 px-2 py-1 rounded bg-primary/10 text-primary text-[11px] font-semibold hover:bg-primary/20 transition-colors disabled:opacity-50"
           >
             <Upload size={11} /> {uploading ? "…" : "Attach"}
           </button>
@@ -160,21 +162,21 @@ function DocPanel({
         <input ref={fileRef} type="file" className="hidden" onChange={handleUpload} />
       </div>
       {docs.length === 0 ? (
-        <p className="text-[11px] text-slate-400">No files attached yet.</p>
+        <p className="text-[11px] text-muted-foreground">No files attached yet.</p>
       ) : (
         <div className="space-y-1">
           {docs.map((doc: any) => (
             <div key={doc.document_id} className="flex items-center gap-2">
-              <FileText size={11} className="text-slate-400 flex-shrink-0" />
-              <span className="text-[12px] text-brand-navy flex-1 truncate">{doc.file_name}</span>
+              <FileText size={11} className="text-muted-foreground flex-shrink-0" />
+              <span className="text-[12px] text-foreground flex-1 truncate">{doc.file_name}</span>
               {doc.file_size_bytes && (
-                <span className="text-[10px] text-slate-400">{(doc.file_size_bytes / 1024).toFixed(1)}KB</span>
+                <span className="text-[10px] text-muted-foreground">{(doc.file_size_bytes / 1024).toFixed(1)}KB</span>
               )}
-              <button onClick={() => handleDownload(doc.document_id, doc.file_name)} className="p-1 rounded hover:bg-sky-50 text-slate-400 hover:text-brand-accent transition-colors">
+              <button onClick={() => handleDownload(doc.document_id, doc.file_name)} className="p-1 rounded hover:bg-info-tint text-muted-foreground hover:text-primary transition-colors">
                 <Download size={11} />
               </button>
               {isEditable && (
-                <button onClick={() => handleDelete(doc.document_id)} className="p-1 rounded hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors">
+                <button onClick={() => handleDelete(doc.document_id)} className="p-1 rounded hover:bg-destructive-tint text-muted-foreground/40 hover:text-destructive transition-colors">
                   <Trash2 size={11} />
                 </button>
               )}
@@ -811,7 +813,7 @@ export default function ESGInputPage() {
                 val === v
                   ? v === "Y" ? "bg-[hsl(var(--ok-tint))] border-[hsl(var(--ok))] text-[hsl(var(--ok))]"
                                : "bg-[hsl(var(--destructive-tint))] border-[hsl(var(--destructive))] text-[hsl(var(--destructive))]"
-                  : "bg-white border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--foreground)/30%)]"}`}>
+                  : "bg-card border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--foreground)/30%)]"}`}>
               {v === "Y" ? "Yes" : "No"}
             </button>
           ))}
@@ -841,8 +843,8 @@ export default function ESGInputPage() {
             : isAnomaly
             ? 'border-[hsl(var(--warn))] bg-[hsl(var(--warn-tint))] text-[hsl(var(--foreground))] focus:ring-2 focus:ring-[hsl(var(--warn)/30%)] focus:outline-none'
             : isFilled
-            ? 'border-[hsl(var(--ok-tint))] bg-white text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--accent))] focus:outline-none'
-            : 'border-[hsl(var(--border))] bg-white text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--accent))] focus:outline-none'
+            ? 'border-[hsl(var(--ok-tint))] bg-card text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--accent))] focus:outline-none'
+            : 'border-[hsl(var(--border))] bg-card text-[hsl(var(--foreground))] focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--accent))] focus:outline-none'
           }`} />
     );
   };
@@ -871,32 +873,32 @@ export default function ESGInputPage() {
     const docOpen = docPanelOpen.has(fieldKey);
 
     return (
-      <div key={reactKey} className="border-b border-slate-100 last:border-b-0">
-        <div className={`pt-4 pb-4 bg-white border-l-2 border-l-slate-200 hover:border-l-brand-accent/40 transition-colors ${indented ? "pl-10 pr-5" : "px-5"}`}>
+      <div key={reactKey} className="border-b border-[hsl(var(--border-hairline))] last:border-b-0">
+        <div className={`pt-4 pb-4 bg-card border-l-2 border-l-slate-200 hover:border-l-primary/40 transition-colors ${indented ? "pl-10 pr-5" : "px-5"}`}>
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-[13px] font-semibold text-brand-navy">{name}</span>
-                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${isBoolean ? "bg-violet-50 text-violet-600" : "bg-amber-50 text-amber-600"}`}>
+                <span className="text-[13px] font-semibold text-foreground">{name}</span>
+                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${isBoolean ? "bg-accent text-accent-foreground" : "bg-warn-tint text-warn"}`}>
                   {isBoolean ? "Yes / No" : "Text Response"}
                 </span>
                 {isFilled && <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />}
               </div>
               {description && (
-                <p className="text-[12px] text-slate-500 leading-relaxed">{description}</p>
+                <p className="text-[12px] text-muted-foreground leading-relaxed">{description}</p>
               )}
               {!isFilled && isBoolean && prevBoolAnswer && (
-                <p className="text-[11px] text-slate-400 mt-0.5">Last answer: {prevBoolAnswer}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Last answer: {prevBoolAnswer}</p>
               )}
               {!isFilled && !isBoolean && prev !== undefined && (
-                <p className="text-[11px] text-slate-400 mt-0.5">Previously answered</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Previously answered</p>
               )}
             </div>
             <button
               onClick={() => toggleDocPanel(fieldKey)}
               title="Attach document"
               className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border transition-all
-                ${docOpen ? "bg-brand-accent/10 border-brand-accent/30 text-brand-accent" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}
+                ${docOpen ? "bg-primary/10 border-primary/30 text-primary" : "border-border text-muted-foreground hover:border-border"}`}
             >
               <Paperclip size={12} />
             </button>
@@ -912,7 +914,7 @@ export default function ESGInputPage() {
                     val === v
                       ? v === "Y" ? "bg-[hsl(var(--ok-tint))] border-[hsl(var(--ok))] text-[hsl(var(--ok))]"
                                    : "bg-[hsl(var(--destructive-tint))] border-[hsl(var(--destructive))] text-[hsl(var(--destructive))]"
-                      : "bg-white border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--foreground)/30%)]"}`}>
+                      : "bg-card border-[hsl(var(--border))] text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--foreground)/30%)]"}`}>
                   {v === "Y" ? "Yes" : "No"}
                 </button>
               ))}
@@ -932,109 +934,82 @@ export default function ESGInputPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
+    <FormWorkspace fullHeight className="bg-sunken">
+      <FormHeader
+        title="ESG Data Entry"
+        description="Enter environmental data for your assigned location and reporting period"
+        breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "ESG Input" }]}
+        status={statusCfg && (
+          <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-bold ${statusCfg.color} ${statusCfg.bg}`}>
+            <statusCfg.icon size={12} /> {statusCfg.label}
+          </span>
+        )}
+      />
 
-      {/* ── STICKY HEADER ── */}
-      <div className="bg-white border-b border-slate-200 px-6 py-3 flex-shrink-0 shadow-sm">
-        {/* Row 1: Location + Year + Status + Save */}
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Location */}
-            <div className="flex items-center gap-2">
-              <MapPin size={15} className="text-slate-400" />
-              {isLocationUser && visibleLocations.length === 1 ? (
-                <span className="text-[13px] font-bold text-brand-navy">{currentLocationName}</span>
-              ) : (
-                <select
-                  value={selLocation}
-                  onChange={e => setSelLocation(e.target.value)}
-                  className="text-[13px] font-semibold text-brand-navy border border-slate-200 rounded-lg px-3 py-1.5 bg-white outline-none focus:border-brand-accent min-w-[180px]"
-                >
-                  <option value="">Select Location</option>
-                  {visibleLocations.map((l: Location) => (
-                    <option key={l.location_id} value={l.location_id}>{l.location_name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {/* Year */}
-            <div className="flex items-center gap-2">
-              <Calendar size={15} className="text-slate-400" />
-              <select
-                value={selYear}
-                onChange={e => { setSelYear(Number(e.target.value) || ""); setSelMonth(""); }}
-                className="text-[13px] font-semibold text-brand-navy border border-slate-200 rounded-lg px-3 py-1.5 bg-white outline-none focus:border-brand-accent"
-              >
-                <option value="">Year</option>
-                {years.map((y: any) => <option key={y.year_id} value={y.year_id}>{y.fy_label}</option>)}
-              </select>
-            </div>
-
-            {/* Status + filled count */}
-            {statusCfg && (
-              <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-bold ${statusCfg.color} ${statusCfg.bg}`}>
-                <statusCfg.icon size={12} /> {statusCfg.label}
-              </span>
-            )}
-            {submission && (
-              <span className="text-[12px] text-slate-400">
-                <span className="font-semibold text-brand-navy">{filledCount}</span>/{totalKpiCount} filled
-              </span>
-            )}
-          </div>
-
-          {/* Save indicator */}
-          <div className="flex items-center gap-2">
-            {saveStatus === "saving" && <span className="text-[12px] text-slate-400 animate-pulse">Saving…</span>}
-            {saveStatus === "saved" && <span className="text-[12px] text-emerald-500 font-semibold">✓ Saved</span>}
-            {anomalies.length > 0 && submission && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm font-sans text-[11px] font-semibold bg-[hsl(var(--warn-tint))] text-[hsl(var(--warn))]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--warn))]" />
-                {anomalies.length} anomal{anomalies.length === 1 ? "y" : "ies"}
-              </span>
-            )}
-          </div>
+      <FormContextBar
+        items={[
+          { label: "Location", value: currentLocationName || "—", icon: <MapPin size={13} /> },
+          { label: "FY", value: years.find((y: any) => y.year_id === selYear)?.fy_label ?? "—", icon: <Calendar size={13} /> },
+          { label: "Month", value: months.find((m: any) => m.month_id === selMonth)?.month_name ?? "—" },
+        ]}
+      >
+        <div className="flex items-center gap-2 flex-wrap">
+          {isLocationUser && visibleLocations.length === 1 ? null : (
+            <select
+              value={selLocation}
+              onChange={e => setSelLocation(e.target.value)}
+              className="field-input min-w-[160px] h-8 text-ui"
+            >
+              <option value="">Select Location</option>
+              {visibleLocations.map((l: Location) => (
+                <option key={l.location_id} value={l.location_id}>{l.location_name}</option>
+              ))}
+            </select>
+          )}
+          <select
+            value={selYear}
+            onChange={e => { setSelYear(Number(e.target.value) || ""); setSelMonth(""); }}
+            className="field-input w-auto h-8 text-ui"
+          >
+            <option value="">Year</option>
+            {years.map((y: any) => <option key={y.year_id} value={y.year_id}>{y.fy_label}</option>)}
+          </select>
+          {submission && (
+            <span className="text-label text-muted-foreground">
+              <span className="font-semibold text-foreground">{filledCount}</span>/{totalKpiCount} filled
+            </span>
+          )}
+          {saveStatus === "saving" && <span className="text-label text-muted-foreground animate-pulse">Saving…</span>}
+          {saveStatus === "saved" && <span className="text-label text-ok font-semibold">Saved</span>}
         </div>
+      </FormContextBar>
 
-        {/* Row 2: Monthly history strip */}
-        {selLocation && selYear && months.length > 0 && (
-          <div className="flex items-center gap-1 overflow-x-auto py-1.5 mt-1 border-t border-slate-100">
-            {months.map((m: any) => {
-              const histItem = monthHistory.find(h => h.month_id === m.month_id);
-              return (
-                <MonthChip
-                  key={m.month_id}
-                  month={m}
-                  historyItem={histItem}
-                  isActive={selMonth === m.month_id}
-                  isCurrent={m.month_id === todayMonth}
-                  isLocked={lockedMonthIds.has(m.month_id)}
-                  onClick={() => setSelMonth(m.month_id)}
-                />
-              );
-            })}
-          </div>
-        )}
+      {/* Month strip */}
+      {selLocation && selYear && months.length > 0 && (
+        <div className="flex-shrink-0 flex items-center gap-1 overflow-x-auto px-5 py-2 border-b border-border bg-card">
+          {months.map((m: any) => {
+            const histItem = monthHistory.find(h => h.month_id === m.month_id);
+            return (
+              <MonthChip
+                key={m.month_id}
+                month={m}
+                historyItem={histItem}
+                isActive={selMonth === m.month_id}
+                isCurrent={m.month_id === todayMonth}
+                isLocked={lockedMonthIds.has(m.month_id)}
+                onClick={() => setSelMonth(m.month_id)}
+              />
+            );
+          })}
+        </div>
+      )}
 
-        {/* Rejection banner */}
-        {submission?.status === "REJECTED" && submission.reviewer_notes && (
-          <div className="mt-2 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
-            <XCircle size={13} className="text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <span className="text-[12px] font-semibold text-red-700">Rejected: </span>
-              <span className="text-[12px] text-red-600">{submission.reviewer_notes}</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Empty state — only when no period is selected yet */}
+      <FormBody className="!px-0">
       {!periodSelected && !loading && (
-        <div className="flex-1 flex items-center justify-center text-slate-400">
+        <div className="flex-1 flex items-center justify-center text-muted-foreground">
           <div className="text-center">
-            <BarChart3 size={40} className="mx-auto mb-3 text-slate-300" />
-            <p className="text-[14px] font-semibold text-slate-500">Select a period to begin</p>
+            <BarChart3 size={40} className="mx-auto mb-3 text-muted-foreground/40" />
+            <p className="text-[14px] font-semibold text-muted-foreground">Select a period to begin</p>
             <p className="text-[12px] mt-1">Choose a month from the strip above to load the form</p>
           </div>
         </div>
@@ -1042,7 +1017,7 @@ export default function ESGInputPage() {
 
       {loading && (
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-[13px] text-slate-400 animate-pulse">Loading form…</div>
+          <div className="text-[13px] text-muted-foreground animate-pulse">Loading form…</div>
         </div>
       )}
 
@@ -1050,7 +1025,7 @@ export default function ESGInputPage() {
         <div className="flex-1 overflow-y-auto">
 
           {/* Module tabs */}
-          <div className="bg-white border-b border-slate-200 px-6 flex gap-1 py-2 sticky top-0 z-10 overflow-x-auto">
+          <div className="bg-card border-b border-border px-6 flex gap-1 py-2 sticky top-0 z-10 overflow-x-auto">
             <button
               onClick={() => setActiveModule(null)}
               className={`px-4 py-1.5 rounded-md text-[12px] font-semibold transition-all whitespace-nowrap
@@ -1136,14 +1111,14 @@ export default function ESGInputPage() {
               if (modKpis.length === 0 && directEntryIndicators.length === 0 && !isEmissionsModule) return null;
 
               return (
-                <div key={mod.module_id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                <div key={mod.module_id} className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
                   {/* Module header */}
                   <div className="flex items-center gap-3 px-4 py-2.5 border-b border-[hsl(var(--border-hairline))] bg-transparent">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: mod.color + "22" }}>
                       <Icon size={17} style={{ color: mod.color }} />
                     </div>
-                    <span className="text-[14px] font-bold text-brand-navy">{mod.module_name}</span>
-                    <span className="text-[11px] text-slate-400">
+                    <span className="text-[14px] font-bold text-foreground">{mod.module_name}</span>
+                    <span className="text-[11px] text-muted-foreground">
                       {(() => {
                         const fillable = modKpis.filter(k => !(isEmissionsModule && k.is_emission_source));
                         const fillableInds = isEmissionsModule ? [] : directEntryIndicators;
@@ -1163,7 +1138,7 @@ export default function ESGInputPage() {
                         <button
                           type="button"
                           onClick={() => copyPreviousYearText(textIds)}
-                          className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white/70 hover:bg-white text-[11px] font-semibold text-slate-600 hover:text-brand-accent hover:border-brand-accent/40 transition-colors"
+                          className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border bg-card/70 hover:bg-card text-[11px] font-semibold text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
                           title="Copy approved text/boolean answers from the previous FY (won't overwrite existing answers)"
                         >
                           <Download size={12} /> Copy from previous FY
@@ -1173,7 +1148,7 @@ export default function ESGInputPage() {
                   </div>
 
                   {/* Column headers */}
-                  <div className="grid grid-cols-[1fr_70px_110px_180px_36px] gap-3 px-5 py-2 bg-slate-50/60 border-b border-slate-100 text-[11px] font-semibold text-slate-700 uppercase tracking-wide">
+                  <div className="grid grid-cols-[1fr_70px_110px_180px_36px] gap-3 px-5 py-2 bg-sunken/60 border-b border-[hsl(var(--border-hairline))] text-[11px] font-semibold text-foreground/90 uppercase tracking-wide">
                     <span>KPI / Indicator</span>
                     <span>Unit</span>
                     <span className="text-right">Previous</span>
@@ -1187,9 +1162,9 @@ export default function ESGInputPage() {
                       {kpis.filter(k => k.is_emission_source).map(kpi => {
                         const emVal = computedEmissions[kpi.kpi_id];
                         return (
-                          <div key={kpi.kpi_id} className="grid grid-cols-[1fr_70px_110px_180px_36px] gap-3 items-center px-5 py-1.5 border-t border-slate-100/70 bg-slate-50/20 hover:bg-slate-50/40">
+                          <div key={kpi.kpi_id} className="grid grid-cols-[1fr_70px_110px_180px_36px] gap-3 items-center px-5 py-1.5 border-t border-[hsl(var(--border-hairline))]/70 bg-sunken/20 hover:bg-sunken/40">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[13px] text-brand-navy font-medium truncate">{kpi.kpi_name}</span>
+                              <span className="text-[13px] text-foreground font-medium truncate">{kpi.kpi_name}</span>
                             </div>
                             <span className="font-mono text-[12px] tabular-nums text-[hsl(var(--muted-foreground))]">tCO₂e</span>
                             <div className="text-right">
@@ -1197,11 +1172,11 @@ export default function ESGInputPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               {emVal != null ? (
-                                <span className="text-[13px] font-mono text-brand-navy font-semibold">
+                                <span className="text-[13px] font-mono text-foreground font-semibold">
                                   {emVal.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                                 </span>
                               ) : (
-                                <span className="text-[12px] text-slate-300" title="Set conversion factor in KPI Setup">
+                                <span className="text-[12px] text-muted-foreground/40" title="Set conversion factor in KPI Setup">
                                   — <span className="text-[10px] text-amber-500">No factor</span>
                                 </span>
                               )}
@@ -1239,10 +1214,10 @@ export default function ESGInputPage() {
                         const docOpen = docPanelOpen.has(key);
 
                         return (
-                          <div key={kpi.kpi_id} className="border-t border-slate-100/70">
-                            <div className="grid grid-cols-[1fr_70px_110px_180px_36px] gap-3 items-center px-5 py-1.5 bg-white hover:bg-slate-50/50">
+                          <div key={kpi.kpi_id} className="border-t border-[hsl(var(--border-hairline))]/70">
+                            <div className="grid grid-cols-[1fr_70px_110px_180px_36px] gap-3 items-center px-5 py-1.5 bg-card hover:bg-sunken/50">
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-[13px] text-brand-navy font-medium truncate">{kpi.kpi_name}</span>
+                                <span className="text-[13px] text-foreground font-medium truncate">{kpi.kpi_name}</span>
                                 {isFilled && <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />}
                                 {isAnomaly && (
                                   <span title="Value differs >50% from previous" className="text-amber-500 flex-shrink-0">
@@ -1250,7 +1225,7 @@ export default function ESGInputPage() {
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[12px] text-slate-400 font-mono">{isNumericKpi ? kpi.unit : "—"}</span>
+                              <span className="text-[12px] text-muted-foreground font-mono">{isNumericKpi ? kpi.unit : "—"}</span>
                               <div className="text-right">
                                 {isNumericKpi && prev !== undefined
                                   ? <span className="font-mono text-[12px] tabular-nums text-[hsl(var(--muted-foreground))]">{prev.toLocaleString()}</span>
@@ -1263,7 +1238,7 @@ export default function ESGInputPage() {
                                 onClick={() => toggleDocPanel(key)}
                                 title="Attach document"
                                 className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all text-[11px] font-bold
-                                  ${docOpen ? "bg-brand-accent/10 border-brand-accent/30 text-brand-accent" : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500"}`}
+                                  ${docOpen ? "bg-primary/10 border-primary/30 text-primary" : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"}`}
                               >
                                 <Paperclip size={12} />
                               </button>
@@ -1273,7 +1248,7 @@ export default function ESGInputPage() {
                         );
                       })}
                       {modKpis.length === 0 && kpis.filter(k => k.is_emission_source).length === 0 && (
-                        <div className="px-5 py-4 text-[12px] text-slate-400 text-center">
+                        <div className="px-5 py-4 text-[12px] text-muted-foreground text-center">
                           No emission KPIs found. Set up KPIs with emission sources in KPI Setup.
                         </div>
                       )}
@@ -1323,10 +1298,10 @@ export default function ESGInputPage() {
 
                       // ── Compact table row for numeric direct-entry indicators ────────────
                       return (
-                        <div key={ind.indicator_id} className="border-b border-slate-100 last:border-b-0">
-                          <div className={`grid gap-3 items-center px-5 py-1.5 bg-white hover:bg-slate-50/40 border-t border-slate-100/70 ${isWaste && isNumericInd ? "grid-cols-[1fr_70px_110px_180px_76px]" : "grid-cols-[1fr_70px_110px_180px_36px]"}`}>
+                        <div key={ind.indicator_id} className="border-b border-[hsl(var(--border-hairline))] last:border-b-0">
+                          <div className={`grid gap-3 items-center px-5 py-1.5 bg-card hover:bg-sunken/40 border-t border-[hsl(var(--border-hairline))]/70 ${isWaste && isNumericInd ? "grid-cols-[1fr_70px_110px_180px_76px]" : "grid-cols-[1fr_70px_110px_180px_36px]"}`}>
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-[13px] text-brand-navy font-medium truncate">{ind.indicator_name}</span>
+                              <span className="text-[13px] text-foreground font-medium truncate">{ind.indicator_name}</span>
                               {isFilled && <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />}
                               {isAnomaly && (
                                 <span title="Value differs >50% from previous" className="text-amber-500 flex-shrink-0">
@@ -1334,11 +1309,11 @@ export default function ESGInputPage() {
                                 </span>
                               )}
                             </div>
-                            <span className="text-[12px] text-slate-400 font-mono">{ind.unit || "—"}</span>
+                            <span className="text-[12px] text-muted-foreground font-mono">{ind.unit || "—"}</span>
                             <div className="text-right">
                               {prev !== undefined
-                                ? <span className="text-[13px] text-slate-400 font-mono">{prev.toLocaleString()}</span>
-                                : <span className="text-[12px] text-slate-300">—</span>}
+                                ? <span className="text-[13px] text-muted-foreground font-mono">{prev.toLocaleString()}</span>
+                                : <span className="text-[12px] text-muted-foreground/40">—</span>}
                             </div>
                             <div className="relative">
                               {renderInputWidget(ind.input_type, key, val, isEditable, isFilled, isAnomaly)}
@@ -1349,11 +1324,11 @@ export default function ESGInputPage() {
                                   onClick={() => toggleBreakdown(key)}
                                   title="Disposal breakdown"
                                   className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all text-[10px] font-bold
-                                    ${bdStatus === "full"    ? "bg-emerald-50 border-emerald-300 text-emerald-600" :
-                                      bdStatus === "over"    ? "bg-red-50 border-red-300 text-red-600" :
-                                      bdStatus === "partial" ? "bg-amber-50 border-amber-300 text-amber-600" :
-                                      bdOpen ? "bg-slate-100 border-slate-300 text-slate-600" :
-                                      "border-slate-200 text-slate-400 hover:border-slate-300"}`}
+                                    ${bdStatus === "full"    ? "bg-ok-tint border-ok/40 text-ok" :
+                                      bdStatus === "over"    ? "bg-destructive-tint border-destructive/40 text-destructive" :
+                                      bdStatus === "partial" ? "bg-warn-tint border-warn/40 text-warn" :
+                                      bdOpen ? "bg-sunken border-border text-muted-foreground" :
+                                      "border-border text-muted-foreground hover:border-border"}`}
                                 >
                                   ♻
                                 </button>
@@ -1362,7 +1337,7 @@ export default function ESGInputPage() {
                                 onClick={() => toggleDocPanel(key)}
                                 title="Attach document"
                                 className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all
-                                  ${docOpen ? "bg-brand-accent/10 border-brand-accent/30 text-brand-accent" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}
+                                  ${docOpen ? "bg-primary/10 border-primary/30 text-primary" : "border-border text-muted-foreground hover:border-border"}`}
                               >
                                 <Paperclip size={12} />
                               </button>
@@ -1370,11 +1345,11 @@ export default function ESGInputPage() {
                           </div>
                           {docOpen && <DocPanel recordId={recordId} isEditable={isEditable} />}
                           {isWaste && bdOpen && (
-                            <div className="px-5 py-3 bg-emerald-50/40 border-t border-emerald-100">
+                            <div className="px-5 py-3 bg-ok-tint/40 border-t border-ok/30">
                               <div className="grid grid-cols-3 gap-2 mb-2">
                                 {DISPOSAL_METHODS.map(({ key: method, label }) => (
                                   <div key={method} className="flex items-center gap-1.5">
-                                    <label className="text-[11px] text-slate-500 w-[90px] flex-shrink-0">{label}</label>
+                                    <label className="text-[11px] text-muted-foreground w-[90px] flex-shrink-0">{label}</label>
                                     <input
                                       type="number" step="any" min="0"
                                       value={breakdownValues[key]?.[method] ?? ""}
@@ -1382,12 +1357,12 @@ export default function ESGInputPage() {
                                       disabled={!isEditable}
                                       placeholder="0"
                                       className={`w-full px-2 py-1.5 rounded border text-[12px] font-mono outline-none transition-all
-                                        ${!isEditable ? "bg-slate-50 text-slate-400 border-slate-100 cursor-not-allowed" : "bg-white border-slate-200 text-brand-navy focus:border-emerald-400"}`}
+                                        ${!isEditable ? "bg-sunken text-muted-foreground border-[hsl(var(--border-hairline))] cursor-not-allowed" : "bg-card border-border text-foreground focus:border-ok"}`}
                                     />
                                   </div>
                                 ))}
                               </div>
-                              <div className={`text-[11px] font-semibold ${bdStatus === "full" ? "text-emerald-600" : bdStatus === "over" ? "text-red-500" : "text-amber-600"}`}>
+                              <div className={`text-[11px] font-semibold ${bdStatus === "full" ? "text-ok" : bdStatus === "over" ? "text-destructive" : "text-warn"}`}>
                                 Allocated: {bdTotal.toLocaleString()} / {totalQty.toLocaleString()}
                                 {bdStatus === "full" && " ✓"}
                                 {bdStatus === "over" && " — exceeds total"}
@@ -1401,15 +1376,15 @@ export default function ESGInputPage() {
 
                     // Indicator with KPIs — collapsible
                     return (
-                      <div key={ind.indicator_id} className="border-b border-slate-100 last:border-b-0">
+                      <div key={ind.indicator_id} className="border-b border-[hsl(var(--border-hairline))] last:border-b-0">
                         {/* Indicator header */}
                         <button
                           onClick={() => toggleIndicator(ind.indicator_id)}
-                          className="w-full flex items-center gap-2 px-5 py-2.5 bg-slate-50/40 hover:bg-slate-50 transition-colors text-left"
+                          className="w-full flex items-center gap-2 px-5 py-2.5 bg-sunken/40 hover:bg-sunken transition-colors text-left"
                         >
-                          {isExp ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-400" />}
-                          <span className="text-[13px] font-semibold text-brand-navy">{ind.indicator_name}</span>
-                          <span className="text-[11px] text-slate-400 ml-auto">
+                          {isExp ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
+                          <span className="text-[13px] font-semibold text-foreground">{ind.indicator_name}</span>
+                          <span className="text-[11px] text-muted-foreground ml-auto">
                             {indKpis.filter(k => formValues[`kpi_${k.kpi_id}`] !== undefined && formValues[`kpi_${k.kpi_id}`] !== "").length}/{indKpis.length} KPI{indKpis.length !== 1 ? "s" : ""}
                           </span>
                         </button>
@@ -1452,11 +1427,11 @@ export default function ESGInputPage() {
                             : "partial";
 
                           return (
-                            <div key={kpi.kpi_id} className="border-t border-slate-100/70">
-                              <div className={`grid gap-3 items-center px-5 py-1.5 bg-white hover:bg-slate-50/50 transition-colors pl-10 ${isWaste && isNumericKpi ? "grid-cols-[1fr_70px_110px_180px_76px]" : "grid-cols-[1fr_70px_110px_180px_36px]"}`}>
+                            <div key={kpi.kpi_id} className="border-t border-[hsl(var(--border-hairline))]/70">
+                              <div className={`grid gap-3 items-center px-5 py-1.5 bg-card hover:bg-sunken/50 transition-colors pl-10 ${isWaste && isNumericKpi ? "grid-cols-[1fr_70px_110px_180px_76px]" : "grid-cols-[1fr_70px_110px_180px_36px]"}`}>
                                 {/* KPI name */}
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <span className="text-[13px] text-brand-navy font-medium truncate">{kpi.kpi_name}</span>
+                                  <span className="text-[13px] text-foreground font-medium truncate">{kpi.kpi_name}</span>
                                   {isFilled && <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />}
                                   {isAnomaly && (
                                     <span title="Value differs >50% from previous" className="text-amber-500 flex-shrink-0">
@@ -1465,12 +1440,12 @@ export default function ESGInputPage() {
                                   )}
                                 </div>
                                 {/* Unit */}
-                                <span className="text-[12px] text-slate-400 font-mono">{isNumericKpi ? kpi.unit : ""}</span>
+                                <span className="text-[12px] text-muted-foreground font-mono">{isNumericKpi ? kpi.unit : ""}</span>
                                 {/* Previous */}
                                 <div className="text-right">
                                   {isNumericKpi && prev !== undefined
-                                    ? <span className="text-[13px] text-slate-400 font-mono">{prev.toLocaleString()}</span>
-                                    : <span className="text-[12px] text-slate-300">—</span>}
+                                    ? <span className="text-[13px] text-muted-foreground font-mono">{prev.toLocaleString()}</span>
+                                    : <span className="text-[12px] text-muted-foreground/40">—</span>}
                                 </div>
                                 {/* Input */}
                                 <div className="relative">
@@ -1483,11 +1458,11 @@ export default function ESGInputPage() {
                                       onClick={() => toggleBreakdown(kpi.kpi_id)}
                                       title="Disposal breakdown"
                                       className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all text-[10px] font-bold
-                                        ${bdStatus === "full"    ? "bg-emerald-50 border-emerald-300 text-emerald-600" :
-                                          bdStatus === "over"    ? "bg-red-50 border-red-300 text-red-600" :
-                                          bdStatus === "partial" ? "bg-amber-50 border-amber-300 text-amber-600" :
-                                          bdOpen ? "bg-slate-100 border-slate-300 text-slate-600" :
-                                          "border-slate-200 text-slate-400 hover:border-slate-300"}`}
+                                        ${bdStatus === "full"    ? "bg-ok-tint border-ok/40 text-ok" :
+                                          bdStatus === "over"    ? "bg-destructive-tint border-destructive/40 text-destructive" :
+                                          bdStatus === "partial" ? "bg-warn-tint border-warn/40 text-warn" :
+                                          bdOpen ? "bg-sunken border-border text-muted-foreground" :
+                                          "border-border text-muted-foreground hover:border-border"}`}
                                     >
                                       ♻
                                     </button>
@@ -1496,7 +1471,7 @@ export default function ESGInputPage() {
                                     onClick={() => toggleDocPanel(key)}
                                     title="Attach document"
                                     className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all
-                                      ${docOpen ? "bg-brand-accent/10 border-brand-accent/30 text-brand-accent" : "border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500"}`}
+                                      ${docOpen ? "bg-primary/10 border-primary/30 text-primary" : "border-border text-muted-foreground hover:border-border hover:text-muted-foreground"}`}
                                   >
                                     <Paperclip size={12} />
                                   </button>
@@ -1505,11 +1480,11 @@ export default function ESGInputPage() {
                               {docOpen && <DocPanel recordId={recordId} isEditable={isEditable} />}
                               {/* Waste disposal breakdown panel */}
                               {isWaste && bdOpen && (
-                                <div className="px-10 py-3 bg-emerald-50/40 border-t border-emerald-100">
+                                <div className="px-10 py-3 bg-ok-tint/40 border-t border-ok/30">
                                   <div className="grid grid-cols-3 gap-2 mb-2">
                                     {DISPOSAL_METHODS.map(({ key: method, label }) => (
                                       <div key={method} className="flex items-center gap-1.5">
-                                        <label className="text-[11px] text-slate-500 w-[90px] flex-shrink-0">{label}</label>
+                                        <label className="text-[11px] text-muted-foreground w-[90px] flex-shrink-0">{label}</label>
                                         <input
                                           type="number" step="any" min="0"
                                           value={breakdownValues[kpi.kpi_id]?.[method] ?? ""}
@@ -1517,12 +1492,12 @@ export default function ESGInputPage() {
                                           disabled={!isEditable}
                                           placeholder="0"
                                           className={`w-full px-2 py-1.5 rounded border text-[12px] font-mono outline-none transition-all
-                                            ${!isEditable ? "bg-slate-50 text-slate-400 border-slate-100 cursor-not-allowed" : "bg-white border-slate-200 text-brand-navy focus:border-emerald-400"}`}
+                                            ${!isEditable ? "bg-sunken text-muted-foreground border-[hsl(var(--border-hairline))] cursor-not-allowed" : "bg-card border-border text-foreground focus:border-ok"}`}
                                         />
                                       </div>
                                     ))}
                                   </div>
-                                  <div className={`text-[11px] font-semibold ${bdStatus === "full" ? "text-emerald-600" : bdStatus === "over" ? "text-red-500" : "text-amber-600"}`}>
+                                  <div className={`text-[11px] font-semibold ${bdStatus === "full" ? "text-ok" : bdStatus === "over" ? "text-destructive" : "text-warn"}`}>
                                     Allocated: {bdTotal.toLocaleString()} / {totalQty.toLocaleString()} {kpi.unit}
                                     {bdStatus === "full" && " ✓"}
                                     {bdStatus === "over" && " — exceeds total"}
@@ -1574,10 +1549,10 @@ export default function ESGInputPage() {
                       : "partial";
 
                     return (
-                      <div key={kpi.kpi_id} className="border-t border-slate-100/70">
-                        <div className={`grid gap-3 items-center px-5 py-1.5 bg-white hover:bg-slate-50/50 ${isWaste && isNumericKpi ? "grid-cols-[1fr_70px_110px_180px_76px]" : "grid-cols-[1fr_70px_110px_180px_36px]"}`}>
+                      <div key={kpi.kpi_id} className="border-t border-[hsl(var(--border-hairline))]/70">
+                        <div className={`grid gap-3 items-center px-5 py-1.5 bg-card hover:bg-sunken/50 ${isWaste && isNumericKpi ? "grid-cols-[1fr_70px_110px_180px_76px]" : "grid-cols-[1fr_70px_110px_180px_36px]"}`}>
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[13px] text-brand-navy font-medium truncate">{kpi.kpi_name}</span>
+                            <span className="text-[13px] text-foreground font-medium truncate">{kpi.kpi_name}</span>
                             {isFilled && <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0" />}
                             {isAnomaly && (
                               <span title="Value differs >50% from previous" className="text-amber-500 flex-shrink-0">
@@ -1585,11 +1560,11 @@ export default function ESGInputPage() {
                               </span>
                             )}
                           </div>
-                          <span className="text-[12px] text-slate-400 font-mono">{isNumericKpi ? kpi.unit : ""}</span>
+                          <span className="text-[12px] text-muted-foreground font-mono">{isNumericKpi ? kpi.unit : ""}</span>
                           <div className="text-right">
                             {isNumericKpi && prev !== undefined
-                              ? <span className="text-[13px] text-slate-400 font-mono">{prev.toLocaleString()}</span>
-                              : <span className="text-[12px] text-slate-300">—</span>}
+                              ? <span className="text-[13px] text-muted-foreground font-mono">{prev.toLocaleString()}</span>
+                              : <span className="text-[12px] text-muted-foreground/40">—</span>}
                           </div>
                           {renderInputWidget(kpi.input_type, key, val, isEditable, isFilled, isAnomaly)}
                           <div className="flex gap-1">
@@ -1598,11 +1573,11 @@ export default function ESGInputPage() {
                                 onClick={() => toggleBreakdown(kpi.kpi_id)}
                                 title="Disposal breakdown"
                                 className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all text-[10px] font-bold
-                                  ${bdStatus === "full"    ? "bg-emerald-50 border-emerald-300 text-emerald-600" :
-                                    bdStatus === "over"    ? "bg-red-50 border-red-300 text-red-600" :
-                                    bdStatus === "partial" ? "bg-amber-50 border-amber-300 text-amber-600" :
-                                    bdOpen ? "bg-slate-100 border-slate-300 text-slate-600" :
-                                    "border-slate-200 text-slate-400 hover:border-slate-300"}`}
+                                  ${bdStatus === "full"    ? "bg-ok-tint border-ok/40 text-ok" :
+                                    bdStatus === "over"    ? "bg-destructive-tint border-destructive/40 text-destructive" :
+                                    bdStatus === "partial" ? "bg-warn-tint border-warn/40 text-warn" :
+                                    bdOpen ? "bg-sunken border-border text-muted-foreground" :
+                                    "border-border text-muted-foreground hover:border-border"}`}
                               >
                                 ♻
                               </button>
@@ -1611,7 +1586,7 @@ export default function ESGInputPage() {
                               onClick={() => toggleDocPanel(key)}
                               title="Attach document"
                               className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-all
-                                ${docOpen ? "bg-brand-accent/10 border-brand-accent/30 text-brand-accent" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}
+                                ${docOpen ? "bg-primary/10 border-primary/30 text-primary" : "border-border text-muted-foreground hover:border-border"}`}
                             >
                               <Paperclip size={12} />
                             </button>
@@ -1620,11 +1595,11 @@ export default function ESGInputPage() {
                         {docOpen && <DocPanel recordId={recordId} isEditable={isEditable} />}
                         {/* Waste disposal breakdown panel */}
                         {isWaste && bdOpen && (
-                          <div className="px-5 py-3 bg-emerald-50/40 border-t border-emerald-100">
+                          <div className="px-5 py-3 bg-ok-tint/40 border-t border-ok/30">
                             <div className="grid grid-cols-3 gap-2 mb-2">
                               {DISPOSAL_METHODS.map(({ key: method, label }) => (
                                 <div key={method} className="flex items-center gap-1.5">
-                                  <label className="text-[11px] text-slate-500 w-[90px] flex-shrink-0">{label}</label>
+                                  <label className="text-[11px] text-muted-foreground w-[90px] flex-shrink-0">{label}</label>
                                   <input
                                     type="number" step="any" min="0"
                                     value={breakdownValues[kpi.kpi_id]?.[method] ?? ""}
@@ -1632,12 +1607,12 @@ export default function ESGInputPage() {
                                     disabled={!isEditable}
                                     placeholder="0"
                                     className={`w-full px-2 py-1.5 rounded border text-[12px] font-mono outline-none transition-all
-                                      ${!isEditable ? "bg-slate-50 text-slate-400 border-slate-100 cursor-not-allowed" : "bg-white border-slate-200 text-brand-navy focus:border-emerald-400"}`}
+                                      ${!isEditable ? "bg-sunken text-muted-foreground border-[hsl(var(--border-hairline))] cursor-not-allowed" : "bg-card border-border text-foreground focus:border-ok"}`}
                                   />
                                 </div>
                               ))}
                             </div>
-                            <div className={`text-[11px] font-semibold ${bdStatus === "full" ? "text-emerald-600" : bdStatus === "over" ? "text-red-500" : "text-amber-600"}`}>
+                            <div className={`text-[11px] font-semibold ${bdStatus === "full" ? "text-ok" : bdStatus === "over" ? "text-destructive" : "text-warn"}`}>
                               Allocated: {bdTotal.toLocaleString()} / {totalQty.toLocaleString()} {kpi.unit}
                               {bdStatus === "full" && " ✓"}
                               {bdStatus === "over" && " — exceeds total"}
@@ -1653,18 +1628,18 @@ export default function ESGInputPage() {
             })}
 
             {/* ── Submission-level Supporting Documents ── */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-slate-50/60">
+            <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
                 <div className="flex items-center gap-2">
-                  <Paperclip size={15} className="text-slate-400" />
-                  <span className="text-[13px] font-bold text-brand-navy">Supporting Documents</span>
-                  <span className="text-[11px] text-slate-400">{documents.length} file{documents.length !== 1 ? "s" : ""} — submission level</span>
+                  <Paperclip size={15} className="text-muted-foreground" />
+                  <span className="text-[13px] font-bold text-foreground">Supporting Documents</span>
+                  <span className="text-[11px] text-muted-foreground">{documents.length} file{documents.length !== 1 ? "s" : ""} — submission level</span>
                 </div>
                 {isEditable && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-accent text-white text-[12px] font-semibold hover:bg-brand-accentDk transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primaryDk transition-colors disabled:opacity-50"
                   >
                     <Upload size={13} /> {uploading ? "Uploading…" : "Upload File"}
                   </button>
@@ -1672,25 +1647,25 @@ export default function ESGInputPage() {
                 <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileUpload} />
               </div>
               {documents.length === 0 ? (
-                <div className="px-5 py-6 text-center text-[12px] text-slate-400">
+                <div className="px-5 py-6 text-center text-[12px] text-muted-foreground">
                   No submission-level documents. Upload general supporting evidence here. Use the 📎 icon on each KPI row to attach KPI-specific files.
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-border/60">
                   {documents.map((doc: any) => (
                     <div key={doc.document_id} className="flex items-center gap-3 px-5 py-3">
-                      <FileText size={14} className="text-slate-400 flex-shrink-0" />
+                      <FileText size={14} className="text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <button onClick={() => handleDownloadDoc(doc.document_id, doc.file_name)} className="text-[13px] font-medium text-brand-accent hover:underline truncate block text-left">
+                        <button onClick={() => handleDownloadDoc(doc.document_id, doc.file_name)} className="text-[13px] font-medium text-primary hover:underline truncate block text-left">
                           {doc.file_name}
                         </button>
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[11px] text-muted-foreground">
                           {doc.file_size_bytes ? `${(doc.file_size_bytes / 1024).toFixed(1)} KB · ` : ""}
                           {formatDate(doc.uploaded_at)}
                         </span>
                       </div>
                       {isEditable && (
-                        <button onClick={() => handleDeleteDoc(doc.document_id)} className="p-1.5 rounded hover:bg-red-50 text-slate-300 hover:text-red-400 transition-colors">
+                        <button onClick={() => handleDeleteDoc(doc.document_id)} className="p-1.5 rounded hover:bg-destructive-tint text-muted-foreground/40 hover:text-destructive transition-colors">
                           <Trash2 size={13} />
                         </button>
                       )}
@@ -1704,57 +1679,56 @@ export default function ESGInputPage() {
 
         </div>
       )}
+      </FormBody>
 
-      {/* ── Bottom action bar — always visible at bottom of page (hidden when a bespoke feature is active) ── */}
       {canEdit && periodSelected && !loading && !(typeof activeModule === "string" && activeModule.startsWith("feat:")) && (
-        <div className="flex-shrink-0 bg-white border-t border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
-          {/* Progress */}
-          <div className="flex items-center gap-3">
-            <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-brand-accent rounded-full transition-all duration-500"
-                style={{ width: `${totalKpiCount > 0 ? (filledCount / totalKpiCount) * 100 : 0}%` }}
-              />
-            </div>
-            <span className="text-[12px] text-slate-400">
-              <span className="font-semibold text-brand-navy">{filledCount}</span> / {totalKpiCount} filled
+        <FormFooter
+          hint={
+            <>
+              <div className="w-32 h-2 bg-sunken rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  style={{ width: `${totalKpiCount > 0 ? (filledCount / totalKpiCount) * 100 : 0}%` }}
+                />
+              </div>
+              <span className="text-[12px] text-muted-foreground">
+                <span className="font-semibold text-foreground">{filledCount}</span> / {totalKpiCount} filled
+              </span>
+              {anomalies.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm text-[11px] font-semibold bg-warn-tint text-warn">
+                  <AlertTriangle size={11} />
+                  {anomalies.length} anomal{anomalies.length === 1 ? "y" : "ies"}
+                </span>
+              )}
+            </>
+          }
+        >
+          {isEditable && (
+            <>
+              <button
+                onClick={handleManualSave}
+                disabled={saveStatus === "saving"}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-md border border-border text-ui font-semibold text-foreground bg-card hover:bg-sunken transition-colors disabled:opacity-50"
+              >
+                <Save size={15} /> Save Draft
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || filledCount === 0}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-primary text-white text-ui font-semibold hover:bg-primaryDk transition-colors disabled:opacity-50"
+              >
+                <Send size={15} /> {submitting ? "Submitting…" : "Submit for Review"}
+              </button>
+            </>
+          )}
+          {!isEditable && submission && (
+            <span className="text-[12px] text-muted-foreground italic">
+              {submission.status === "SUBMITTED" ? "Pending review — editing locked" :
+               submission.status === "APPROVED" ? "Approved — read only" : ""}
             </span>
-            {anomalies.length > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm font-sans text-[11px] font-semibold bg-[hsl(var(--warn-tint))] text-[hsl(var(--warn))]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--warn))]" />
-                {anomalies.length} anomal{anomalies.length === 1 ? "y" : "ies"}
-              </span>
-            )}
-          </div>
-          {/* Buttons / status */}
-          <div className="flex items-center gap-3">
-            {isEditable && (
-              <>
-                <button
-                  onClick={handleManualSave}
-                  disabled={saveStatus === "saving"}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius)] border border-[hsl(var(--border))] text-[13px] font-semibold text-[hsl(var(--foreground))] bg-white hover:bg-[hsl(var(--surface-sunken))] transition-colors disabled:opacity-50"
-                >
-                  <Save size={15} /> Save Draft
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting || filledCount === 0}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius)] bg-[hsl(var(--primary))] text-white text-[13px] font-semibold hover:bg-[hsl(240_53%_40%)] transition-colors disabled:opacity-50"
-                >
-                  <Send size={15} /> {submitting ? "Submitting…" : "Submit for Review"}
-                </button>
-              </>
-            )}
-            {!isEditable && submission && (
-              <span className="text-[12px] text-slate-400 italic">
-                {submission.status === "SUBMITTED" ? "Pending review — editing locked" :
-                 submission.status === "APPROVED" ? "Approved — read only" : ""}
-              </span>
-            )}
-          </div>
-        </div>
+          )}
+        </FormFooter>
       )}
-    </div>
+    </FormWorkspace>
   );
 }

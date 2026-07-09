@@ -11,8 +11,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LifeBuoy, Plus, Send, Check, X, AlertCircle, MessageSquare, Clock, RefreshCw } from "lucide-react";
 import { tenantApi } from "@/api/client";
+import { PageShell } from "@/components/shared/PageShell";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/shared/PageComponents";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { formatDateTime, getApiError } from "@/lib/utils";
 import { toast } from "sonner";
@@ -50,10 +50,10 @@ interface TicketDetail extends TicketSummary {
 }
 
 const STATUS_BADGE: Record<TicketStatus, string> = {
-  OPEN:              "bg-amber-50 text-amber-700 border-amber-200",
-  PENDING_PLATFORM:  "bg-amber-50 text-amber-700 border-amber-200",
-  PENDING_TENANT:    "bg-sky-50 text-sky-700 border-sky-200",
-  CLOSED:            "bg-slate-50 text-slate-500 border-slate-200",
+  OPEN:              "bg-warn-tint text-warn border-warn/30",
+  PENDING_PLATFORM:  "bg-warn-tint text-warn border-warn/30",
+  PENDING_TENANT:    "bg-info-tint text-info border-info/30",
+  CLOSED:            "bg-sunken text-muted-foreground border-border",
 };
 const STATUS_LABEL: Record<TicketStatus, string> = {
   OPEN:              "Awaiting Platform",
@@ -120,28 +120,31 @@ export default function HelpAndSupportPage() {
   };
 
   return (
-    <div className="p-6 max-w-[1400px]">
-      <PageHeader
-        title="Help & Support"
-        description="Open a ticket with the ESMOS support team. Conversations are recorded for your audit log."
-        breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Help & Support" }]}
-      >
-        <Button
-          onClick={refreshList}
-          variant="outline"
-          className="text-[13px] h-8 px-3 inline-flex items-center gap-1.5"
-        >
-          <RefreshCw size={14} /> Refresh
-        </Button>
-        {!isReadOnly && (
+    <PageShell
+      title="Help & Support"
+      description="Open a ticket with the ESMOS support team. Conversations are recorded for your audit log."
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Help & Support" }]}
+      className="max-w-[1400px]"
+      actions={
+        <>
           <Button
-            onClick={() => { setSelectedId(null); setComposeOpen(true); }}
-            className="bg-brand-accent hover:bg-brand-accentDk text-white text-[13px] h-8 px-3 inline-flex items-center gap-1.5"
+            onClick={refreshList}
+            variant="outline"
+            className="text-[13px] h-8 px-3 inline-flex items-center gap-1.5"
           >
-            <Plus size={14} /> New Ticket
+            <RefreshCw size={14} /> Refresh
           </Button>
-        )}
-      </PageHeader>
+          {!isReadOnly && (
+            <Button
+              onClick={() => { setSelectedId(null); setComposeOpen(true); }}
+              className="bg-primary hover:bg-primaryDk text-white text-[13px] h-8 px-3 inline-flex items-center gap-1.5"
+            >
+              <Plus size={14} /> New Ticket
+            </Button>
+          )}
+        </>
+      }
+    >
 
       <div className="grid grid-cols-12 gap-4">
         {/* ── List column ─────────────────────────────────────────────────── */}
@@ -158,8 +161,8 @@ export default function HelpAndSupportPage() {
                 onClick={() => setStatusFilter(v)}
                 className={`text-[11px] px-2 py-1 rounded border transition-colors ${
                   statusFilter === v
-                    ? "border-brand-accent bg-brand-accent/10 text-brand-accent font-semibold"
-                    : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                    ? "border-primary bg-primary/10 text-primary font-semibold"
+                    : "border-border text-muted-foreground hover:bg-sunken"
                 }`}
               >
                 {l}
@@ -167,14 +170,14 @@ export default function HelpAndSupportPage() {
             ))}
           </div>
 
-          <div className="border border-slate-200 rounded-lg bg-white max-h-[calc(100vh-220px)] overflow-y-auto">
+          <div className="border border-border rounded-lg bg-card max-h-[calc(100vh-220px)] overflow-y-auto">
             {loadingList ? (
-              <div className="text-[12px] text-slate-400 text-center py-10">Loading…</div>
+              <div className="text-[12px] text-muted-foreground text-center py-10">Loading…</div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-12 px-4">
-                <LifeBuoy size={28} className="mx-auto text-slate-300 mb-2" />
-                <p className="text-[13px] text-slate-500 mb-1">No tickets in this view</p>
-                {!isReadOnly && <p className="text-[11px] text-slate-400">Click "New Ticket" to ask for help.</p>}
+                <LifeBuoy size={28} className="mx-auto text-muted-foreground/40 mb-2" />
+                <p className="text-[13px] text-muted-foreground mb-1">No tickets in this view</p>
+                {!isReadOnly && <p className="text-[11px] text-muted-foreground">Click "New Ticket" to ask for help.</p>}
               </div>
             ) : (
               filtered.map((t) => {
@@ -183,8 +186,8 @@ export default function HelpAndSupportPage() {
                   <button
                     key={t.ticket_id}
                     onClick={() => { setSelectedId(t.ticket_id); setComposeOpen(false); }}
-                    className={`block w-full text-left px-3 py-2.5 border-b border-slate-100 transition-colors ${
-                      isActive ? "bg-brand-accent/5" : "hover:bg-slate-50"
+                    className={`block w-full text-left px-3 py-2.5 border-b border-[hsl(var(--border-hairline))] transition-colors ${
+                      isActive ? "bg-primary/5" : "hover:bg-sunken"
                     }`}
                   >
                     <div className="flex items-start gap-2">
@@ -194,17 +197,17 @@ export default function HelpAndSupportPage() {
                             {STATUS_LABEL[t.status]}
                           </span>
                           {t.priority === "HIGH" && (
-                            <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">High</span>
+                            <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-destructive-tint text-destructive border border-destructive/30">High</span>
                           )}
                         </div>
-                        <p className="text-[13px] font-semibold text-brand-navy truncate">{t.subject}</p>
+                        <p className="text-[13px] font-semibold text-foreground truncate">{t.subject}</p>
                         {t.last_message_preview && (
-                          <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                             {t.last_author_kind === "platform" ? "Support: " : ""}
                             {t.last_message_preview}
                           </p>
                         )}
-                        <p className="text-[10px] text-slate-400 mt-1 inline-flex items-center gap-1">
+                        <p className="text-[10px] text-muted-foreground mt-1 inline-flex items-center gap-1">
                           <Clock size={10} /> {formatDateTime(t.updated_at)} · <MessageSquare size={10} /> {t.message_count}
                         </p>
                       </div>
@@ -229,14 +232,14 @@ export default function HelpAndSupportPage() {
               onClosed={(t) => { setDetail(t); refreshList(); }}
             />
           ) : (
-            <div className="border border-dashed border-slate-200 rounded-lg py-20 text-center">
-              <LifeBuoy size={36} className="mx-auto text-slate-300 mb-3" />
-              <p className="text-[13px] text-slate-500">Select a ticket to view the conversation, or open a new one.</p>
+            <div className="border border-dashed border-border rounded-lg py-20 text-center">
+              <LifeBuoy size={36} className="mx-auto text-muted-foreground/40 mb-3" />
+              <p className="text-[13px] text-muted-foreground">Select a ticket to view the conversation, or open a new one.</p>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -267,50 +270,50 @@ function ComposeForm({ onCreated, onCancel }: { onCreated: (t: TicketDetail) => 
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg bg-white p-5">
-      <h2 className="text-[14px] font-semibold text-brand-navy mb-4 inline-flex items-center gap-2">
+    <div className="border border-border rounded-lg bg-card p-5">
+      <h2 className="text-[14px] font-semibold text-foreground mb-4 inline-flex items-center gap-2">
         <Plus size={14} /> New Ticket
       </h2>
       <div className="space-y-3">
         <div>
-          <label className="block text-[11px] font-semibold text-slate-600 mb-1">Subject *</label>
+          <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Subject *</label>
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder="Short summary, e.g., 'Scope 3 batch SC3-2025-04 not appearing in reports'"
             maxLength={200}
-            className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
+            className="w-full py-1.5 px-3 text-[13px] text-foreground border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
         <div>
-          <label className="block text-[11px] font-semibold text-slate-600 mb-1">Description *</label>
+          <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Description *</label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={8}
             placeholder="Describe the issue, steps to reproduce, expected vs. actual result, screenshots references, etc."
             maxLength={5000}
-            className="w-full py-2 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent resize-none"
+            className="w-full py-2 px-3 text-[13px] text-foreground border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary resize-none"
           />
-          <p className="text-[10px] text-slate-400 mt-1">{body.length} / 5000</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{body.length} / 5000</p>
         </div>
         <div className="flex items-center gap-3">
-          <label className="text-[11px] font-semibold text-slate-600">Priority:</label>
+          <label className="text-[11px] font-semibold text-muted-foreground">Priority:</label>
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value as Priority)}
-            className="py-1.5 px-2 text-[13px] border border-slate-200 rounded text-brand-navy bg-white"
+            className="py-1.5 px-2 text-[13px] border border-border rounded text-foreground bg-card"
           >
             <option value="LOW">Low</option>
             <option value="NORMAL">Normal</option>
             <option value="HIGH">High</option>
           </select>
-          <span className="text-[10px] text-slate-400">(descriptive only — does not affect SLA)</span>
+          <span className="text-[10px] text-muted-foreground">(descriptive only — does not affect SLA)</span>
         </div>
       </div>
-      <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-slate-100">
+      <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-[hsl(var(--border-hairline))]">
         <Button variant="outline" onClick={onCancel} disabled={submitting}>Cancel</Button>
-        <Button onClick={handleSubmit} disabled={submitting} className="bg-brand-accent hover:bg-brand-accentDk text-white">
+        <Button onClick={handleSubmit} disabled={submitting} className="bg-primary hover:bg-primaryDk text-white">
           {submitting ? "Sending…" : "Open Ticket"}
         </Button>
       </div>
@@ -369,9 +372,9 @@ function ThreadView({
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg bg-white flex flex-col max-h-[calc(100vh-180px)]">
+    <div className="border border-border rounded-lg bg-card flex flex-col max-h-[calc(100vh-180px)]">
       {/* Header */}
-      <div className="px-5 py-3 border-b border-slate-100">
+      <div className="px-5 py-3 border-b border-[hsl(var(--border-hairline))]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -379,12 +382,12 @@ function ThreadView({
                 {STATUS_LABEL[ticket.status]}
               </span>
               {ticket.priority === "HIGH" && (
-                <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">High</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-destructive-tint text-destructive border border-destructive/30">High</span>
               )}
-              <span className="text-[11px] text-slate-400">#{ticket.ticket_id.slice(0, 8)}</span>
+              <span className="text-[11px] text-muted-foreground">#{ticket.ticket_id.slice(0, 8)}</span>
             </div>
-            <h2 className="text-[15px] font-semibold text-brand-navy">{ticket.subject}</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <h2 className="text-[15px] font-semibold text-foreground">{ticket.subject}</h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               Opened by {ticket.opened_by_name ?? "—"} · {formatDateTime(ticket.created_at)}
             </p>
           </div>
@@ -404,9 +407,9 @@ function ThreadView({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {loading ? (
-          <div className="text-[12px] text-slate-400 text-center py-10">Loading…</div>
+          <div className="text-[12px] text-muted-foreground text-center py-10">Loading…</div>
         ) : ticket.messages.length === 0 ? (
-          <div className="text-[12px] text-slate-400 text-center py-10">No messages.</div>
+          <div className="text-[12px] text-muted-foreground text-center py-10">No messages.</div>
         ) : (
           ticket.messages.map((m) => (
             <MessageBubble key={m.message_id} m={m} />
@@ -414,7 +417,7 @@ function ThreadView({
         )}
         {isClosed && (
           <div className="text-center py-3">
-            <span className="text-[11px] text-slate-400 inline-flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
               <Check size={12} /> Closed by {ticket.closed_by_kind === "platform" ? "platform support" : "you"} · {ticket.closed_at ? formatDateTime(ticket.closed_at) : ""}
             </span>
           </div>
@@ -424,7 +427,7 @@ function ThreadView({
 
       {/* Reply */}
       {!isReadOnly && (
-        <div className="border-t border-slate-100 p-3">
+        <div className="border-t border-[hsl(var(--border-hairline))] p-3">
           <div className="flex items-end gap-2">
             <textarea
               value={reply}
@@ -432,18 +435,18 @@ function ThreadView({
               rows={2}
               placeholder={isClosed ? "Replying will reopen this ticket…" : "Type your reply…"}
               maxLength={5000}
-              className="flex-1 py-2 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent resize-none"
+              className="flex-1 py-2 px-3 text-[13px] text-foreground border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
             <Button
               onClick={handleReply}
               disabled={sending || reply.trim().length === 0}
-              className="bg-brand-accent hover:bg-brand-accentDk text-white text-[13px] h-9 px-4 inline-flex items-center gap-1.5"
+              className="bg-primary hover:bg-primaryDk text-white text-[13px] h-9 px-4 inline-flex items-center gap-1.5"
             >
               <Send size={14} /> {sending ? "Sending…" : "Send"}
             </Button>
           </div>
           {isClosed && (
-            <p className="text-[11px] text-amber-600 mt-1.5 inline-flex items-center gap-1">
+            <p className="text-[11px] text-warn mt-1.5 inline-flex items-center gap-1">
               <AlertCircle size={11} /> Sending a reply will reopen this ticket.
             </p>
           )}
@@ -459,18 +462,18 @@ function MessageBubble({ m }: { m: TicketMessage }) {
   return (
     <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[80%] rounded-lg px-3.5 py-2 ${
-        isMe ? "bg-brand-accent/10 border border-brand-accent/20" : "bg-violet-50 border border-violet-200"
+        isMe ? "bg-primary/10 border border-primary/20" : "bg-accent border border-accent-foreground/20"
       }`}>
         <div className="flex items-center gap-2 mb-1">
-          <span className={`text-[11px] font-semibold ${isMe ? "text-brand-navy" : "text-violet-800"}`}>
+          <span className={`text-[11px] font-semibold ${isMe ? "text-foreground" : "text-accent-foreground"}`}>
             {m.author_name ?? m.author_email ?? (isMe ? "You" : "Platform Support")}
           </span>
           {!isMe && (
-            <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-violet-200 text-violet-800 font-semibold">Support</span>
+            <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-accent text-accent-foreground font-semibold">Support</span>
           )}
-          <span className="text-[10px] text-slate-400">{formatDateTime(m.created_at)}</span>
+          <span className="text-[10px] text-muted-foreground">{formatDateTime(m.created_at)}</span>
         </div>
-        <p className="text-[12.5px] text-slate-700 whitespace-pre-wrap break-words">{m.body}</p>
+        <p className="text-[12.5px] text-foreground/90 whitespace-pre-wrap break-words">{m.body}</p>
       </div>
     </div>
   );

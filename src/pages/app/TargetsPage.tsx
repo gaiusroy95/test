@@ -5,7 +5,7 @@ import { tenantApi } from "@/api/client";
 import { getApiError, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Breadcrumb } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/dialog";
@@ -101,43 +101,41 @@ export default function TargetsPage() {
     }
   };
 
-  return (
-    <div className="p-6 max-w-[1600px]">
-      <Breadcrumb items={[{ label: "Home", href: "/app" }, { label: "Targets" }]} />
-      <div className="flex items-start justify-between mb-1">
-        <div>
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight">Targets & Goals</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">Set reduction / improvement targets and track progress against APPROVED data</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isAdmin && tab === "manage" && (
-            <Button size="sm" variant="outline" onClick={() => { setEditing(null); setShowForm(true); }}>
-              <Plus size={14} className="mr-1" /> Add Target
-            </Button>
-          )}
-        </div>
+  const tabBar = (
+    <div className="flex items-end justify-between border-b border-border -mb-px">
+      <div className="flex">
+        {([
+          { key: "progress" as Tab, label: "Progress", icon: Activity },
+          { key: "manage" as Tab,   label: "Manage Targets", icon: Target },
+        ]).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors
+              ${tab === t.key
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground/90 hover:border-border"}`}
+          >
+            <t.icon size={14} /> {t.label}
+          </button>
+        ))}
       </div>
+    </div>
+  );
 
-      {/* Tabs */}
-      <div className="flex items-end justify-between border-b border-slate-200 mb-4">
-        <div className="flex">
-          {([
-            { key: "progress" as Tab, label: "Progress", icon: Activity },
-            { key: "manage" as Tab,   label: "Manage Targets", icon: Target },
-          ]).map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors
-                ${tab === t.key
-                  ? "border-brand-accent text-brand-accent"
-                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}
-            >
-              <t.icon size={14} /> {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+  return (
+    <PageShell
+      title="Targets & Goals"
+      description="Set reduction / improvement targets and track progress against APPROVED data"
+      breadcrumb={[{ label: "Home", href: "/app" }, { label: "Targets" }]}
+      className="max-w-[1600px]"
+      toolbar={tabBar}
+      actions={isAdmin && tab === "manage" ? (
+        <Button size="sm" variant="outline" onClick={() => { setEditing(null); setShowForm(true); }}>
+          <Plus size={14} className="mr-1" /> Add Target
+        </Button>
+      ) : undefined}
+    >
 
       {tab === "progress" && <ProgressTab loading={loadingProgress} data={progress} />}
       {tab === "manage" && (
@@ -162,7 +160,7 @@ export default function TargetsPage() {
           onSaved={() => { setShowForm(false); setEditing(null); fetchTargets(); fetchProgress(); }}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -173,22 +171,22 @@ export default function TargetsPage() {
 
 function ProgressTab({ loading, data }: { loading: boolean; data: TargetProgressSummary | null }) {
   if (loading) {
-    return <div className="animate-pulse space-y-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 bg-slate-100 rounded" />)}</div>;
+    return <div className="animate-pulse space-y-4">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-24 bg-sunken rounded" />)}</div>;
   }
   if (!data || data.total_targets === 0) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
-        <Target size={32} className="mx-auto text-slate-300 mb-2" />
-        <p className="text-[13px] text-slate-500">No targets defined yet. Add targets on the Manage tab.</p>
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <Target size={32} className="mx-auto text-muted-foreground/40 mb-2" />
+        <p className="text-[13px] text-muted-foreground">No targets defined yet. Add targets on the Manage tab.</p>
       </div>
     );
   }
 
   const stats = [
-    { label: "Active Targets", value: data.total_targets, icon: Target, color: "text-sky-600 bg-sky-50" },
-    { label: "On Track",       value: data.on_track_count, icon: CheckCircle2, color: "text-emerald-600 bg-emerald-50" },
-    { label: "At Risk",        value: data.at_risk_count, icon: AlertCircle, color: data.at_risk_count > 0 ? "text-amber-600 bg-amber-50" : "text-slate-400 bg-slate-50" },
-    { label: "Current FY",     value: data.current_fy_label || "—", icon: BarChart3, color: "text-violet-600 bg-violet-50" },
+    { label: "Active Targets", value: data.total_targets, icon: Target, color: "text-info bg-info-tint" },
+    { label: "On Track",       value: data.on_track_count, icon: CheckCircle2, color: "text-ok bg-ok-tint" },
+    { label: "At Risk",        value: data.at_risk_count, icon: AlertCircle, color: data.at_risk_count > 0 ? "text-warn bg-warn-tint" : "text-muted-foreground bg-sunken" },
+    { label: "Current FY",     value: data.current_fy_label || "—", icon: BarChart3, color: "text-accent-foreground bg-accent" },
   ];
 
   // Chart data: actual vs target per item
@@ -205,14 +203,14 @@ function ProgressTab({ loading, data }: { loading: boolean; data: TargetProgress
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {stats.map((c, i) => (
-          <div key={i} className="rounded-lg border border-slate-200 bg-white p-4">
+          <div key={i} className="rounded-lg border border-border bg-card p-4">
             <div className="flex items-center gap-3">
               <div className={`rounded-lg p-2 ${c.color.split(" ")[1]}`}>
                 <c.icon size={18} className={c.color.split(" ")[0]} />
               </div>
               <div>
-                <p className="text-[11px] text-slate-500 font-medium">{c.label}</p>
-                <p className="text-[18px] font-bold text-brand-navy">{c.value}</p>
+                <p className="text-[11px] text-muted-foreground font-medium">{c.label}</p>
+                <p className="text-[18px] font-bold text-foreground">{c.value}</p>
               </div>
             </div>
           </div>
@@ -221,8 +219,8 @@ function ProgressTab({ loading, data }: { loading: boolean; data: TargetProgress
 
       {/* Comparison chart */}
       {chartData.length > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 mb-6">
-          <h3 className="text-[13px] font-semibold text-brand-navy mb-3">Baseline vs Current vs Target</h3>
+        <div className="rounded-lg border border-border bg-card p-4 mb-6">
+          <h3 className="text-[13px] font-semibold text-foreground mb-3">Baseline vs Current vs Target</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -240,11 +238,11 @@ function ProgressTab({ loading, data }: { loading: boolean; data: TargetProgress
       )}
 
       {/* Detail rows */}
-      <div className="rounded-lg border border-slate-200 bg-white">
-        <div className="px-4 py-3 border-b border-slate-100">
-          <h3 className="text-[13px] font-semibold text-brand-navy">Progress Detail</h3>
+      <div className="rounded-lg border border-border bg-card">
+        <div className="px-4 py-3 border-b border-[hsl(var(--border-hairline))]">
+          <h3 className="text-[13px] font-semibold text-foreground">Progress Detail</h3>
         </div>
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-border/60">
           {data.items.map((it) => <ProgressRow key={it.target_id} item={it} />)}
         </div>
       </div>
@@ -267,40 +265,40 @@ function ProgressRow({ item }: { item: TargetProgress }) {
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ backgroundColor: item.module_color }}
             />
-            <span className="text-[13px] font-semibold text-brand-navy truncate">{item.label}</span>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+            <span className="text-[13px] font-semibold text-foreground truncate">{item.label}</span>
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-sunken text-muted-foreground">
               {item.module_name}
             </span>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-sunken text-muted-foreground">
               {item.target_type}
             </span>
             {item.on_track ? (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">ON TRACK</span>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-ok-tint text-ok">ON TRACK</span>
             ) : (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700">AT RISK</span>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-warn-tint text-warn">AT RISK</span>
             )}
           </div>
 
-          <div className="flex items-center gap-5 text-[11px] text-slate-500 mb-2">
-            <span>Baseline <span className="text-slate-700 font-mono">{item.baseline_value.toLocaleString()}</span> {item.unit} ({item.baseline_fy_label})</span>
-            <span>Current <span className="text-slate-700 font-mono">{item.current_value.toLocaleString()}</span> {item.unit} ({item.current_fy_label})</span>
-            <span>Target <span className="text-slate-700 font-mono">{item.target_value.toLocaleString()}</span> {item.unit} ({item.target_fy_label})</span>
-            <span className={`flex items-center gap-1 ${goodDelta ? "text-emerald-600" : "text-amber-600"}`}>
+          <div className="flex items-center gap-5 text-[11px] text-muted-foreground mb-2">
+            <span>Baseline <span className="text-foreground/90 font-mono">{item.baseline_value.toLocaleString()}</span> {item.unit} ({item.baseline_fy_label})</span>
+            <span>Current <span className="text-foreground/90 font-mono">{item.current_value.toLocaleString()}</span> {item.unit} ({item.current_fy_label})</span>
+            <span>Target <span className="text-foreground/90 font-mono">{item.target_value.toLocaleString()}</span> {item.unit} ({item.target_fy_label})</span>
+            <span className={`flex items-center gap-1 ${goodDelta ? "text-ok" : "text-warn"}`}>
               <TrendIcon size={12} /> {item.delta_pct > 0 ? "+" : ""}{item.delta_pct.toFixed(1)}% vs baseline
             </span>
           </div>
 
-          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-2 bg-sunken rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full ${item.on_track ? "bg-emerald-500" : "bg-amber-500"}`}
+              className={`h-full rounded-full ${item.on_track ? "bg-ok" : "bg-warn"}`}
               style={{ width: `${pct}%` }}
             />
           </div>
         </div>
 
         <div className="text-right flex-shrink-0 w-24">
-          <p className="text-[20px] font-bold text-brand-navy leading-tight">{item.progress_pct.toFixed(0)}%</p>
-          <p className="text-[10px] text-slate-400">progress</p>
+          <p className="text-[20px] font-bold text-foreground leading-tight">{item.progress_pct.toFixed(0)}%</p>
+          <p className="text-[10px] text-muted-foreground">progress</p>
         </div>
       </div>
     </div>
@@ -322,19 +320,19 @@ function ManageTab({
   onDelete: (t: KPITarget) => void;
 }) {
   if (loading) {
-    return <div className="animate-pulse space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-10 bg-slate-100 rounded" />)}</div>;
+    return <div className="animate-pulse space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-10 bg-sunken rounded" />)}</div>;
   }
   if (targets.length === 0) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
-        <Target size={32} className="mx-auto text-slate-300 mb-2" />
-        <p className="text-[13px] text-slate-500">No targets yet. {isAdmin ? "Click \"Add Target\" to create your first one." : "Ask your Company Admin to define targets."}</p>
+      <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <Target size={32} className="mx-auto text-muted-foreground/40 mb-2" />
+        <p className="text-[13px] text-muted-foreground">No targets yet. {isAdmin ? "Click \"Add Target\" to create your first one." : "Ask your Company Admin to define targets."}</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white">
+    <div className="rounded-lg border border-border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
@@ -353,10 +351,10 @@ function ManageTab({
           {targets.map((t) => (
             <TableRow key={t.target_id}>
               <TableCell>
-                <span className="font-semibold text-brand-navy text-[13px]">
+                <span className="font-semibold text-foreground text-[13px]">
                   {t.kpi_name || t.indicator_name || "—"}
                 </span>
-                {t.description && <span className="block text-[11px] text-slate-400 truncate max-w-xs">{t.description}</span>}
+                {t.description && <span className="block text-[11px] text-muted-foreground truncate max-w-xs">{t.description}</span>}
               </TableCell>
               <TableCell>
                 <span className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded"
@@ -364,26 +362,26 @@ function ManageTab({
                   {t.module_name}
                 </span>
               </TableCell>
-              <TableCell className="text-[12px] text-slate-600">{t.target_type}</TableCell>
-              <TableCell className="text-[12px] text-slate-600">{AGG_FIELD_LABEL[t.agg_field]}</TableCell>
+              <TableCell className="text-[12px] text-muted-foreground">{t.target_type}</TableCell>
+              <TableCell className="text-[12px] text-muted-foreground">{AGG_FIELD_LABEL[t.agg_field]}</TableCell>
               <TableCell className="text-right font-mono text-[13px]">
                 {t.baseline_value.toLocaleString()}
-                <span className="block text-[10px] text-slate-400">{t.baseline_fy_label}</span>
+                <span className="block text-[10px] text-muted-foreground">{t.baseline_fy_label}</span>
               </TableCell>
               <TableCell className="text-right font-mono text-[13px]">
                 {t.target_value.toLocaleString()}
-                <span className="block text-[10px] text-slate-400">{t.target_fy_label}</span>
+                <span className="block text-[10px] text-muted-foreground">{t.target_fy_label}</span>
               </TableCell>
-              <TableCell className="text-[12px] text-slate-600">{t.target_unit || "—"}</TableCell>
-              <TableCell className="text-[11px] text-slate-400">{formatDate(t.created_at)}</TableCell>
+              <TableCell className="text-[12px] text-muted-foreground">{t.target_unit || "—"}</TableCell>
+              <TableCell className="text-[11px] text-muted-foreground">{formatDate(t.created_at)}</TableCell>
               <TableCell>
                 {isAdmin && (
                   <div className="flex items-center gap-1">
-                    <button onClick={() => onEdit(t)} className="p-1 rounded hover:bg-slate-100" title="Edit">
-                      <Pencil size={13} className="text-slate-400" />
+                    <button onClick={() => onEdit(t)} className="p-1 rounded hover:bg-sunken" title="Edit">
+                      <Pencil size={13} className="text-muted-foreground" />
                     </button>
-                    <button onClick={() => onDelete(t)} className="p-1 rounded hover:bg-red-50" title="Delete">
-                      <Trash2 size={13} className="text-slate-400 hover:text-red-500" />
+                    <button onClick={() => onDelete(t)} className="p-1 rounded hover:bg-destructive-tint" title="Delete">
+                      <Trash2 size={13} className="text-muted-foreground hover:text-destructive" />
                     </button>
                   </div>
                 )}
@@ -485,8 +483,8 @@ function TargetForm({
     }
   };
 
-  const inputCls  = "w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-accent bg-white";
-  const labelCls  = "block text-[11px] text-slate-500 mb-0.5 font-medium";
+  const inputCls  = "w-full py-1.5 px-3 text-[13px] text-foreground border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary bg-card";
+  const labelCls  = "block text-[11px] text-muted-foreground mb-0.5 font-medium";
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
@@ -497,14 +495,14 @@ function TargetForm({
         <DialogBody>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Module <span className="text-red-500">*</span></label>
+              <label className={labelCls}>Module <span className="text-destructive">*</span></label>
               <select className={inputCls} value={moduleId} onChange={(e) => { setModuleId(Number(e.target.value)); setKpiId(""); setIndicatorId(""); }} disabled={!!editing}>
                 {modules.map((m) => <option key={m.module_id} value={m.module_id}>{m.module_name}</option>)}
               </select>
             </div>
 
             <div>
-              <label className={labelCls}>Target On <span className="text-red-500">*</span></label>
+              <label className={labelCls}>Target On <span className="text-destructive">*</span></label>
               <select className={inputCls} value={entryKind} onChange={(e) => { setEntryKind(e.target.value as any); setKpiId(""); setIndicatorId(""); }} disabled={!!editing}>
                 <option value="kpi">KPI</option>
                 <option value="indicator">Indicator</option>
@@ -513,7 +511,7 @@ function TargetForm({
 
             {entryKind === "kpi" ? (
               <div className="col-span-2">
-                <label className={labelCls}>KPI <span className="text-red-500">*</span></label>
+                <label className={labelCls}>KPI <span className="text-destructive">*</span></label>
                 <select className={inputCls} value={kpiId} onChange={(e) => setKpiId(e.target.value)} disabled={!!editing}>
                   <option value="">-- Select --</option>
                   {moduleKpis.map((k) => <option key={k.kpi_id} value={k.kpi_id}>{k.kpi_name} ({k.unit})</option>)}
@@ -521,7 +519,7 @@ function TargetForm({
               </div>
             ) : (
               <div className="col-span-2">
-                <label className={labelCls}>Indicator <span className="text-red-500">*</span></label>
+                <label className={labelCls}>Indicator <span className="text-destructive">*</span></label>
                 <select className={inputCls} value={indicatorId} onChange={(e) => setIndicatorId(e.target.value)} disabled={!!editing}>
                   <option value="">-- Select --</option>
                   {moduleInds.map((i) => <option key={i.indicator_id} value={i.indicator_id}>{i.indicator_name}</option>)}
@@ -530,7 +528,7 @@ function TargetForm({
             )}
 
             <div>
-              <label className={labelCls}>Target Type <span className="text-red-500">*</span></label>
+              <label className={labelCls}>Target Type <span className="text-destructive">*</span></label>
               <select className={inputCls} value={targetType} onChange={(e) => setTargetType(e.target.value as TargetType)}>
                 <option value="ABSOLUTE">Absolute</option>
                 <option value="INTENSITY">Intensity</option>
@@ -538,7 +536,7 @@ function TargetForm({
             </div>
 
             <div>
-              <label className={labelCls}>Measure Field <span className="text-red-500">*</span></label>
+              <label className={labelCls}>Measure Field <span className="text-destructive">*</span></label>
               <select className={inputCls} value={aggField} onChange={(e) => setAggField(e.target.value as TargetAggField)}>
                 <option value="quantity">Quantity</option>
                 <option value="mj_value">Energy (MJ)</option>
@@ -554,7 +552,7 @@ function TargetForm({
             )}
 
             <div>
-              <label className={labelCls}>Baseline FY <span className="text-red-500">*</span></label>
+              <label className={labelCls}>Baseline FY <span className="text-destructive">*</span></label>
               <select className={inputCls} value={baselineYearId} onChange={(e) => setBaselineYearId(e.target.value)}>
                 <option value="">-- Select --</option>
                 {fys.map((fy) => <option key={fy.year_id} value={fy.year_id}>{fy.fy_label}</option>)}
@@ -562,12 +560,12 @@ function TargetForm({
             </div>
 
             <div>
-              <label className={labelCls}>Baseline Value <span className="text-red-500">*</span></label>
+              <label className={labelCls}>Baseline Value <span className="text-destructive">*</span></label>
               <input className={inputCls} type="number" step="any" value={baselineValue} onChange={(e) => setBaselineValue(e.target.value)} />
             </div>
 
             <div>
-              <label className={labelCls}>Target FY <span className="text-red-500">*</span></label>
+              <label className={labelCls}>Target FY <span className="text-destructive">*</span></label>
               <select className={inputCls} value={targetYearId} onChange={(e) => setTargetYearId(e.target.value)}>
                 <option value="">-- Select --</option>
                 {fys.map((fy) => <option key={fy.year_id} value={fy.year_id}>{fy.fy_label}</option>)}
@@ -575,7 +573,7 @@ function TargetForm({
             </div>
 
             <div>
-              <label className={labelCls}>Target Value <span className="text-red-500">*</span></label>
+              <label className={labelCls}>Target Value <span className="text-destructive">*</span></label>
               <input className={inputCls} type="number" step="any" value={targetValue} onChange={(e) => setTargetValue(e.target.value)} />
             </div>
 

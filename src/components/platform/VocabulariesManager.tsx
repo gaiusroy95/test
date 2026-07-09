@@ -164,13 +164,13 @@ export default function VocabulariesManager({ isOwner }: { isOwner: boolean }) {
     <div>
       {/* Sub-tab strip + Add button */}
       <div className="flex items-center justify-between mb-4">
-        <div className="inline-flex bg-slate-100 rounded-lg p-1">
+        <div className="inline-flex bg-sunken rounded-lg p-1">
           {SUB_TABS.map((t) => (
             <button
               key={t.key}
               onClick={() => setSub(t.key)}
               className={`px-3 py-1.5 text-[12px] font-semibold rounded-md transition-colors ${
-                sub === t.key ? "bg-white text-brand-navy shadow-sm" : "text-slate-500 hover:text-slate-700"
+                sub === t.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground/90"
               }`}
             >
               {t.label}
@@ -180,37 +180,37 @@ export default function VocabulariesManager({ isOwner }: { isOwner: boolean }) {
         {isOwner && (
           <button
             onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-accent text-white text-[12px] font-semibold"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold"
           >
             <Plus size={14} /> Add {SUB_TABS.find(t => t.key === sub)?.label.replace(/s$/, "")}
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         {loading ? (
-          <div className="p-6 text-[12px] text-slate-400">Loading…</div>
+          <div className="p-6 text-[12px] text-muted-foreground">Loading…</div>
         ) : sub === "disposal" ? (
           <table className="w-full text-[13px]">
-            <thead><tr className="border-b-2 border-slate-100 bg-slate-50/60">
+            <thead><tr className="border-b-2 border-[hsl(var(--border-hairline))] bg-sunken/60">
               {["Key", "Label", "Order", "Status", ...(isOwner ? [""] : [])].map((h) =>
-                <th key={h} className="text-left px-4 py-3 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">{h}</th>
               )}
             </tr></thead>
             <tbody>
               {disposal.map((r) => (
-                <tr key={r.method_id} className="border-b border-slate-100 hover:bg-slate-50/60">
-                  <td className="px-4 py-2 font-mono text-[12px] text-slate-600">{r.key}</td>
-                  <td className="px-4 py-2 font-semibold text-brand-navy">{r.label}</td>
-                  <td className="px-4 py-2 text-slate-500">{r.display_order}</td>
+                <tr key={r.method_id} className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/60">
+                  <td className="px-4 py-2 font-mono text-[12px] text-muted-foreground">{r.key}</td>
+                  <td className="px-4 py-2 font-semibold text-foreground">{r.label}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{r.display_order}</td>
                   <td className="px-4 py-2">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.is_active !== false ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.is_active !== false ? "bg-ok-tint text-ok" : "bg-sunken text-muted-foreground"}`}>
                       {r.is_active !== false ? "Active" : "Inactive"}
                     </span>
                   </td>
                   {isOwner && (
                     <td className="px-4 py-2">
-                      <button onClick={() => setEditDispRow(r)} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600"><Pencil size={14} /></button>
+                      <button onClick={() => setEditDispRow(r)} className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground hover:text-muted-foreground"><Pencil size={14} /></button>
                     </td>
                   )}
                 </tr>
@@ -219,27 +219,27 @@ export default function VocabulariesManager({ isOwner }: { isOwner: boolean }) {
           </table>
         ) : sub === "inputs" ? (
           <table className="w-full text-[13px]">
-            <thead><tr className="border-b-2 border-slate-100 bg-slate-50/60">
+            <thead><tr className="border-b-2 border-[hsl(var(--border-hairline))] bg-sunken/60">
               {["Key", "Label", "Widget", "Has UOM", "Order", "Status", ...(isOwner ? [""] : [])].map((h) =>
-                <th key={h} className="text-left px-4 py-3 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">{h}</th>
               )}
             </tr></thead>
             <tbody>
               {inputs.map((r) => (
-                <tr key={r.input_type_id} className="border-b border-slate-100 hover:bg-slate-50/60">
-                  <td className="px-4 py-2 font-mono text-[12px] text-slate-600">{r.key}</td>
-                  <td className="px-4 py-2 font-semibold text-brand-navy">{r.label}</td>
-                  <td className="px-4 py-2 text-slate-500 font-mono text-[12px]">{r.widget_component}</td>
-                  <td className="px-4 py-2 text-slate-500">{r.has_uom ? "Yes" : "No"}</td>
-                  <td className="px-4 py-2 text-slate-500">{r.display_order}</td>
+                <tr key={r.input_type_id} className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/60">
+                  <td className="px-4 py-2 font-mono text-[12px] text-muted-foreground">{r.key}</td>
+                  <td className="px-4 py-2 font-semibold text-foreground">{r.label}</td>
+                  <td className="px-4 py-2 text-muted-foreground font-mono text-[12px]">{r.widget_component}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{r.has_uom ? "Yes" : "No"}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{r.display_order}</td>
                   <td className="px-4 py-2">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.is_active !== false ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.is_active !== false ? "bg-ok-tint text-ok" : "bg-sunken text-muted-foreground"}`}>
                       {r.is_active !== false ? "Active" : "Inactive"}
                     </span>
                   </td>
                   {isOwner && (
                     <td className="px-4 py-2">
-                      <button onClick={() => setEditInpRow(r)} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600"><Pencil size={14} /></button>
+                      <button onClick={() => setEditInpRow(r)} className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground hover:text-muted-foreground"><Pencil size={14} /></button>
                     </td>
                   )}
                 </tr>
@@ -248,32 +248,32 @@ export default function VocabulariesManager({ isOwner }: { isOwner: boolean }) {
           </table>
         ) : (
           <table className="w-full text-[13px]">
-            <thead><tr className="border-b-2 border-slate-100 bg-slate-50/60">
+            <thead><tr className="border-b-2 border-[hsl(var(--border-hairline))] bg-sunken/60">
               {["Scope", "Label", "Color", "Description", "Order", "Status", ...(isOwner ? [""] : [])].map((h) =>
-                <th key={h} className="text-left px-4 py-3 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">{h}</th>
               )}
             </tr></thead>
             <tbody>
               {scopes.map((r) => (
-                <tr key={r.scope_number} className="border-b border-slate-100 hover:bg-slate-50/60">
-                  <td className="px-4 py-2 font-semibold text-brand-navy">{r.scope_number}</td>
-                  <td className="px-4 py-2 font-semibold text-brand-navy">{r.label}</td>
+                <tr key={r.scope_number} className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/60">
+                  <td className="px-4 py-2 font-semibold text-foreground">{r.scope_number}</td>
+                  <td className="px-4 py-2 font-semibold text-foreground">{r.label}</td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
-                      <span className="w-4 h-4 rounded border border-slate-200" style={{ background: r.color }} />
-                      <span className="font-mono text-[11px] text-slate-500">{r.color}</span>
+                      <span className="w-4 h-4 rounded border border-border" style={{ background: r.color }} />
+                      <span className="font-mono text-[11px] text-muted-foreground">{r.color}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-2 text-slate-500 text-[12px] line-clamp-2">{r.description || "—"}</td>
-                  <td className="px-4 py-2 text-slate-500">{r.display_order}</td>
+                  <td className="px-4 py-2 text-muted-foreground text-[12px] line-clamp-2">{r.description || "—"}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{r.display_order}</td>
                   <td className="px-4 py-2">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.is_active !== false ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.is_active !== false ? "bg-ok-tint text-ok" : "bg-sunken text-muted-foreground"}`}>
                       {r.is_active !== false ? "Active" : "Inactive"}
                     </span>
                   </td>
                   {isOwner && (
                     <td className="px-4 py-2">
-                      <button onClick={() => setEditScpRow(r)} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600"><Pencil size={14} /></button>
+                      <button onClick={() => setEditScpRow(r)} className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground hover:text-muted-foreground"><Pencil size={14} /></button>
                     </td>
                   )}
                 </tr>

@@ -7,11 +7,14 @@ import { LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents"
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { FormField as WorkspaceField } from "@/components/shared/FormField";
+import { FormRow, FormSection } from "@/components/shared/FormWorkspace";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import {
   Plus, MapPin, LayoutGrid, List, AlertTriangle, Pencil, Trash2,
@@ -19,6 +22,24 @@ import {
 } from "lucide-react";
 import type { Location, LocationLbFactor, KPI, UOM } from "@/types";
 import { getApiError, formatDate } from "@/lib/utils";
+
+type LocationFormState = {
+  location_name: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  is_high_risk_location: boolean;
+};
+
+const emptyLocationForm = (): LocationFormState => ({
+  location_name: "",
+  address: "",
+  city: "",
+  state: "",
+  country: "India",
+  is_high_risk_location: false,
+});
 
 export default function LocationsPage() {
   const { user } = useAuthStore();
@@ -31,6 +52,8 @@ export default function LocationsPage() {
   const [editData, setEditData] = useState<Location | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Location | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [createForm, setCreateForm] = useState<LocationFormState>(emptyLocationForm());
+  const [editForm, setEditForm] = useState<LocationFormState>(emptyLocationForm());
   const pageSize = 20;
 
   // UOM master
@@ -64,6 +87,48 @@ export default function LocationsPage() {
   }, []);
 
   const toggleView = (v: "grid" | "table") => { setView(v); localStorage.setItem("loc_view", v); };
+
+  const setCreateField = <K extends keyof LocationFormState>(key: K, value: LocationFormState[K]) => {
+    setCreateForm((prev) => ({ ...prev, [key]: value }));
+  };
+  const setEditField = <K extends keyof LocationFormState>(key: K, value: LocationFormState[K]) => {
+    setEditForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const openCreate = () => {
+    setCreateForm(emptyLocationForm());
+    setCreateOpen(true);
+  };
+
+  const openEdit = (loc: Location) => {
+    setEditData(loc);
+    setEditForm({
+      location_name: loc.location_name ?? "",
+      address: loc.address ?? "",
+      city: loc.city ?? "",
+      state: loc.state ?? "",
+      country: loc.country ?? "India",
+      is_high_risk_location: !!(loc as any).is_high_risk_location,
+    });
+  };
+
+  const validateLocationForm = (formData: LocationFormState) => {
+    if (!formData.location_name.trim()) {
+      toast.error("Location Name is required");
+      return false;
+    }
+    return true;
+  };
+
+  const submitCreate = async () => {
+    if (!validateLocationForm(createForm)) return;
+    await handleCreate(createForm);
+  };
+
+  const submitEdit = async () => {
+    if (!validateLocationForm(editForm)) return;
+    await handleEdit(editForm);
+  };
 
   const handleCreate = async (formData: Record<string, any>) => {
     setActionLoading(true);
@@ -254,7 +319,7 @@ export default function LocationsPage() {
             </button>
           </div>
           {isAdmin && (
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button onClick={openCreate}>
               <Plus size={16} /> Add Location
             </Button>
           )}
@@ -268,7 +333,7 @@ export default function LocationsPage() {
         <div className="surface">
           <EmptyState icon={MapPin} title="No locations yet" description="Add your first plant, office, or facility to start tracking ESG data.">
             {isAdmin && (
-              <Button onClick={() => setCreateOpen(true)}><Plus size={14} /> Add Location</Button>
+              <Button onClick={openCreate}><Plus size={14} /> Add Location</Button>
             )}
           </EmptyState>
         </div>
@@ -303,7 +368,7 @@ export default function LocationsPage() {
                     <Button variant="ghost" size="icon-sm" onClick={() => openLbPanel(loc)} title="LB Factors" className="text-brand-teal hover:bg-accent">
                       <Gauge size={13} />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => setEditData(loc)} title="Edit">
+                    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(loc)} title="Edit">
                       <Pencil size={13} />
                     </Button>
                     <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="hover:bg-destructive-tint hover:text-destructive">
@@ -350,7 +415,7 @@ export default function LocationsPage() {
                         <Button variant="ghost" size="icon-sm" onClick={() => openLbPanel(loc)} title="LB Factors" className="text-brand-teal hover:bg-accent">
                           <Gauge size={13} />
                         </Button>
-                        <Button variant="ghost" size="icon-sm" onClick={() => setEditData(loc)} title="Edit"><Pencil size={13} /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(loc)} title="Edit"><Pencil size={13} /></Button>
                         <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="hover:bg-destructive-tint hover:text-destructive"><Trash2 size={13} /></Button>
                       </div>
                     </TableCell>
@@ -362,17 +427,17 @@ export default function LocationsPage() {
         </DataTable>
       )}
 
-      {/* ── LB Factors Dialog ──────────────────────────────────────────────── */}
-      <Dialog open={!!lbLocation} onOpenChange={(v) => { if (!v) closeLbPanel(); }}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+      {/* ── LB Factors Drawer ──────────────────────────────────────────────── */}
+      <Sheet open={!!lbLocation} onOpenChange={(v) => { if (!v) closeLbPanel(); }}>
+        <SheetContent className="max-w-4xl">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
               <Gauge size={16} className="text-brand-teal" /> LB Emission Factors
-            </DialogTitle>
-            <DialogDescription>{lbLocation?.location_name} — Location-based factors used alongside Market-Based factors for dual Scope 2 emissions. Company Admin is responsible for accuracy.</DialogDescription>
-          </DialogHeader>
+            </SheetTitle>
+            <p className="text-[12px] text-muted-foreground">{lbLocation?.location_name} — Location-based factors used alongside Market-Based factors for dual Scope 2 emissions.</p>
+          </SheetHeader>
 
-          <DialogBody>
+          <SheetBody>
             {lbLoading ? (
               <LoadingSkeleton rows={4} cols={5} />
             ) : lbFactors.length === 0 ? (
@@ -425,24 +490,149 @@ export default function LocationsPage() {
                 </TableBody>
               </Table>
             )}
-          </DialogBody>
+          </SheetBody>
 
           {isAdmin && (
-            <DialogFooter>
+            <SheetFooter>
               <Button variant="outline" size="sm" onClick={handleRecalculateLb} disabled={actionLoading}>
                 <RefreshCw size={13} /> Recalculate
               </Button>
               <Button size="sm" onClick={() => setAddLbOpen(true)}>
                 <Plus size={13} /> Add LB Factor
               </Button>
-            </DialogFooter>
+            </SheetFooter>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* ── Dialogs ─────────────────────────────────────────────────────────── */}
-      <FormDialog open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={handleCreate} title="Add Location" description="Register a new plant, office, or facility" fields={fields} submitLabel="Add Location" loading={actionLoading} />
-      <FormDialog open={!!editData} onClose={() => setEditData(null)} onSubmit={handleEdit} title="Edit Location" fields={fields} submitLabel="Save Changes" loading={actionLoading} initialData={editData || undefined} />
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent className="max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Add Location</SheetTitle>
+            <p className="text-[12px] text-muted-foreground">Register a new plant, office, or facility.</p>
+          </SheetHeader>
+          <SheetBody className="space-y-5">
+            <FormSection title="Location Identity" description="Basic identity and geography used across ESG workflows">
+              <FormRow cols={2}>
+                <WorkspaceField label="Location Name" required>
+                  <input
+                    value={createForm.location_name}
+                    onChange={(e) => setCreateField("location_name", e.target.value)}
+                    className="field-input"
+                    placeholder="e.g. Pune Plant"
+                  />
+                </WorkspaceField>
+                <WorkspaceField label="Country">
+                  <input
+                    value={createForm.country}
+                    onChange={(e) => setCreateField("country", e.target.value)}
+                    className="field-input"
+                    placeholder="India"
+                  />
+                </WorkspaceField>
+              </FormRow>
+              <FormRow cols={2} className="mt-4">
+                <WorkspaceField label="City">
+                  <input value={createForm.city} onChange={(e) => setCreateField("city", e.target.value)} className="field-input" />
+                </WorkspaceField>
+                <WorkspaceField label="State">
+                  <input value={createForm.state} onChange={(e) => setCreateField("state", e.target.value)} className="field-input" />
+                </WorkspaceField>
+              </FormRow>
+              <WorkspaceField label="Address" className="mt-4">
+                <textarea
+                  value={createForm.address}
+                  onChange={(e) => setCreateField("address", e.target.value)}
+                  rows={3}
+                  className="field-input h-auto min-h-[88px] resize-none"
+                />
+              </WorkspaceField>
+            </FormSection>
+            <FormSection title="Environmental Context" description="Optional metadata used in sustainability disclosures">
+              <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
+                <div>
+                  <div className="text-[13px] font-semibold text-foreground">Water Stress Zone (HRL)</div>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">Mark if this location is in a BRSR-identified high risk water stress area.</p>
+                </div>
+                <Switch
+                  checked={createForm.is_high_risk_location}
+                  onCheckedChange={(checked) => setCreateField("is_high_risk_location", checked)}
+                />
+              </div>
+            </FormSection>
+          </SheetBody>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={actionLoading}>Cancel</Button>
+            <Button onClick={submitCreate} disabled={actionLoading}>
+              {actionLoading ? "Saving..." : "Add Location"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={!!editData} onOpenChange={(open) => { if (!open) setEditData(null); }}>
+        <SheetContent className="max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Edit Location</SheetTitle>
+            <p className="text-[12px] text-muted-foreground">{editData?.location_name}</p>
+          </SheetHeader>
+          <SheetBody className="space-y-5">
+            <FormSection title="Location Identity" description="Update location details used across the platform">
+              <FormRow cols={2}>
+                <WorkspaceField label="Location Name" required>
+                  <input
+                    value={editForm.location_name}
+                    onChange={(e) => setEditField("location_name", e.target.value)}
+                    className="field-input"
+                  />
+                </WorkspaceField>
+                <WorkspaceField label="Country">
+                  <input
+                    value={editForm.country}
+                    onChange={(e) => setEditField("country", e.target.value)}
+                    className="field-input"
+                  />
+                </WorkspaceField>
+              </FormRow>
+              <FormRow cols={2} className="mt-4">
+                <WorkspaceField label="City">
+                  <input value={editForm.city} onChange={(e) => setEditField("city", e.target.value)} className="field-input" />
+                </WorkspaceField>
+                <WorkspaceField label="State">
+                  <input value={editForm.state} onChange={(e) => setEditField("state", e.target.value)} className="field-input" />
+                </WorkspaceField>
+              </FormRow>
+              <WorkspaceField label="Address" className="mt-4">
+                <textarea
+                  value={editForm.address}
+                  onChange={(e) => setEditField("address", e.target.value)}
+                  rows={3}
+                  className="field-input h-auto min-h-[88px] resize-none"
+                />
+              </WorkspaceField>
+            </FormSection>
+            <FormSection title="Environmental Context" description="Optional metadata used in sustainability disclosures">
+              <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
+                <div>
+                  <div className="text-[13px] font-semibold text-foreground">Water Stress Zone (HRL)</div>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">Mark if this location is in a BRSR-identified high risk water stress area.</p>
+                </div>
+                <Switch
+                  checked={editForm.is_high_risk_location}
+                  onCheckedChange={(checked) => setEditField("is_high_risk_location", checked)}
+                />
+              </div>
+            </FormSection>
+          </SheetBody>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setEditData(null)} disabled={actionLoading}>Cancel</Button>
+            <Button onClick={submitEdit} disabled={actionLoading}>
+              {actionLoading ? "Saving..." : "Save Changes"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Delete Location" message={`Delete "${deleteTarget?.location_name}"? Data entries will be preserved but this location will be deactivated.`} confirmLabel="Delete" variant="destructive" loading={actionLoading} />
 
       {/* LB Factor dialogs */}

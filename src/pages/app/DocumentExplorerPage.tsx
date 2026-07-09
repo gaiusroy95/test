@@ -2,7 +2,16 @@ import { useEffect, useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { tenantApi } from "@/api/client";
 import { useModulesStore } from "@/store/modules";
-import { PageHeader, LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { DataTable } from "@/components/shared/DataTable";
+import { FilterBar, FilterSelect } from "@/components/shared/FilterBar";
+import { Label } from "@/components/ui/label";
+import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { toast } from "sonner";
 import {
   Download, FileSearch, Paperclip, FileSpreadsheet, Archive,
@@ -13,14 +22,14 @@ import { formatDate, getApiError } from "@/lib/utils";
 // ── Status pill ───────────────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<string, string> = {
-  DRAFT:     "bg-slate-100 text-slate-600 border-slate-200",
-  SUBMITTED: "bg-amber-50 text-amber-700 border-amber-200",
-  APPROVED:  "bg-emerald-50 text-emerald-700 border-emerald-200",
-  REJECTED:  "bg-red-50 text-red-700 border-red-200",
+  DRAFT:     "bg-sunken text-muted-foreground border-border",
+  SUBMITTED: "bg-warn-tint text-warn border-warn/30",
+  APPROVED:  "bg-ok-tint text-ok border-ok/30",
+  REJECTED:  "bg-destructive-tint text-destructive border-destructive/30",
 };
 
 function StatusPill({ status }: { status: string }) {
-  const cls = STATUS_STYLES[status] || "bg-slate-100 text-slate-500 border-slate-200";
+  const cls = STATUS_STYLES[status] || "bg-sunken text-muted-foreground border-border";
   return (
     <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold border ${cls}`}>
       {status}
@@ -156,205 +165,202 @@ export default function DocumentExplorerPage() {
     XLSX.writeFile(wb, "document-register.xlsx");
   };
 
+  const hasFilters = !!(selLocation || selYear || selModule || selKpiOrInd);
+
   // ── Render ────────────────────────────────────────────────────────────────
-  const selectCls =
-    "h-9 px-3 rounded-lg border border-slate-200 bg-white text-[13px] text-brand-navy " +
-    "font-medium focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent transition-colors";
-
   return (
-    <div className="p-6 space-y-4 max-w-[1500px] mx-auto">
-      <PageHeader
-        title="Document Explorer"
-        description="Browse and download supporting documents across all locations"
-        breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Documents" }]}
-      />
-
-      {/* ── Filter bar ──────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-        <select value={selLocation} onChange={(e) => setSelLocation(e.target.value)} className={selectCls} style={{ minWidth: 170 }}>
-          <option value="">All Locations</option>
-          {locations.map((l) => <option key={l.location_id} value={l.location_id}>{l.location_name}</option>)}
-        </select>
-
-        <select value={selYear} onChange={(e) => setSelYear(e.target.value)} className={selectCls} style={{ minWidth: 130 }}>
-          <option value="">All FY</option>
-          {reportingYears.map((ry) => (
-            <option key={ry.year_id} value={ry.year_id}>FY {ry.financial_year?.fy_label || ry.year_id}</option>
-          ))}
-        </select>
-
-        <select value={selModule} onChange={(e) => setSelModule(e.target.value)} className={selectCls} style={{ minWidth: 130 }}>
-          <option value="">All Modules</option>
-          {modules.map((m) => <option key={m.module_id} value={m.module_id}>{m.module_name}</option>)}
-        </select>
-
-        <select value={selKpiOrInd} onChange={(e) => setSelKpiOrInd(e.target.value)} className={selectCls} style={{ minWidth: 200 }}>
-          <option value="">All KPIs &amp; Indicators</option>
-          {filteredKPIs.length > 0 && (
-            <optgroup label="KPIs">
-              {filteredKPIs.map((k) => <option key={k.kpi_id} value={`kpi:${k.kpi_id}`}>{k.kpi_name} ({k.unit})</option>)}
-            </optgroup>
-          )}
-          {filteredIndicators.length > 0 && (
-            <optgroup label="Indicators">
-              {filteredIndicators.map((ind) => <option key={ind.indicator_id} value={`ind:${ind.indicator_id}`}>{ind.indicator_name}</option>)}
-            </optgroup>
-          )}
-        </select>
-      </div>
-
-      {/* ── Toolbar ─────────────────────────────────────────────────────── */}
-      {!loading && docs.length > 0 && (
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-[13px] text-slate-500">
-            <Paperclip size={13} />
-            {docs.length} document{docs.length !== 1 ? "s" : ""}
-          </span>
-
-          <div className="flex-1" />
-
-          {/* Export Excel */}
-          <button
-            onClick={handleExportXLS}
-            className="flex items-center gap-2 px-3.5 h-9 rounded-lg border border-slate-200 bg-white text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
-          >
-            <FileSpreadsheet size={15} className="text-emerald-600" />
-            Export Excel
-          </button>
-
-          {/* Download selected ZIP */}
-          {selected.size > 0 && (
-            <button
-              onClick={() => handleZipDownload(Array.from(selected), "selected")}
-              disabled={downloading}
-              className="flex items-center gap-2 px-3.5 h-9 rounded-lg border border-slate-200 bg-white text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-50"
+    <PageShell
+      title="Document Explorer"
+      description="Browse and download supporting documents across all locations"
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Documents" }]}
+      fullWidth
+      className="max-w-[1500px] mx-auto"
+    >
+      <div className="space-y-4">
+        <FilterBar
+          showClear={hasFilters}
+          onClear={() => { setSelLocation(""); setSelYear(""); setSelModule(""); setSelKpiOrInd(""); }}
+        >
+          <FilterSelect
+            label="Location"
+            value={selLocation}
+            onChange={setSelLocation}
+            placeholder="All Locations"
+            minWidth={170}
+            options={locations.map((l) => ({ value: l.location_id, label: l.location_name }))}
+          />
+          <FilterSelect
+            label="Financial Year"
+            value={selYear}
+            onChange={setSelYear}
+            placeholder="All FY"
+            minWidth={130}
+            options={reportingYears.map((ry) => ({
+              value: String(ry.year_id),
+              label: `FY ${ry.financial_year?.fy_label || ry.year_id}`,
+            }))}
+          />
+          <FilterSelect
+            label="Module"
+            value={selModule}
+            onChange={setSelModule}
+            placeholder="All Modules"
+            minWidth={130}
+            options={modules.map((m) => ({ value: String(m.module_id), label: m.module_name }))}
+          />
+          <div className="flex flex-col gap-1" style={{ minWidth: 200 }}>
+            <Label className="text-label font-semibold text-muted-foreground">KPI / Indicator</Label>
+            <Select
+              value={selKpiOrInd || "__all__"}
+              onValueChange={(v) => setSelKpiOrInd(v === "__all__" ? "" : v)}
             >
-              <Archive size={15} className="text-brand-accent" />
-              Download Selected ({selected.size}) ZIP
-            </button>
-          )}
+              <SelectTrigger className="h-9 text-ui">
+                <SelectValue placeholder="All KPIs & Indicators" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All KPIs & Indicators</SelectItem>
+                {filteredKPIs.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>KPIs</SelectLabel>
+                    {filteredKPIs.map((k) => (
+                      <SelectItem key={k.kpi_id} value={`kpi:${k.kpi_id}`}>
+                        {k.kpi_name} ({k.unit})
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {filteredIndicators.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Indicators</SelectLabel>
+                    {filteredIndicators.map((ind) => (
+                      <SelectItem key={ind.indicator_id} value={`ind:${ind.indicator_id}`}>
+                        {ind.indicator_name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        </FilterBar>
 
-          {/* Download all ZIP */}
-          <button
-            onClick={() => handleZipDownload(docs.map((d) => d.document_id), "all")}
-            disabled={downloading}
-            className="flex items-center gap-2 px-3.5 h-9 rounded-lg bg-brand-accent text-white text-[13px] font-semibold hover:bg-brand-accentDk disabled:opacity-50 transition-colors"
-          >
-            <Archive size={15} />
-            {downloading ? "Downloading…" : "Download All ZIP"}
-          </button>
-        </div>
-      )}
-
-      {/* ── Loading ──────────────────────────────────────────────────────── */}
-      {loading && <LoadingSkeleton rows={8} cols={6} />}
-
-      {/* ── Empty ────────────────────────────────────────────────────────── */}
-      {!loading && docs.length === 0 && (
-        <EmptyState
-          icon={FileSearch}
-          title="No documents found"
-          description="Try adjusting your filters or upload documents from the ESG Input page."
-        />
-      )}
-
-      {/* ── Table ────────────────────────────────────────────────────────── */}
-      {!loading && docs.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13px] border-collapse">
-              <thead>
-                <tr className="border-b-2 border-slate-100 bg-slate-50/60">
-                  {/* Checkbox */}
-                  <th className="px-4 py-3 w-9">
+        <DataTable
+          loading={loading}
+          skeletonCols={8}
+          skeletonRows={8}
+          empty={!loading && docs.length === 0 ? {
+            icon: FileSearch,
+            title: "No documents found",
+            description: "Try adjusting your filters or upload documents from the ESG Input page.",
+          } : undefined}
+          actions={!loading && docs.length > 0 ? (
+            <>
+              <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground mr-2">
+                <Paperclip size={13} />
+                {docs.length} document{docs.length !== 1 ? "s" : ""}
+              </span>
+              <button
+                onClick={handleExportXLS}
+                className="flex items-center gap-2 px-3.5 h-9 rounded-lg border border-border bg-card text-[13px] font-medium text-muted-foreground hover:bg-sunken hover:border-border transition-colors"
+              >
+                <FileSpreadsheet size={15} className="text-ok" />
+                Export Excel
+              </button>
+              {selected.size > 0 && (
+                <button
+                  onClick={() => handleZipDownload(Array.from(selected), "selected")}
+                  disabled={downloading}
+                  className="flex items-center gap-2 px-3.5 h-9 rounded-lg border border-border bg-card text-[13px] font-medium text-muted-foreground hover:bg-sunken hover:border-border transition-colors disabled:opacity-50"
+                >
+                  <Archive size={15} className="text-primary" />
+                  Download Selected ({selected.size}) ZIP
+                </button>
+              )}
+              <button
+                onClick={() => handleZipDownload(docs.map((d) => d.document_id), "all")}
+                disabled={downloading}
+                className="flex items-center gap-2 px-3.5 h-9 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primaryDk disabled:opacity-50 transition-colors"
+              >
+                <Archive size={15} />
+                {downloading ? "Downloading…" : "Download All ZIP"}
+              </button>
+            </>
+          ) : undefined}
+        >
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-9">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                    className="accent-primary cursor-pointer"
+                    aria-label="Select all documents"
+                  />
+                </TableHead>
+                {[
+                  "Location", "Financial Year", "Month", "Module",
+                  "Indicator / KPI", "Value", "Unit", "Status",
+                  "File Name", "Submitted By", "Submitted On", "",
+                ].map((h) => (
+                  <TableHead key={h} className="whitespace-nowrap">{h}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {docs.map((doc) => (
+                <TableRow
+                  key={doc.document_id}
+                  className={selected.has(doc.document_id) ? "bg-info-tint/50" : undefined}
+                >
+                  <TableCell className="w-9">
                     <input
                       type="checkbox"
-                      checked={allSelected}
-                      onChange={toggleAll}
-                      className="accent-brand-accent cursor-pointer"
+                      checked={selected.has(doc.document_id)}
+                      onChange={() => toggleOne(doc.document_id)}
+                      className="accent-primary cursor-pointer"
+                      aria-label={`Select ${doc.file_name}`}
                     />
-                  </th>
-                  {[
-                    "Location", "Financial Year", "Month", "Module",
-                    "Indicator / KPI", "Value", "Unit", "Status",
-                    "File Name", "Submitted By", "Submitted On", "",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="text-left px-3 py-3 text-slate-500 font-semibold text-[11px] uppercase tracking-wider whitespace-nowrap"
+                  </TableCell>
+                  <TableCell className="font-medium text-foreground whitespace-nowrap">{doc.location_name}</TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">FY {doc.fy_label}</TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{doc.month_name}</TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{doc.module_name || "—"}</TableCell>
+                  <TableCell className="max-w-[200px]">
+                    <span className="text-foreground/90 block truncate" title={doc.kpi_name || doc.indicator_name || ""}>
+                      {doc.kpi_name || doc.indicator_name || <span className="text-muted-foreground italic">Submission level</span>}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-right whitespace-nowrap">
+                    {doc.quantity != null ? doc.quantity : "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{doc.unit || "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <StatusPill status={doc.submission_status} />
+                  </TableCell>
+                  <TableCell className="max-w-[160px]">
+                    <span className="text-foreground/90 font-medium block truncate" title={doc.file_name}>
+                      {doc.file_name}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{doc.uploaded_by_name || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground whitespace-nowrap">{formatDate(doc.uploaded_at)}</TableCell>
+                  <TableCell>
+                    <button
+                      onClick={() => handleDownload(doc.document_id, doc.file_name)}
+                      title="Download file"
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-border text-[12px] text-muted-foreground hover:bg-info-tint hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
                     >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-
-              <tbody>
-                {docs.map((doc) => (
-                  <tr
-                    key={doc.document_id}
-                    className={`border-b border-slate-100 transition-colors ${
-                      selected.has(doc.document_id) ? "bg-sky-50/50" : "hover:bg-slate-50/50"
-                    }`}
-                  >
-                    {/* Checkbox */}
-                    <td className="px-4 py-3 w-9">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(doc.document_id)}
-                        onChange={() => toggleOne(doc.document_id)}
-                        className="accent-brand-accent cursor-pointer"
-                      />
-                    </td>
-
-                    <td className="px-3 py-3 font-medium text-brand-navy whitespace-nowrap">{doc.location_name}</td>
-                    <td className="px-3 py-3 text-slate-600 whitespace-nowrap">FY {doc.fy_label}</td>
-                    <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{doc.month_name}</td>
-                    <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{doc.module_name || "—"}</td>
-
-                    {/* Indicator / KPI */}
-                    <td className="px-3 py-3 max-w-[200px]">
-                      <span className="text-slate-700 block truncate" title={doc.kpi_name || doc.indicator_name || ""}>
-                        {doc.kpi_name || doc.indicator_name || <span className="text-slate-400 italic">Submission level</span>}
-                      </span>
-                    </td>
-
-                    <td className="px-3 py-3 text-slate-600 text-right whitespace-nowrap">
-                      {doc.quantity != null ? doc.quantity : "—"}
-                    </td>
-                    <td className="px-3 py-3 text-slate-500 whitespace-nowrap">{doc.unit || "—"}</td>
-
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <StatusPill status={doc.submission_status} />
-                    </td>
-
-                    {/* File name */}
-                    <td className="px-3 py-3 max-w-[160px]">
-                      <span className="text-slate-700 font-medium block truncate" title={doc.file_name}>
-                        {doc.file_name}
-                      </span>
-                    </td>
-
-                    <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{doc.uploaded_by_name || "—"}</td>
-                    <td className="px-3 py-3 text-slate-500 whitespace-nowrap">{formatDate(doc.uploaded_at)}</td>
-
-                    {/* Download */}
-                    <td className="px-3 py-3">
-                      <button
-                        onClick={() => handleDownload(doc.document_id, doc.file_name)}
-                        title="Download file"
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-slate-200 text-[12px] text-slate-600 hover:bg-sky-50 hover:border-brand-accent hover:text-brand-accent transition-colors whitespace-nowrap"
-                      >
-                        <Download size={13} /> Download
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
+                      <Download size={13} /> Download
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </DataTable>
+      </div>
+    </PageShell>
   );
 }

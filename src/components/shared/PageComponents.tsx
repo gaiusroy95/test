@@ -1,14 +1,12 @@
 import type { LucideIcon } from "lucide-react";
-import { TrendingUp, TrendingDown, Inbox } from "lucide-react";
+import { TrendingUp, TrendingDown, Inbox, ArrowUpRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-// Re-export PageShell pieces so existing imports keep working
 export { Breadcrumb, PageHeader, PageShell } from "@/components/shared/PageShell";
 export type { BreadcrumbItem } from "@/components/shared/PageShell";
 
-// ═══ STAT CARD (clickable) ═══
 export function StatCard({
   icon: Icon,
   label,
@@ -25,7 +23,6 @@ export function StatCard({
   subtitle?: string;
   change?: string;
   changeType?: "up" | "down";
-  /** CSS color or hsl — defaults to primary token */
   accent?: string;
   to?: string;
 }) {
@@ -43,27 +40,30 @@ export function StatCard({
         }
       }}
       className={cn(
-        "bg-card rounded-md p-5 border border-border flex flex-col gap-3 group relative overflow-hidden transition-all duration-200 shadow-surface",
-        to && "cursor-pointer hover:shadow-elevated hover:-translate-y-px"
+        "group relative overflow-hidden rounded-xl border border-border/70 bg-card p-5 transition-all duration-200",
+        "shadow-surface hover:shadow-elevated",
+        to && "cursor-pointer hover:-translate-y-0.5 hover:border-primary/30"
       )}
       onClick={() => to && navigate(to)}
     >
+      {/* Top gradient accent line */}
       <div
-        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-md opacity-80"
-        style={{ background: accentColor }}
+        className="absolute inset-x-0 top-0 h-[3px] opacity-90"
+        style={{ background: `linear-gradient(90deg, ${accentColor}, ${accentColor}88)` }}
         aria-hidden="true"
       />
-      <div className="flex justify-between items-start pl-2">
+
+      <div className="flex items-start justify-between gap-3">
         <div
-          className="w-9 h-9 rounded-sm flex items-center justify-center transition-transform group-hover:scale-105 duration-200"
-          style={{ background: `${accentColor}18` }}
+          className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 duration-200"
+          style={{ background: `linear-gradient(135deg, ${accentColor}22, ${accentColor}10)` }}
         >
-          <Icon size={18} style={{ color: accentColor }} aria-hidden="true" />
+          <Icon size={20} style={{ color: accentColor }} aria-hidden="true" />
         </div>
         {change && (
           <span
             className={cn(
-              "text-label font-bold flex items-center gap-1 px-2 py-0.5 rounded-full",
+              "text-2xs font-bold flex items-center gap-1 px-2 py-0.5 rounded-full",
               changeType === "up" && "text-ok bg-ok-tint",
               changeType === "down" && "text-destructive bg-destructive-tint",
               !changeType && "text-muted-foreground bg-sunken"
@@ -74,19 +74,28 @@ export function StatCard({
             {change}
           </span>
         )}
+        {to && (
+          <ArrowUpRight
+            size={16}
+            className="text-muted-foreground/30 group-hover:text-primary transition-colors shrink-0 mt-0.5"
+            aria-hidden="true"
+          />
+        )}
       </div>
-      <div className="pl-2">
-        <div className="text-2xl font-bold text-foreground leading-none tracking-tight tabular-nums">
-          {value}
-        </div>
-        <div className="text-xs font-medium text-muted-foreground mt-1">{label}</div>
-        {subtitle && <div className="text-label text-muted-foreground mt-0.5">{subtitle}</div>}
+
+      <div className="mt-4">
+        <div className="metric-value text-foreground">{value}</div>
+        <div className="text-sm font-semibold text-foreground/80 mt-1">{label}</div>
+        {subtitle && (
+          <div className="text-label text-muted-foreground mt-0.5 group-hover:text-primary transition-colors">
+            {subtitle}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// ═══ EMPTY STATE ═══
 export function EmptyState({
   icon: Icon = Inbox,
   title,
@@ -99,20 +108,19 @@ export function EmptyState({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-      <div className="w-11 h-11 rounded-md bg-sunken flex items-center justify-center mb-3 ring-1 ring-border">
-        <Icon size={22} className="text-muted-foreground" aria-hidden="true" />
+    <div className="flex flex-col items-center justify-center py-14 text-center px-4">
+      <div className="w-14 h-14 rounded-xl bg-accent flex items-center justify-center mb-4 ring-1 ring-primary/10">
+        <Icon size={24} className="text-primary" aria-hidden="true" />
       </div>
-      <h3 className="text-sm font-bold text-foreground mb-1">{title}</h3>
+      <h3 className="text-base font-bold text-foreground mb-1">{title}</h3>
       {description && (
-        <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">{description}</p>
+        <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">{description}</p>
       )}
-      {children && <div className="mt-4">{children}</div>}
+      {children && <div className="mt-5">{children}</div>}
     </div>
   );
 }
 
-// ═══ LOADING SKELETON ═══
 export function LoadingSkeleton({
   rows = 5,
   cols = 4,
@@ -126,9 +134,9 @@ export function LoadingSkeleton({
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {Array.from({ length: cols }).map((_, i) => (
-          <div key={i} className="surface p-5 space-y-3">
-            <Skeleton className="h-9 w-9 rounded-sm" />
-            <Skeleton className="h-7 w-20" />
+          <div key={i} className="surface-elevated p-5 space-y-4">
+            <Skeleton className="h-11 w-11 rounded-xl" />
+            <Skeleton className="h-8 w-16" />
             <Skeleton className="h-3 w-28" />
           </div>
         ))}
@@ -154,17 +162,15 @@ export function LoadingSkeleton({
   );
 }
 
-/** Page content loading skeleton used during route transitions */
 export function PageLoadingSkeleton() {
   return (
     <div className="page-root" aria-busy="true" aria-label="Loading page">
-      <div className="mb-5 pb-4 border-b border-[hsl(var(--border-hairline))] space-y-2">
-        <Skeleton className="h-3 w-40" />
-        <Skeleton className="h-6 w-56" />
-        <Skeleton className="h-3 w-72" />
+      <div className="dashboard-hero mb-6 space-y-3">
+        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-8 w-72" />
       </div>
       <LoadingSkeleton variant="cards" cols={4} />
-      <div className="mt-5 surface p-6">
+      <div className="mt-6 surface-elevated p-6">
         <LoadingSkeleton rows={6} cols={4} />
       </div>
     </div>

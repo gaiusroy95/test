@@ -15,6 +15,7 @@ import {
 // ── Branding (change these two lines to rebrand the entire app) ──
 export const APP_NAME = "ESMOS";
 export const APP_TAGLINE = "ESG Management & Oversight System";
+export const APP_VERSION = "1.0.0";
 
 // ── Icon map: icon_name (string from DB) → Lucide React component ──────────
 // Extend this map (and add the import above) to expose new icons to the picker.

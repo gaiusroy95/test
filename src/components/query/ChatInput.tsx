@@ -19,7 +19,7 @@ export default function ChatInput({ onSend, disabled }: Props) {
   };
 
   return (
-    <div className="flex items-center gap-2 p-3 border-t border-slate-200 bg-white">
+    <div className="flex items-center gap-2 p-3 border-t border-border bg-card">
       <input
         ref={inputRef}
         type="text"
@@ -29,12 +29,12 @@ export default function ChatInput({ onSend, disabled }: Props) {
         placeholder="Ask about your ESG data..."
         maxLength={500}
         disabled={disabled}
-        className="flex-1 h-10 px-4 rounded-lg border border-slate-200 bg-slate-50 text-[13px] text-brand-navy placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent/30 focus:border-brand-accent disabled:opacity-50 transition-colors"
+        className="flex-1 h-10 px-4 rounded-lg border border-border bg-sunken text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50 transition-colors"
       />
       <button
         onClick={handleSubmit}
         disabled={disabled || !text.trim()}
-        className="w-10 h-10 rounded-lg bg-brand-accent text-white flex items-center justify-center hover:bg-brand-accent/90 disabled:opacity-40 transition-colors flex-shrink-0"
+        className="w-10 h-10 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 transition-colors flex-shrink-0"
       >
         <Send size={16} />
       </button>

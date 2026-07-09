@@ -65,8 +65,8 @@ export function ConsentDialog() {
       >
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-9 h-9 rounded-lg bg-brand-accent/10 flex items-center justify-center">
-              <ShieldCheck size={18} className="text-brand-accent" />
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <ShieldCheck size={18} className="text-primary" />
             </div>
             <DialogTitle>Privacy &amp; Data Usage</DialogTitle>
           </div>
@@ -76,23 +76,23 @@ export function ConsentDialog() {
         </DialogHeader>
 
         <DialogBody>
-          <div className="space-y-3 text-[13px] text-slate-600 leading-relaxed">
+          <div className="space-y-3 text-[13px] text-muted-foreground leading-relaxed">
             <p>
-              <strong className="text-brand-navy">What we collect:</strong> Your name,
+              <strong className="text-foreground">What we collect:</strong> Your name,
               email address, role, and the ESG data you enter on behalf of your organisation.
             </p>
             <p>
-              <strong className="text-brand-navy">How we use it:</strong> Solely to operate
+              <strong className="text-foreground">How we use it:</strong> Solely to operate
               the ESMOS platform for your company's ESG/BRSR reporting. Your data is never
               sold or shared with third parties.
             </p>
             <p>
-              <strong className="text-brand-navy">Your rights:</strong> You may request a
+              <strong className="text-foreground">Your rights:</strong> You may request a
               copy of your personal data (Download My Data) or ask your Company Admin to
               permanently erase your account at any time.
             </p>
             <p>
-              <strong className="text-brand-navy">Policy version:</strong>{" "}
+              <strong className="text-foreground">Policy version:</strong>{" "}
               {CURRENT_POLICY_VERSION}. The full Privacy Policy is available on our website.
             </p>
           </div>

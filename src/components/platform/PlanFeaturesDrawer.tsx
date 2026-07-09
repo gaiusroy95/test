@@ -88,36 +88,36 @@ export default function PlanFeaturesDrawer({
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <div className="absolute inset-0 bg-slate-900/30" onClick={onClose} />
-      <aside className="relative w-[520px] max-w-full h-full bg-white shadow-2xl border-l border-slate-200 flex flex-col">
-        <div className="px-5 py-4 border-b border-slate-200 flex items-start justify-between">
+      <div className="absolute inset-0 bg-foreground/30" onClick={onClose} />
+      <aside className="relative w-[520px] max-w-full h-full bg-card shadow-2xl border-l border-border flex flex-col">
+        <div className="px-5 py-4 border-b border-border flex items-start justify-between">
           <div>
-            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Plan Features</div>
-            <h3 className="text-[15px] font-bold text-brand-navy mt-0.5">{plan.plan_name}</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Plan Features</div>
+            <h3 className="text-[15px] font-bold text-foreground mt-0.5">{plan.plan_name}</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               Set quotas for each feature. <span className="font-mono">-1</span> means unlimited.
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400"><X size={16} /></button>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground"><X size={16} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
           {loading ? (
-            <div className="text-[12px] text-slate-400">Loading…</div>
+            <div className="text-[12px] text-muted-foreground">Loading…</div>
           ) : keys.length === 0 ? (
-            <div className="text-[12px] text-slate-400 text-center py-8">
+            <div className="text-[12px] text-muted-foreground text-center py-8">
               No active feature_keys defined. Insert rows into the
               <span className="font-mono"> feature_keys</span> table to extend.
             </div>
           ) : (
             <div className="space-y-3">
               {keys.map((k) => (
-                <div key={k.feature_key} className="border border-slate-200 rounded-lg p-3 hover:border-slate-300">
+                <div key={k.feature_key} className="border border-border rounded-lg p-3 hover:border-border">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
-                      <div className="text-[13px] font-semibold text-brand-navy">{k.label}</div>
-                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">{k.feature_key}</div>
-                      {k.description && <div className="text-[11px] text-slate-500 mt-1">{k.description}</div>}
+                      <div className="text-[13px] font-semibold text-foreground">{k.label}</div>
+                      <div className="text-[10px] font-mono text-muted-foreground mt-0.5">{k.feature_key}</div>
+                      {k.description && <div className="text-[11px] text-muted-foreground mt-1">{k.description}</div>}
                     </div>
                     <div className="flex items-center gap-2">
                       <input
@@ -126,13 +126,13 @@ export default function PlanFeaturesDrawer({
                         onChange={(e) =>
                           setRows((prev) => ({ ...prev, [k.feature_key]: Number(e.target.value) }))
                         }
-                        className="w-24 px-2 py-1.5 rounded border border-slate-200 text-[13px] font-mono text-right outline-none focus:border-brand-accent"
+                        className="w-24 px-2 py-1.5 rounded border border-border text-[13px] font-mono text-right outline-none focus:border-primary"
                       />
                       <button
                         onClick={() =>
                           setRows((prev) => ({ ...prev, [k.feature_key]: -1 }))
                         }
-                        className="text-[11px] text-slate-400 hover:text-brand-accent"
+                        className="text-[11px] text-muted-foreground hover:text-primary"
                         title="Set to unlimited"
                       >
                         ∞
@@ -145,18 +145,18 @@ export default function PlanFeaturesDrawer({
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-slate-200 flex justify-end gap-2">
+        <div className="px-5 py-3 border-t border-border flex justify-end gap-2">
           <button
             onClick={onClose}
             disabled={saving}
-            className="px-4 py-2 rounded-lg border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50"
+            className="px-4 py-2 rounded-lg border border-border text-[13px] font-semibold text-muted-foreground hover:bg-sunken"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-accent text-white text-[13px] font-semibold hover:bg-brand-accentDk disabled:opacity-60"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primaryDk disabled:opacity-60"
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
             {saving ? "Saving…" : "Save"}

@@ -8,7 +8,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { tenantApi } from "@/api/client";
 import { useModulesStore } from "@/store/modules";
-import { Breadcrumb, LoadingSkeleton } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { LoadingSkeleton } from "@/components/shared/PageComponents";
 import { getModuleIcon } from "@/lib/constants";
 import { getApiError } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Check, Download, Loader2, BookOpen, FlaskConical, Info } from "lucide-react";
@@ -148,34 +149,26 @@ export default function ESGLibraryPage() {
   const pulledCount = indicators.filter((i) => pulledIndIds.has(i.indicator_id)).length;
 
   return (
-    <div className="p-6 w-full animate-in fade-in duration-500">
-      
-      {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
-        <div>
-          <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "Template Catalog" }]} />
-          <div className="flex items-center gap-2 mt-1">
-            <h1 className="text-[20px] font-bold text-brand-navy tracking-tight">Template Catalog</h1>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button className="text-slate-400 hover:text-brand-accent transition-colors">
-                    <Info size={16} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[280px] p-3 text-[12px] leading-relaxed">
-                  Browse platform-published templates and factors. Pull indicators into your company — they become editable copies with their KPIs and conversion factors.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <p className="text-[13px] font-medium text-slate-500 mt-0.5">
-            Import system templates to your workspace.
-          </p>
-        </div>
-
-        {/* Segmented Control for Views */}
-        <div className="inline-flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200/60 shadow-sm">
+    <PageShell
+      title="Template Catalog"
+      description="Import system templates to your workspace"
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Template Catalog" }]}
+      titleAddon={
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" className="text-muted-foreground hover:text-foreground transition-colors" aria-label="About Template Catalog">
+                <Info size={14} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="max-w-[280px] p-3 text-ui leading-relaxed">
+              Browse platform-published templates and factors. Pull indicators into your company — they become editable copies with their KPIs and conversion factors.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      }
+      actions={
+        <div className="inline-flex items-center p-0.5 bg-sunken rounded-md border border-border">
           {([
             { key: "indicators", label: "Indicators", icon: BookOpen },
             { key: "factors",    label: "Factors",    icon: FlaskConical },
@@ -184,24 +177,23 @@ export default function ESGLibraryPage() {
               key={key}
               onClick={() => setCatalogTab(key)}
               className={`
-                flex items-center gap-1.5 px-4 py-1.5 rounded-md text-[13px] font-semibold transition-all
-                ${catalogTab === key 
-                  ? "bg-white text-brand-navy shadow-sm border border-slate-200/50" 
-                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 border border-transparent"}
+                flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-ui font-semibold transition-all
+                ${catalogTab === key
+                  ? "bg-card text-foreground shadow-sm border border-border"
+                  : "text-muted-foreground hover:text-foreground border border-transparent"}
               `}
             >
-              <Icon size={14} className={catalogTab === key ? "text-brand-accent" : "opacity-70"} />
+              <Icon size={14} className={catalogTab === key ? "text-primary" : "opacity-70"} />
               {label}
             </button>
           ))}
         </div>
-      </div>
-
-      {/* ── Main Content Card ── */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      }
+    >
+      <div className="surface overflow-hidden">
         
         {/* Card Header (Module Tabs + Search/Stats) */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between px-2 pt-2 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between px-2 pt-1 border-b border-[hsl(var(--border-hairline))] bg-sunken/50">
           <div className="flex flex-wrap px-2">
             {modules.map((m) => {
               const Icon = getModuleIcon(m.icon_name);
@@ -210,33 +202,33 @@ export default function ESGLibraryPage() {
                 <button
                   key={m.module_id}
                   onClick={() => setActiveModuleId(m.module_id)}
-                  className={`flex items-center gap-2 px-4 py-3 text-[13px] font-semibold border-b-2 transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-2 text-ui font-semibold border-b-2 transition-colors ${
                     active
-                      ? "border-brand-accent text-brand-navy"
-                      : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                   }`}
                 >
-                  <Icon size={14} className={active ? "text-brand-accent" : ""} /> 
+                  <Icon size={14} className={active ? "text-primary" : ""} />
                   {m.module_name}
                 </button>
               );
             })}
           </div>
 
-          <div className="px-4 pb-2.5 flex items-center gap-3">
+          <div className="px-3 pb-2 flex items-center gap-3">
             {catalogTab === "factors" ? (
               <input
                 type="text"
                 placeholder="Search factor…"
                 value={factorSearch}
                 onChange={(e) => setFactorSearch(e.target.value)}
-                className="w-[180px] px-3 py-1.5 rounded-md border border-slate-200 text-[12px] bg-white outline-none focus:border-brand-accent/60 focus:ring-2 focus:ring-brand-accent/10 transition-all"
+                className="w-[180px] px-3 py-1.5 rounded-md border border-border text-[12px] bg-card outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/10 transition-all"
               />
             ) : (
               !loading && indicators.length > 0 && (
-                <div className="flex items-center gap-2 text-[12px] font-medium text-slate-500 bg-white px-3 py-1.5 rounded-md border border-slate-200 shadow-sm">
-                  <span className="text-brand-navy">{indicators.length}</span> indicators
-                  <div className="w-px h-3 bg-slate-300 mx-1" />
+                <div className="flex items-center gap-2 text-[12px] font-medium text-muted-foreground bg-card px-3 py-1.5 rounded-md border border-border shadow-sm">
+                  <span className="text-foreground">{indicators.length}</span> indicators
+                  <div className="w-px h-3 bg-border mx-1" />
                   <span className="text-green-600 flex items-center gap-1"><Check size={14}/> {pulledCount} pulled</span>
                 </div>
               )
@@ -246,25 +238,25 @@ export default function ESGLibraryPage() {
 
         {/* ── Factor Library View ── */}
         {catalogTab === "factors" && (
-          <div className="bg-white">
+          <div className="bg-card">
             {factorsLoading ? (
               <div className="p-6"><LoadingSkeleton rows={6} cols={5} /></div>
             ) : factors.length === 0 ? (
               <div className="p-16 text-center">
-                <FlaskConical size={32} className="text-slate-300 mx-auto mb-4" />
-                <p className="text-[14px] font-medium text-slate-600">
+                <FlaskConical size={32} className="text-muted-foreground/40 mx-auto mb-4" />
+                <p className="text-[14px] font-medium text-muted-foreground">
                   No catalog factors for {activeModule?.module_name} yet.
                 </p>
-                <p className="text-[12px] text-slate-400 mt-1.5 max-w-[300px] mx-auto leading-relaxed">
+                <p className="text-[12px] text-muted-foreground mt-1.5 max-w-[300px] mx-auto leading-relaxed">
                   Pull an indicator to bring along its factors, or wait for the platform team to publish more.
                 </p>
               </div>
             ) : (
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-white">
+                  <tr className="border-b border-[hsl(var(--border-hairline))] bg-card">
                     {["KPI", "Scope", "Factors", "Validity"].map((h) => (
-                      <th key={h} className="text-left px-5 py-3 text-slate-400 font-semibold text-[11px] uppercase tracking-[0.05em]">{h}</th>
+                      <th key={h} className="text-left px-5 py-3 text-muted-foreground font-semibold text-[11px] uppercase tracking-[0.05em]">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -277,28 +269,28 @@ export default function ESGLibraryPage() {
                           || (f.source   || "").toLowerCase().includes(q);
                     })
                     .map((f) => (
-                      <tr key={f.factor_id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                      <tr key={f.factor_id} className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/50 transition-colors">
                         <td className="px-5 py-3">
-                          <div className="font-semibold text-brand-navy">{f.kpi_name}</div>
-                          <div className="text-[11.5px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-                            {f.kpi_unit && <span className="bg-slate-100 px-1.5 py-0.5 rounded font-medium">{f.kpi_unit}</span>}
+                          <div className="font-semibold text-foreground">{f.kpi_name}</div>
+                          <div className="text-[11.5px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                            {f.kpi_unit && <span className="bg-sunken px-1.5 py-0.5 rounded font-medium">{f.kpi_unit}</span>}
                             <span>{f.source || "System Default"}</span>
                           </div>
                         </td>
                         <td className="px-5 py-3">
                           {f.scope_number ? (
-                            <span className="text-[11px] font-semibold px-2 py-1 rounded-md bg-sky-50 text-sky-700 border border-sky-100">
+                            <span className="text-[11px] font-semibold px-2 py-1 rounded-md bg-info-tint text-info border border-sky-100">
                               Scope {f.scope_number}
                             </span>
-                          ) : <span className="text-slate-300">—</span>}
+                          ) : <span className="text-muted-foreground/40">—</span>}
                         </td>
-                        <td className="px-5 py-3 font-mono text-[12.5px] text-slate-600">
-                          {f.energy_factor != null && <div><span className="text-slate-400 text-[10px] uppercase tracking-wider font-sans mr-2">EN</span>{f.energy_factor} {f.energy_factor_uom}</div>}
-                          {f.emission_factor != null && <div><span className="text-slate-400 text-[10px] uppercase tracking-wider font-sans mr-2">EM</span>{f.emission_factor} {f.emission_factor_uom}</div>}
+                        <td className="px-5 py-3 font-mono text-[12.5px] text-muted-foreground">
+                          {f.energy_factor != null && <div><span className="text-muted-foreground text-[10px] uppercase tracking-wider font-sans mr-2">EN</span>{f.energy_factor} {f.energy_factor_uom}</div>}
+                          {f.emission_factor != null && <div><span className="text-muted-foreground text-[10px] uppercase tracking-wider font-sans mr-2">EM</span>{f.emission_factor} {f.emission_factor_uom}</div>}
                         </td>
-                        <td className="px-5 py-3 text-[12px] text-slate-500 font-medium">
+                        <td className="px-5 py-3 text-[12px] text-muted-foreground font-medium">
                           {f.valid_from || "—"}
-                          <span className="mx-1.5 text-slate-300">→</span>
+                          <span className="mx-1.5 text-muted-foreground/40">→</span>
                           {f.valid_to ? f.valid_to : <span className="text-green-600 font-semibold">Current</span>}
                         </td>
                       </tr>
@@ -311,28 +303,28 @@ export default function ESGLibraryPage() {
 
         {/* ── Indicators Catalog View ── */}
         {catalogTab === "indicators" && (
-          <div className="bg-slate-50/30 p-4">
+          <div className="bg-sunken/30 p-3">
             {loading ? (
-              <div className="bg-white rounded-lg border border-slate-200 p-6"><LoadingSkeleton rows={5} cols={3} /></div>
+              <div className="bg-card rounded-lg border border-border p-6"><LoadingSkeleton rows={5} cols={3} /></div>
             ) : indicators.length === 0 ? (
-              <div className="bg-white rounded-lg border border-slate-200 p-16 text-center shadow-sm">
-                <BookOpen size={32} className="text-slate-300 mx-auto mb-4" />
-                <p className="text-[14px] font-medium text-slate-600">
+              <div className="bg-card rounded-lg border border-border p-16 text-center shadow-sm">
+                <BookOpen size={32} className="text-muted-foreground/40 mx-auto mb-4" />
+                <p className="text-[14px] font-medium text-muted-foreground">
                   No catalog indicators for {activeModule?.module_name} yet.
                 </p>
-                <p className="text-[12px] text-slate-400 mt-1">The platform team will add them soon.</p>
+                <p className="text-[12px] text-muted-foreground mt-1">The platform team will add them soon.</p>
               </div>
             ) : (
               <>
                 {/* Bulk-select bar */}
                 {pullableIndicators.length > 0 && (
-                  <div className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-2.5 mb-3 shadow-sm">
-                    <label className="flex items-center gap-2.5 text-[13px] font-medium text-brand-navy cursor-pointer hover:text-brand-accent transition-colors">
+                  <div className="flex items-center justify-between bg-card border border-border rounded-sm px-3 py-2 mb-2">
+                    <label className="flex items-center gap-2 text-ui font-medium text-foreground cursor-pointer hover:text-primary transition-colors">
                       <input
                         type="checkbox"
                         checked={selected.size === pullableIndicators.length && pullableIndicators.length > 0}
                         onChange={toggleSelectAll}
-                        className="w-4 h-4 rounded border-slate-300 text-brand-accent focus:ring-brand-accent"
+                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
                       />
                       Select all {pullableIndicators.length} indicators
                     </label>
@@ -340,7 +332,7 @@ export default function ESGLibraryPage() {
                 )}
 
                 {/* Indicator list */}
-                <div className="space-y-2.5">
+                <div className="space-y-1">
                   {indicators.map((ind) => {
                     const isPulled    = pulledIndIds.has(ind.indicator_id);
                     const isExpanded  = expanded.has(ind.indicator_id);
@@ -350,84 +342,81 @@ export default function ESGLibraryPage() {
                     return (
                       <div
                         key={ind.indicator_id}
-                        className={`bg-white border rounded-lg transition-all ${
-                          isSelected ? "border-brand-accent shadow-sm ring-1 ring-brand-accent/10" : "border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                        className={`bg-card border rounded-sm transition-all ${
+                          isSelected ? "border-primary shadow-sm ring-1 ring-primary/10" : "border-border hover:border-border hover:shadow-sm"
                         }`}
                       >
-                        <div className="flex items-start gap-3 px-4 py-3">
+                        <div className="flex items-start gap-2.5 px-3 py-2">
                           <input
                             type="checkbox"
                             checked={isSelected}
                             disabled={isPulled}
                             onChange={() => toggleSelect(ind.indicator_id)}
-                            className="mt-1.5 w-4 h-4 rounded border-slate-300 text-brand-accent focus:ring-brand-accent disabled:opacity-30 cursor-pointer"
+                            className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary disabled:opacity-30 cursor-pointer"
                           />
                           <button
                             onClick={() => toggleExpanded(ind.indicator_id)}
-                            className="flex-1 flex flex-col sm:flex-row sm:items-start justify-between gap-4 text-left group"
+                            className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-left group min-h-[var(--density-row)]"
                           >
-                            {/* Left Side: Name & Chevron */}
-                            <div className="flex items-start gap-2.5 flex-1">
-                              <div className="mt-0.5 text-slate-400 group-hover:text-brand-accent transition-colors">
-                                {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <div className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+                                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                               </div>
-                              <div>
-                                <div className="text-[14px] font-bold text-brand-navy group-hover:text-brand-accent transition-colors">
+                              <div className="min-w-0">
+                                <div className="text-ui font-semibold text-foreground group-hover:text-primary transition-colors truncate">
                                   {ind.indicator_name}
                                 </div>
                                 {ind.description && (
-                                  <p className="text-[12.5px] text-slate-500 mt-1 leading-relaxed max-w-[500px]">
+                                  <p className="text-label text-muted-foreground mt-0.5 line-clamp-1">
                                     {ind.description}
                                   </p>
                                 )}
                               </div>
                             </div>
-                            
-                            {/* Right Side: Badges */}
-                            <div className="flex items-center gap-2 pl-9 sm:pl-0 shrink-0">
-                              <span className="text-[11px] font-semibold px-2 py-1 rounded-md bg-slate-50 text-slate-500 border border-slate-100">
+
+                            <div className="flex items-center gap-1.5 pl-7 sm:pl-0 shrink-0">
+                              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-sm bg-sunken text-muted-foreground border border-border">
                                 {ind.kpis.length} KPI{ind.kpis.length !== 1 ? "s" : ""}
                               </span>
-                              <span className="text-[11px] font-semibold px-2 py-1 rounded-md bg-slate-50 text-slate-500 border border-slate-100">
+                              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-sm bg-sunken text-muted-foreground border border-border">
                                 {factorTotal} Factor{factorTotal !== 1 ? "s" : ""}
                               </span>
                               {isPulled && (
-                                <span className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-md bg-green-50 text-green-700 border border-green-200/60 shadow-sm">
-                                  <Check size={12} strokeWidth={3} /> Pulled
+                                <span className="flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded-sm bg-ok-tint text-ok border border-ok/20">
+                                  <Check size={11} strokeWidth={3} /> Pulled
                                 </span>
                               )}
                             </div>
                           </button>
                         </div>
 
-                        {/* Expanded KPIs table */}
                         {isExpanded && (
-                          <div className="border-t border-slate-100 bg-slate-50/50 p-4 rounded-b-lg">
+                          <div className="border-t border-[hsl(var(--border-hairline))] bg-sunken/50 p-2 rounded-b-sm">
                             {ind.kpis.length === 0 ? (
-                              <p className="text-[12px] text-slate-500 italic">No KPIs found under this indicator.</p>
+                              <p className="text-[12px] text-muted-foreground italic">No KPIs found under this indicator.</p>
                             ) : (
-                              <div className="bg-white border border-slate-100 rounded-md overflow-hidden shadow-sm">
-                                <table className="w-full text-[12.5px]">
+                              <div className="bg-card border border-border rounded-sm overflow-hidden">
+                                <table className="w-full text-ui">
                                   <thead>
-                                    <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] uppercase tracking-widest text-slate-400 font-semibold">
-                                      <th className="text-left px-4 py-2">KPI Name</th>
-                                      <th className="text-left px-4 py-2">Unit</th>
-                                      <th className="text-left px-4 py-2">Scope</th>
-                                      <th className="text-left px-4 py-2">Factors</th>
+                                    <tr className="bg-sunken border-b border-[hsl(var(--border-hairline))] text-2xs uppercase tracking-wider text-muted-foreground font-semibold">
+                                      <th className="text-left px-3 py-1.5">KPI Name</th>
+                                      <th className="text-left px-3 py-1.5">Unit</th>
+                                      <th className="text-left px-3 py-1.5">Scope</th>
+                                      <th className="text-left px-3 py-1.5">Factors</th>
                                     </tr>
                                   </thead>
                                   <tbody>
                                     {ind.kpis.map((k, idx) => (
-                                      <tr key={k.kpi_id} className={idx !== ind.kpis.length - 1 ? "border-b border-slate-50" : ""}>
-                                        <td className="px-4 py-2.5 font-medium text-brand-navy">{k.kpi_name}</td>
-                                        <td className="px-4 py-2.5 text-slate-500 font-mono text-[11px]">{k.unit || "—"}</td>
-                                        <td className="px-4 py-2.5">
+                                      <tr key={k.kpi_id} className={idx !== ind.kpis.length - 1 ? "border-b border-[hsl(var(--border-hairline))]" : ""}>
+                                        <td className="px-3 py-1.5 font-medium text-foreground">{k.kpi_name}</td>
+                                        <td className="px-3 py-1.5 text-muted-foreground font-mono text-label">{k.unit || "—"}</td>
+                                        <td className="px-3 py-1.5">
                                           {k.scope_number ? (
-                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-sky-50 text-sky-700">S{k.scope_number}</span>
-                                          ) : <span className="text-slate-300">—</span>}
+                                            <span className="text-2xs font-bold px-1.5 py-0.5 rounded-sm bg-info-tint text-info">S{k.scope_number}</span>
+                                          ) : <span className="text-muted-foreground/40">—</span>}
                                         </td>
-                                        <td className="px-4 py-2.5 text-slate-500 font-medium">
-                                          {k.factor_count > 0 ? k.factor_count : <span className="text-slate-300">—</span>}
+                                        <td className="px-3 py-1.5 text-muted-foreground font-medium">
+                                          {k.factor_count > 0 ? k.factor_count : <span className="text-muted-foreground/40">—</span>}
                                         </td>
                                       </tr>
                                     ))}
@@ -450,29 +439,29 @@ export default function ESGLibraryPage() {
       {/* ── Sticky Pull Bar (Glassmorphism) ── */}
       {selected.size > 0 && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom-6 duration-300">
-          <div className="flex items-center gap-4 bg-brand-navy/95 backdrop-blur-xl border border-white/10 text-white rounded-full shadow-[0_8px_30px_rgba(15,23,42,0.3)] px-6 py-3">
+          <div className="flex items-center gap-4 bg-foreground/95 backdrop-blur-xl border border-white/10 text-white rounded-full shadow-[0_8px_30px_rgba(15,23,42,0.3)] px-6 py-3">
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-brand-accent/20 flex items-center justify-center text-[11px] font-bold text-brand-accent">
+              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[11px] font-bold text-primary">
                 {selected.size}
               </div>
-              <span className="text-[13.5px] font-medium text-slate-100">
+              <span className="text-[13.5px] font-medium text-muted-foreground">
                 indicator{selected.size !== 1 ? "s" : ""} selected
               </span>
             </div>
             
-            <div className="w-px h-4 bg-slate-700 mx-1" />
+            <div className="w-px h-4 bg-border mx-1" />
             
             <button
               onClick={() => setSelected(new Set())}
               disabled={pulling}
-              className="text-[12.5px] font-medium text-slate-400 hover:text-white transition-colors"
+              className="text-[12.5px] font-medium text-muted-foreground hover:text-white transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handlePull}
               disabled={pulling}
-              className="flex items-center gap-2 bg-gradient-to-r from-brand-accent to-brand-teal hover:brightness-110 text-white text-[13px] font-bold px-5 py-2 rounded-full transition-all disabled:opacity-60 shadow-md shadow-brand-accent/20"
+              className="flex items-center gap-2 bg-gradient-to-r from-primary to-teal hover:brightness-110 text-white text-[13px] font-bold px-5 py-2 rounded-full transition-all disabled:opacity-60 shadow-md shadow-primary/20"
             >
               {pulling ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
               {pulling ? "Pulling…" : "Pull Templates"}
@@ -480,6 +469,6 @@ export default function ESGLibraryPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

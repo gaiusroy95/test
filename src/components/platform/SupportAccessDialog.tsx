@@ -40,11 +40,11 @@ interface SupportAccessRequest {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  PENDING:  "bg-amber-50 text-amber-700 border-amber-200",
-  APPROVED: "bg-green-50 text-green-700 border-green-200",
-  DENIED:   "bg-red-50 text-red-700 border-red-200",
-  EXPIRED:  "bg-slate-50 text-slate-500 border-slate-200",
-  REVOKED:  "bg-slate-50 text-slate-500 border-slate-200",
+  PENDING:  "bg-warn-tint text-warn border-warn/30",
+  APPROVED: "bg-green-50 text-ok border-green-200",
+  DENIED:   "bg-destructive-tint text-destructive border-destructive/30",
+  EXPIRED:  "bg-sunken text-muted-foreground border-border",
+  REVOKED:  "bg-sunken text-muted-foreground border-border",
 };
 
 interface Props {
@@ -162,25 +162,25 @@ export function SupportAccessDialog({ open, onClose, companyId, companyName, pre
 
         <DialogBody className="space-y-5">
           {/* New request form */}
-          <div className="border border-slate-200 rounded-lg p-4 space-y-3">
-            <h3 className="text-[13px] font-semibold text-brand-navy">New request</h3>
+          <div className="border border-border rounded-lg p-4 space-y-3">
+            <h3 className="text-[13px] font-semibold text-foreground">New request</h3>
             <div>
-              <label className="block text-[11px] font-semibold text-slate-600 mb-1">Why do you need access? *</label>
+              <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Why do you need access? *</label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={3}
                 placeholder="e.g., Investigating reported emission factor mismatch in Scope 3 batch SC3-2025-04 — Company Admin requested help via support ticket #4271"
-                className="w-full py-2 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent resize-none"
+                className="w-full py-2 px-3 text-[13px] text-foreground border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary resize-none"
               />
-              <p className="text-[10px] text-slate-400 mt-1">Minimum 10 characters. This text is shown to the Company Admin and stored in the audit log.</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Minimum 10 characters. This text is shown to the Company Admin and stored in the audit log.</p>
             </div>
             <div className="flex items-center gap-3">
-              <label className="text-[11px] font-semibold text-slate-600">Session length:</label>
+              <label className="text-[11px] font-semibold text-muted-foreground">Session length:</label>
               <select
                 value={duration}
                 onChange={(e) => setDuration(Number(e.target.value))}
-                className="py-1.5 px-2 text-[13px] border border-slate-200 rounded text-brand-navy bg-white"
+                className="py-1.5 px-2 text-[13px] border border-border rounded text-foreground bg-card"
               >
                 {[1, 2, 4, 8, 12, 24].map((h) => (
                   <option key={h} value={h}>{h} hour{h > 1 ? "s" : ""}</option>
@@ -189,7 +189,7 @@ export function SupportAccessDialog({ open, onClose, companyId, companyName, pre
               <Button
                 onClick={handleCreate}
                 disabled={submitting || reason.trim().length < 10}
-                className="ml-auto bg-brand-accent hover:bg-brand-accentDk text-white text-[13px] h-8 px-4"
+                className="ml-auto bg-primary hover:bg-primaryDk text-white text-[13px] h-8 px-4"
               >
                 {submitting ? "Sending…" : "Send Request"}
               </Button>
@@ -198,11 +198,11 @@ export function SupportAccessDialog({ open, onClose, companyId, companyName, pre
 
           {/* Existing requests */}
           <div>
-            <h3 className="text-[13px] font-semibold text-brand-navy mb-2">Recent requests</h3>
+            <h3 className="text-[13px] font-semibold text-foreground mb-2">Recent requests</h3>
             {loading ? (
-              <div className="text-[12px] text-slate-400 text-center py-6">Loading…</div>
+              <div className="text-[12px] text-muted-foreground text-center py-6">Loading…</div>
             ) : requests.length === 0 ? (
-              <div className="text-[12px] text-slate-500 text-center py-6 border border-dashed border-slate-200 rounded-lg">
+              <div className="text-[12px] text-muted-foreground text-center py-6 border border-dashed border-border rounded-lg">
                 No support access requests have been made for this company.
               </div>
             ) : (
@@ -211,29 +211,29 @@ export function SupportAccessDialog({ open, onClose, companyId, companyName, pre
                   const isActiveable = r.status === "APPROVED";
                   const isCancellable = r.status === "PENDING" || r.status === "APPROVED";
                   return (
-                    <div key={r.request_id} className="border border-slate-200 rounded-md px-3 py-2.5 bg-white">
+                    <div key={r.request_id} className="border border-border rounded-md px-3 py-2.5 bg-card">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className={`text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded border ${STATUS_STYLES[r.status]}`}>
                           {r.status}
                         </span>
-                        <span className="text-[11px] text-slate-500">{formatDateTime(r.requested_at)}</span>
+                        <span className="text-[11px] text-muted-foreground">{formatDateTime(r.requested_at)}</span>
                         {r.expires_at && r.status === "APPROVED" && (
-                          <span className="text-[11px] text-slate-500 inline-flex items-center gap-1">
+                          <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                             <Clock size={10} /> expires {formatDateTime(r.expires_at)}
                           </span>
                         )}
                         {r.use_count > 0 && (
-                          <span className="text-[10px] text-slate-400">used {r.use_count}×</span>
+                          <span className="text-[10px] text-muted-foreground">used {r.use_count}×</span>
                         )}
                       </div>
-                      <p className="text-[12px] text-slate-700 mb-1.5 line-clamp-2">{r.reason}</p>
+                      <p className="text-[12px] text-foreground/90 mb-1.5 line-clamp-2">{r.reason}</p>
                       {r.decider_name && (
-                        <p className="text-[10px] text-slate-500">
+                        <p className="text-[10px] text-muted-foreground">
                           Decided by {r.decider_name}{r.decided_at ? ` · ${formatDateTime(r.decided_at)}` : ""}
                         </p>
                       )}
                       {r.revoke_reason && (
-                        <p className="text-[10px] text-slate-400 italic">Revoke reason: {r.revoke_reason}</p>
+                        <p className="text-[10px] text-muted-foreground italic">Revoke reason: {r.revoke_reason}</p>
                       )}
                       <div className="flex items-center gap-2 mt-2">
                         {isActiveable && (

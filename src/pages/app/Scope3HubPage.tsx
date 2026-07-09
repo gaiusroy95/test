@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Package2, Upload, CheckCircle2, ChevronRight, ChevronDown,
   TrendingUp, TrendingDown, Globe, Leaf, Library, Users,
-  Copy, Plus, Pencil, Trash2, FileUp, AlertCircle, X,
+  Copy, Plus, Pencil, Trash2, FileUp, AlertCircle,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -13,10 +13,15 @@ import { getApiError, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Breadcrumb } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { PageTabs } from "@/components/shared/PageTabs";
 import { FormDialog } from "@/components/shared/FormDialog";
+import { FormField as WorkspaceField } from "@/components/shared/FormField";
+import { FormRow as WorkspaceRow, FormSection } from "@/components/shared/FormWorkspace";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuthStore } from "@/store/auth";
 import type {
   Scope3GHGCategory, Scope3FactorSet, Scope3FactorItem,
@@ -404,63 +409,52 @@ export default function Scope3HubPage() {
   ];
 
   /* ═══ RENDER ═══════════════════════════════════════════════════════════ */
-  return (
-    <div className="p-6 max-w-[1600px]">
-      {/* ── Row 1: Header ── */}
-      <div className="flex items-start justify-between mb-1">
-        <div>
-          <Breadcrumb items={[{ label: "Scope 3" }]} />
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight mt-1">Scope 3 Emissions</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            GHG Protocol Scope 3 — upstream &amp; downstream value chain emissions
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {tab === "overview" && (
-            <select
-              value={reportingYear}
-              onChange={(e) => setReportingYear(Number(e.target.value))}
-              className="py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-brand-accent"
-            >
-              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-          )}
-          {tab === "factors" && isAdmin && (
-            <Button
-              onClick={() => { setEditingFactorSet(null); setFactorSetFormOpen(true); }}
-              className="bg-brand-accent hover:bg-brand-accentDk text-white flex items-center gap-1.5 text-[13px] h-8 px-3"
-            >
-              <Plus size={14} /> Create Factor Set
-            </Button>
-          )}
-          {canWrite && (
-            <Button
-              onClick={() => navigate("/app/scope3/data")}
-              className="bg-brand-accent hover:bg-brand-accentDk text-white flex items-center gap-1.5 text-[13px] h-8 px-3"
-            >
-              <Upload size={14} /> Enter Data
-            </Button>
-          )}
-        </div>
-      </div>
+  const pageActions = (
+    <div className="flex items-center gap-2">
+      {tab === "overview" && (
+        <Select value={String(reportingYear)} onValueChange={(value) => setReportingYear(Number(value))}>
+          <SelectTrigger className="w-[120px] h-8 text-[13px]">
+            <SelectValue placeholder="Year" />
+          </SelectTrigger>
+          <SelectContent>
+            {yearOptions.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      )}
+      {tab === "factors" && isAdmin && (
+        <Button
+          onClick={() => { setEditingFactorSet(null); setFactorSetFormOpen(true); }}
+          className="bg-primary hover:bg-primaryDk text-white flex items-center gap-1.5 text-[13px] h-8 px-3"
+        >
+          <Plus size={14} /> Create Factor Set
+        </Button>
+      )}
+      {canWrite && (
+        <Button
+          onClick={() => navigate("/app/scope3/data")}
+          className="bg-primary hover:bg-primaryDk text-white flex items-center gap-1.5 text-[13px] h-8 px-3"
+        >
+          <Upload size={14} /> Enter Data
+        </Button>
+      )}
+    </div>
+  );
 
-      {/* ── Row 2: Tabs ── */}
-      <div className="flex items-end justify-between border-b border-slate-200 mb-4">
-        <div className="flex">
-          {tabs.filter((t) => !t.hidden).map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors
-                ${tab === t.key
-                  ? "border-brand-accent text-brand-accent"
-                  : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}
-            >
-              <t.icon size={14} /> {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+  return (
+    <PageShell
+      title="Scope 3 Emissions"
+      description="GHG Protocol Scope 3 upstream and downstream value chain emissions."
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Scope 3" }]}
+      className="max-w-[1600px]"
+      actions={pageActions}
+      toolbar={
+        <PageTabs
+          value={tab}
+          onChange={(key) => setTab(key as Tab)}
+          tabs={tabs.filter((t) => !t.hidden).map((t) => ({ key: t.key, label: t.label, icon: <t.icon size={14} /> }))}
+        />
+      }
+    >
 
       {/* ── Content ── */}
       {tab === "overview" && <OverviewTab stats={stats} chartData={chartData} recentBatches={recentBatches} loading={loadingStats} reportingYear={reportingYear} navigate={navigate} />}
@@ -583,7 +577,7 @@ export default function Scope3HubPage() {
         message="Are you sure you want to remove this category assignment?"
         variant="destructive"
       />
-    </div>
+    </PageShell>
   );
 }
 
@@ -603,30 +597,30 @@ function OverviewTab({ stats, chartData, recentBatches, loading, reportingYear, 
     <>
       {/* KPI cards */}
       <div className="grid grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total Scope 3" value={stats ? `${stats.total_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={<Globe size={16} className="text-violet-600" />} loading={loading} color="violet" />
-        <StatCard label="Upstream" value={stats ? `${stats.upstream_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={<TrendingUp size={16} className="text-amber-600" />} loading={loading} color="amber" sub="C01–C08" />
-        <StatCard label="Downstream" value={stats ? `${stats.downstream_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={<TrendingDown size={16} className="text-sky-600" />} loading={loading} color="sky" sub="C09–C15" />
+        <StatCard label="Total Scope 3" value={stats ? `${stats.total_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={<Globe size={16} className="text-accent-foreground" />} loading={loading} color="violet" />
+        <StatCard label="Upstream" value={stats ? `${stats.upstream_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={<TrendingUp size={16} className="text-warn" />} loading={loading} color="amber" sub="C01–C08" />
+        <StatCard label="Downstream" value={stats ? `${stats.downstream_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={<TrendingDown size={16} className="text-info" />} loading={loading} color="sky" sub="C09–C15" />
         <StatCard label="Approved Batches" value={stats ? String(stats.approved_batch_count) : "—"} icon={<CheckCircle2 size={16} className="text-green-600" />} loading={loading} color="green" sub={stats ? `${stats.pending_batch_count} pending` : undefined} />
       </div>
 
       <div className="grid grid-cols-[1fr_380px] gap-4">
         {/* Chart */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4">
+        <div className="bg-card border border-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-semibold text-brand-navy">Emissions by Category</h2>
-            <span className="text-[11px] text-slate-500">APPROVED batches · tCO₂e</span>
+            <h2 className="text-[13px] font-semibold text-foreground">Emissions by Category</h2>
+            <span className="text-[11px] text-muted-foreground">APPROVED batches · tCO₂e</span>
           </div>
           {loading ? (
-            <div className="h-48 flex items-center justify-center text-[13px] text-slate-400">Loading…</div>
+            <div className="h-48 flex items-center justify-center text-[13px] text-muted-foreground">Loading…</div>
           ) : chartData.length === 0 ? (
-            <div className="h-48 flex flex-col items-center justify-center gap-2 text-[13px] text-slate-400">
+            <div className="h-48 flex flex-col items-center justify-center gap-2 text-[13px] text-muted-foreground">
               <Leaf size={28} className="text-violet-200" />
               No approved data for {reportingYear} yet
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 24, top: 4, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" />
                 <XAxis type="number" tickFormatter={(v) => v.toLocaleString("en-IN")} tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <YAxis type="category" dataKey="category_code" width={36} tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
                 <Tooltip
@@ -643,28 +637,28 @@ function OverviewTab({ stats, chartData, recentBatches, loading, reportingYear, 
         </div>
 
         {/* Recent batches */}
-        <div className="bg-white border border-slate-200 rounded-lg p-4">
+        <div className="bg-card border border-border rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-semibold text-brand-navy">Recent Batches</h2>
-            <button onClick={() => navigate("/app/scope3/data")} className="text-[11px] text-brand-accent hover:underline flex items-center gap-0.5">
+            <h2 className="text-[13px] font-semibold text-foreground">Recent Batches</h2>
+            <button onClick={() => navigate("/app/scope3/data")} className="text-[11px] text-primary hover:underline flex items-center gap-0.5">
               View all <ChevronRight size={12} />
             </button>
           </div>
           {loading ? (
-            <div className="text-[13px] text-slate-400 text-center py-8">Loading…</div>
+            <div className="text-[13px] text-muted-foreground text-center py-8">Loading…</div>
           ) : recentBatches.length === 0 ? (
-            <div className="text-[13px] text-slate-400 text-center py-8">No batches yet. Start entering Scope 3 data.</div>
+            <div className="text-[13px] text-muted-foreground text-center py-8">No batches yet. Start entering Scope 3 data.</div>
           ) : (
             <div className="space-y-2">
               {recentBatches.map((b) => (
-                <button key={b.batch_id} onClick={() => navigate(`/app/scope3/data?batch=${b.batch_id}`)} className="w-full text-left p-2.5 rounded-md border border-slate-100 hover:border-brand-accent/30 hover:bg-violet-50/30 transition-colors">
+                <button key={b.batch_id} onClick={() => navigate(`/app/scope3/data?batch=${b.batch_id}`)} className="w-full text-left p-2.5 rounded-md border border-[hsl(var(--border-hairline))] hover:border-primary/30 hover:bg-accent/30 transition-colors">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[12px] font-semibold text-brand-navy truncate max-w-[180px]">{b.ghg_category_name}</span>
+                    <span className="text-[12px] font-semibold text-foreground truncate max-w-[180px]">{b.ghg_category_name}</span>
                     <StatusBadge status={b.status} />
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                     <span>{b.reporting_year}{b.reporting_month ? ` · ${MONTH_NAMES[b.reporting_month]}` : ""}</span>
-                    {b.total_emissions != null && <span className="text-violet-600 font-medium">{b.total_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e</span>}
+                    {b.total_emissions != null && <span className="text-accent-foreground font-medium">{b.total_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e</span>}
                   </div>
                 </button>
               ))}
@@ -702,19 +696,19 @@ function FactorSetsTab({
   onDeleteItem: (setId: string, itemId: string) => void;
   onCSVFileSelect: (setId: string, file: File) => void;
 }) {
-  if (loading) return <div className="text-[13px] text-slate-400 text-center py-12">Loading factor sets…</div>;
+  if (loading) return <div className="text-[13px] text-muted-foreground text-center py-12">Loading factor sets…</div>;
 
   return (
     <div className="space-y-6">
       {/* Platform Library */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Library size={15} className="text-violet-600" />
-          <h2 className="text-[14px] font-semibold text-brand-navy">Platform Factor Library</h2>
-          <span className="text-[11px] text-slate-500">Browse and pull standard datasets to your company</span>
+          <Library size={15} className="text-accent-foreground" />
+          <h2 className="text-[14px] font-semibold text-foreground">Platform Factor Library</h2>
+          <span className="text-[11px] text-muted-foreground">Browse and pull standard datasets to your company</span>
         </div>
         {librarySets.length === 0 ? (
-          <div className="text-[13px] text-slate-400 py-6 text-center border border-dashed border-slate-200 rounded-lg">
+          <div className="text-[13px] text-muted-foreground py-6 text-center border border-dashed border-border rounded-lg">
             No library datasets available from platform yet.
           </div>
         ) : (
@@ -739,12 +733,12 @@ function FactorSetsTab({
       {/* Company's own sets */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Package2 size={15} className="text-brand-navy" />
-          <h2 className="text-[14px] font-semibold text-brand-navy">My Company Factor Sets</h2>
-          <span className="text-[11px] text-slate-500">Pulled or custom — used by your assignments</span>
+          <Package2 size={15} className="text-foreground" />
+          <h2 className="text-[14px] font-semibold text-foreground">My Company Factor Sets</h2>
+          <span className="text-[11px] text-muted-foreground">Pulled or custom — used by your assignments</span>
         </div>
         {companySets.length === 0 ? (
-          <div className="text-[13px] text-slate-400 py-6 text-center border border-dashed border-slate-200 rounded-lg">
+          <div className="text-[13px] text-muted-foreground py-6 text-center border border-dashed border-border rounded-lg">
             No factor sets yet. Pull from the library above, or create a custom set.
           </div>
         ) : (
@@ -802,19 +796,19 @@ function FactorSetCard({
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+    <div className="border border-border rounded-lg bg-card overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3">
-        <button onClick={onToggle} className="text-slate-400 hover:text-slate-600">
+        <button onClick={onToggle} className="text-muted-foreground hover:text-muted-foreground">
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-semibold text-brand-navy">{fs.set_name}</span>
-            {isLibrary && <span className="text-[10px] bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded font-medium">Library</span>}
-            {fs.source_set_id && <span className="text-[10px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded font-medium">Pulled</span>}
-            {!isLibrary && !fs.source_set_id && !fs.is_system && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-medium">Custom</span>}
+            <span className="text-[13px] font-semibold text-foreground">{fs.set_name}</span>
+            {isLibrary && <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded font-medium">Library</span>}
+            {fs.source_set_id && <span className="text-[10px] bg-sky-100 text-info px-1.5 py-0.5 rounded font-medium">Pulled</span>}
+            {!isLibrary && !fs.source_set_id && !fs.is_system && <span className="text-[10px] bg-ok-tint text-ok px-1.5 py-0.5 rounded font-medium">Custom</span>}
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-3">
+          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-3">
             {fs.source_name && <span>{fs.source_name}</span>}
             {fs.dataset_year && <span>{fs.dataset_year}</span>}
             {fs.methodology && <span>{fs.methodology}</span>}
@@ -834,7 +828,7 @@ function FactorSetCard({
             </Button>
           )}
           {canManage && onEdit && (
-            <button onClick={onEdit} className="text-slate-400 hover:text-slate-600 p-1" title="Edit set details">
+            <button onClick={onEdit} className="text-muted-foreground hover:text-muted-foreground p-1" title="Edit set details">
               <Pencil size={14} />
             </button>
           )}
@@ -842,20 +836,20 @@ function FactorSetCard({
       </div>
 
       {expanded && (
-        <div className="border-t border-slate-100">
+        <div className="border-t border-[hsl(var(--border-hairline))]">
           {/* Action bar for manageable sets */}
           {canManage && (
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50/60 border-b border-slate-100">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-sunken/60 border-b border-[hsl(var(--border-hairline))]">
               <button
                 onClick={onAddItem}
-                className="flex items-center gap-1.5 text-[12px] font-medium text-brand-accent hover:text-brand-accentDk transition-colors"
+                className="flex items-center gap-1.5 text-[12px] font-medium text-primary hover:text-primaryDk transition-colors"
               >
                 <Plus size={13} /> Add Item Manually
               </button>
-              <span className="text-slate-300 text-[11px]">·</span>
+              <span className="text-muted-foreground/40 text-[11px]">·</span>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 text-[12px] font-medium text-slate-600 hover:text-slate-800 transition-colors"
+                className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 <FileUp size={13} /> Bulk Import CSV
               </button>
@@ -876,16 +870,16 @@ function FactorSetCard({
           {/* Items table */}
           <div className="px-4 py-3">
             {!items ? (
-              <div className="text-[12px] text-slate-400 py-4 text-center">Loading items…</div>
+              <div className="text-[12px] text-muted-foreground py-4 text-center">Loading items…</div>
             ) : items.length === 0 ? (
-              <div className="text-[12px] text-slate-400 py-4 text-center">
+              <div className="text-[12px] text-muted-foreground py-4 text-center">
                 {canManage ? "No items yet. Add one manually or import via CSV." : "No items in this set."}
               </div>
             ) : (
               <div className="overflow-auto max-h-[360px]">
                 <table className="w-full text-[12px]">
                   <thead>
-                    <tr className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-100">
+                    <tr className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-[hsl(var(--border-hairline))]">
                       <th className="text-left py-1.5 px-2">Category</th>
                       <th className="text-left py-1.5 px-2">Sector Code</th>
                       <th className="text-left py-1.5 px-2">Sector Name</th>
@@ -896,19 +890,19 @@ function FactorSetCard({
                   </thead>
                   <tbody>
                     {items.slice(0, 100).map((item) => (
-                      <tr key={item.factor_item_id} className="border-b border-slate-50 hover:bg-slate-50 group">
-                        <td className="py-1.5 px-2 text-violet-700 font-medium text-[11px]">{getCategoryName(item.ghg_category_id)}</td>
-                        <td className="py-1.5 px-2 text-slate-500 font-mono">{item.sector_code || "—"}</td>
-                        <td className="py-1.5 px-2 text-brand-navy">{item.sector_name}</td>
+                      <tr key={item.factor_item_id} className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken group">
+                        <td className="py-1.5 px-2 text-accent-foreground font-medium text-[11px]">{getCategoryName(item.ghg_category_id)}</td>
+                        <td className="py-1.5 px-2 text-muted-foreground font-mono">{item.sector_code || "—"}</td>
+                        <td className="py-1.5 px-2 text-foreground">{item.sector_name}</td>
                         <td className="py-1.5 px-2 text-right font-medium">{item.emission_factor}</td>
-                        <td className="py-1.5 px-2 text-slate-500">{item.factor_unit || "—"}</td>
+                        <td className="py-1.5 px-2 text-muted-foreground">{item.factor_unit || "—"}</td>
                         {canManage && (
                           <td className="py-1.5 px-2">
                             <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => onEditItem?.(item)} className="text-slate-400 hover:text-slate-600 p-0.5">
+                              <button onClick={() => onEditItem?.(item)} className="text-muted-foreground hover:text-muted-foreground p-0.5">
                                 <Pencil size={12} />
                               </button>
-                              <button onClick={() => onDeleteItem?.(item.factor_item_id)} className="text-slate-400 hover:text-red-500 p-0.5">
+                              <button onClick={() => onDeleteItem?.(item.factor_item_id)} className="text-muted-foreground hover:text-destructive p-0.5">
                                 <Trash2 size={12} />
                               </button>
                             </div>
@@ -918,7 +912,7 @@ function FactorSetCard({
                     ))}
                   </tbody>
                 </table>
-                {items.length > 100 && <div className="text-[11px] text-slate-400 text-center py-2">Showing first 100 of {items.length} items</div>}
+                {items.length > 100 && <div className="text-[11px] text-muted-foreground text-center py-2">Showing first 100 of {items.length} items</div>}
               </div>
             )}
           </div>
@@ -954,96 +948,60 @@ function FactorSetFormModal({ open, editing, saving, onClose, onSave }: {
     setForm((p) => ({ ...p, [k]: e.target.value }));
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <div>
-            <h2 className="text-[15px] font-bold text-brand-navy">{editing ? "Edit Factor Set" : "Create Custom Factor Set"}</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">Define your company-specific emission factor dataset</p>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-        </div>
-        <div className="p-5 space-y-3">
-          <div>
-            <label className="block text-[12px] font-semibold text-slate-700 mb-1">Set Name <span className="text-red-500">*</span></label>
-            <input
-              value={form.set_name}
-              onChange={set("set_name")}
-              placeholder="e.g. Company Spend Factors 2025"
-              className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1">Source / Publisher</label>
-              <input
-                value={form.source_name}
-                onChange={set("source_name")}
-                placeholder="e.g. EEIO, ecoinvent"
-                className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-              />
-            </div>
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1">Dataset Year</label>
-              <input
-                type="number"
-                value={form.dataset_year}
-                onChange={set("dataset_year")}
-                placeholder="e.g. 2023"
-                min="2000"
-                max="2100"
-                className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1">Currency</label>
-              <select
-                value={form.currency_code}
-                onChange={set("currency_code")}
-                className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-              >
-                <option value="">Not applicable</option>
-                <option value="INR">INR</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-                <option value="SGD">SGD</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1">Version</label>
-              <input
-                value={form.version}
-                onChange={set("version")}
-                placeholder="e.g. v2.1"
-                className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-[12px] font-semibold text-slate-700 mb-1">Methodology</label>
-            <input
-              value={form.methodology}
-              onChange={set("methodology")}
-              placeholder="e.g. Spend-based, Activity-based, Hybrid"
-              className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-            />
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-slate-100">
+    <Sheet open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
+      <SheetContent className="max-w-[720px]">
+        <SheetHeader>
+          <SheetTitle>{editing ? "Edit Factor Set" : "Create Custom Factor Set"}</SheetTitle>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Define your company-specific emission factor dataset</p>
+        </SheetHeader>
+        <SheetBody className="space-y-5">
+          <FormSection title="Dataset Metadata" description="Set the source, year, and methodology for this custom factor set">
+            <WorkspaceField label="Set Name" required>
+              <input value={form.set_name} onChange={set("set_name")} placeholder="e.g. Company Spend Factors 2025" className="field-input" />
+            </WorkspaceField>
+            <WorkspaceRow cols={2} className="mt-4">
+              <WorkspaceField label="Source / Publisher">
+                <input value={form.source_name} onChange={set("source_name")} placeholder="e.g. EEIO, ecoinvent" className="field-input" />
+              </WorkspaceField>
+              <WorkspaceField label="Dataset Year">
+                <input type="number" value={form.dataset_year} onChange={set("dataset_year")} placeholder="e.g. 2023" min="2000" max="2100" className="field-input" />
+              </WorkspaceField>
+            </WorkspaceRow>
+            <WorkspaceRow cols={2} className="mt-4">
+              <WorkspaceField label="Currency">
+                <Select value={form.currency_code || "__none__"} onValueChange={(value) => setForm((p) => ({ ...p, currency_code: value === "__none__" ? "" : value }))}>
+                  <SelectTrigger><SelectValue placeholder="Not applicable" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Not applicable</SelectItem>
+                    <SelectItem value="INR">INR</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="SGD">SGD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </WorkspaceField>
+              <WorkspaceField label="Version">
+                <input value={form.version} onChange={set("version")} placeholder="e.g. v2.1" className="field-input" />
+              </WorkspaceField>
+            </WorkspaceRow>
+            <WorkspaceField label="Methodology" className="mt-4">
+              <input value={form.methodology} onChange={set("methodology")} placeholder="e.g. Spend-based, Activity-based, Hybrid" className="field-input" />
+            </WorkspaceField>
+          </FormSection>
+        </SheetBody>
+        <SheetFooter>
           <Button variant="outline" onClick={onClose} className="h-8 text-[13px]">Cancel</Button>
           <Button
             onClick={() => { if (form.set_name.trim()) onSave(form); else toast.error("Set name is required"); }}
             disabled={saving || !form.set_name.trim()}
-            className="bg-brand-accent hover:bg-brand-accentDk text-white h-8 text-[13px]"
+            className="bg-primary hover:bg-primaryDk text-white h-8 text-[13px]"
           >
             {saving ? "Saving…" : editing ? "Save Changes" : "Create Set"}
           </Button>
-        </div>
-      </div>
-    </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -1078,107 +1036,77 @@ function FactorItemFormModal({ open, editing, saving, categories, onClose, onSav
   const selectedCat = categories.find((c) => String(c.category_id) === form.ghg_category_id);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <div>
-            <h2 className="text-[15px] font-bold text-brand-navy">{editing ? "Edit Factor Item" : "Add Factor Item"}</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">Define an emission factor for a sector or spend category</p>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-        </div>
-        <div className="p-5 space-y-3">
-          <div>
-            <label className="block text-[12px] font-semibold text-slate-700 mb-1">GHG Category <span className="text-red-500">*</span></label>
-            <select
-              value={form.ghg_category_id}
-              onChange={set("ghg_category_id")}
-              className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-            >
-              {categories.map((c) => (
-                <option key={c.category_id} value={String(c.category_id)}>
-                  {c.code} · {c.name}
-                </option>
-              ))}
-            </select>
-            {selectedCat && (
-              <p className="text-[11px] text-slate-500 mt-0.5">{selectedCat.description}</p>
+    <Sheet open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
+      <SheetContent className="max-w-[760px]">
+        <SheetHeader>
+          <SheetTitle>{editing ? "Edit Factor Item" : "Add Factor Item"}</SheetTitle>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Define an emission factor for a sector or spend category</p>
+        </SheetHeader>
+        <SheetBody className="space-y-5">
+          <FormSection title="Factor Details" description="Map this factor to the correct GHG category and calculation unit">
+            <WorkspaceField label="GHG Category" required>
+              <Select value={form.ghg_category_id} onValueChange={(value) => setForm((p) => ({ ...p, ghg_category_id: value }))}>
+                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectContent>
+                  {categories.map((c) => (
+                    <SelectItem key={c.category_id} value={String(c.category_id)}>
+                      {c.code} · {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCat && <p className="text-[11px] text-muted-foreground mt-1">{selectedCat.description}</p>}
+            </WorkspaceField>
+            <WorkspaceRow cols={2} className="mt-4">
+              <WorkspaceField label="Sector Code">
+                <input value={form.sector_code} onChange={set("sector_code")} placeholder="e.g. 3210, IO-42" className="field-input" />
+              </WorkspaceField>
+              <WorkspaceField label="Factor Unit">
+                <Select value={form.factor_unit} onValueChange={(value) => setForm((p) => ({ ...p, factor_unit: value }))}>
+                  <SelectTrigger><SelectValue placeholder="Select factor unit" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="kgCO2e/INR">kgCO₂e / INR</SelectItem>
+                    <SelectItem value="tCO2e/INR">tCO₂e / INR</SelectItem>
+                    <SelectItem value="kgCO2e/USD">kgCO₂e / USD</SelectItem>
+                    <SelectItem value="tCO2e/USD">tCO₂e / USD</SelectItem>
+                    <SelectItem value="kgCO2e/kg">kgCO₂e / kg</SelectItem>
+                    <SelectItem value="tCO2e/tonne">tCO₂e / tonne</SelectItem>
+                    <SelectItem value="kgCO2e/km">kgCO₂e / km</SelectItem>
+                    <SelectItem value="kgCO2e/tkm">kgCO₂e / tonne-km</SelectItem>
+                    <SelectItem value="tCO2e/unit">tCO₂e / unit</SelectItem>
+                  </SelectContent>
+                </Select>
+              </WorkspaceField>
+            </WorkspaceRow>
+            <WorkspaceField label="Sector / Category Name" required className="mt-4">
+              <input value={form.sector_name} onChange={set("sector_name")} placeholder="e.g. Steel manufacturing, Passenger transport" className="field-input" />
+            </WorkspaceField>
+            <WorkspaceField label="Emission Factor" required className="mt-4">
+              <input type="number" value={form.emission_factor} onChange={set("emission_factor")} placeholder="e.g. 0.00482" min="0" step="any" className="field-input" />
+            </WorkspaceField>
+            {!isNaN(factorNum) && factorNum > 0 && (
+              <div className="mt-4 bg-accent border border-accent-foreground/20 rounded-md px-3 py-2.5">
+                <p className="text-[11px] text-accent-foreground font-semibold uppercase tracking-wide mb-1">Factor Preview</p>
+                <p className="text-[12px] text-accent-foreground">
+                  1,000 × spend/quantity → <span className="font-bold">{(factorNum * 1000).toLocaleString("en-IN", { maximumFractionDigits: 4 })}</span> tCO₂e
+                </p>
+                <p className="text-[11px] text-violet-500 mt-0.5">Unit: {form.factor_unit}</p>
+              </div>
             )}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1">Sector Code</label>
-              <input
-                value={form.sector_code}
-                onChange={set("sector_code")}
-                placeholder="e.g. 3210, IO-42"
-                className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-              />
-            </div>
-            <div>
-              <label className="block text-[12px] font-semibold text-slate-700 mb-1">Factor Unit</label>
-              <select
-                value={form.factor_unit}
-                onChange={set("factor_unit")}
-                className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-              >
-                <option value="kgCO2e/INR">kgCO₂e / INR</option>
-                <option value="tCO2e/INR">tCO₂e / INR</option>
-                <option value="kgCO2e/USD">kgCO₂e / USD</option>
-                <option value="tCO2e/USD">tCO₂e / USD</option>
-                <option value="kgCO2e/kg">kgCO₂e / kg</option>
-                <option value="tCO2e/tonne">tCO₂e / tonne</option>
-                <option value="kgCO2e/km">kgCO₂e / km</option>
-                <option value="kgCO2e/tkm">kgCO₂e / tonne-km</option>
-                <option value="tCO2e/unit">tCO₂e / unit</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-[12px] font-semibold text-slate-700 mb-1">Sector / Category Name <span className="text-red-500">*</span></label>
-            <input
-              value={form.sector_name}
-              onChange={set("sector_name")}
-              placeholder="e.g. Steel manufacturing, Passenger transport"
-              className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-            />
-          </div>
-          <div>
-            <label className="block text-[12px] font-semibold text-slate-700 mb-1">Emission Factor <span className="text-red-500">*</span></label>
-            <input
-              type="number"
-              value={form.emission_factor}
-              onChange={set("emission_factor")}
-              placeholder="e.g. 0.00482"
-              min="0"
-              step="any"
-              className="w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent"
-            />
-          </div>
-
-          {/* Live preview */}
-          {!isNaN(factorNum) && factorNum > 0 && (
-            <div className="bg-violet-50 border border-violet-100 rounded-md px-3 py-2.5">
-              <p className="text-[11px] text-violet-600 font-semibold uppercase tracking-wide mb-1">Factor Preview</p>
-              <p className="text-[12px] text-violet-800">
-                1,000 × spend/quantity → <span className="font-bold">{(factorNum * 1000).toLocaleString("en-IN", { maximumFractionDigits: 4 })}</span> tCO₂e
-              </p>
-              <p className="text-[11px] text-violet-500 mt-0.5">Unit: {form.factor_unit}</p>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-slate-100">
+          </FormSection>
+        </SheetBody>
+        <SheetFooter>
           <Button variant="outline" onClick={onClose} className="h-8 text-[13px]">Cancel</Button>
           <Button
             onClick={() => { if (valid) onSave(form); }}
             disabled={saving || !valid}
-            className="bg-brand-accent hover:bg-brand-accentDk text-white h-8 text-[13px]"
+            className="bg-primary hover:bg-primaryDk text-white h-8 text-[13px]"
           >
             {saving ? "Saving…" : editing ? "Save Changes" : "Add Item"}
           </Button>
-        </div>
-      </div>
-    </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -1203,23 +1131,20 @@ function CSVItemPreviewModal({ rows, categories, importing, onClose, onConfirm }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
-          <div>
-            <h2 className="text-[15px] font-bold text-brand-navy">CSV Import Preview</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              <span className="text-emerald-600 font-semibold">{validCount} valid</span>
-              {errorCount > 0 && <span className="text-red-500 font-semibold ml-2">{errorCount} with errors (will be skipped)</span>}
-              {" "}· {rows.length} rows total
-            </p>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-        </div>
-        <div className="overflow-auto flex-1 px-5 py-3">
+    <Sheet open onOpenChange={(value) => { if (!value) onClose(); }}>
+      <SheetContent className="max-w-[1100px]">
+        <SheetHeader>
+          <SheetTitle>CSV Import Preview</SheetTitle>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            <span className="text-ok font-semibold">{validCount} valid</span>
+            {errorCount > 0 && <span className="text-destructive font-semibold ml-2">{errorCount} with errors (will be skipped)</span>}
+            {" "}· {rows.length} rows total
+          </p>
+        </SheetHeader>
+        <SheetBody className="overflow-auto">
           <table className="w-full text-[12px]">
-            <thead className="sticky top-0 bg-white">
-              <tr className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200">
+            <thead className="sticky top-0 bg-card">
+              <tr className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-border">
                 <th className="text-left py-1.5 px-2 w-8"></th>
                 <th className="text-left py-1.5 px-2">Category</th>
                 <th className="text-left py-1.5 px-2">Sector Code</th>
@@ -1230,42 +1155,40 @@ function CSVItemPreviewModal({ rows, categories, importing, onClose, onConfirm }
             </thead>
             <tbody>
               {rows.map((r, idx) => (
-                <tr key={idx} className={`border-b border-slate-50 ${r.valid ? "" : "bg-red-50/40"}`}>
+                <tr key={idx} className={`border-b border-[hsl(var(--border-hairline))] ${r.valid ? "" : "bg-destructive-tint/40"}`}>
                   <td className="py-1.5 px-2">
                     {r.valid
                       ? <CheckCircle2 size={13} className="text-emerald-500" />
-                      : <AlertCircle size={13} className="text-red-400" aria-label={r.error} />}
+                      : <AlertCircle size={13} className="text-destructive" aria-label={r.error} />}
                   </td>
-                  <td className="py-1.5 px-2 text-violet-700 font-medium">{getCatLabel(r.ghg_category_id)}</td>
-                  <td className="py-1.5 px-2 text-slate-500 font-mono">{r.sector_code || "—"}</td>
-                  <td className={`py-1.5 px-2 ${r.valid ? "text-brand-navy" : "text-red-600"}`}>
-                    {r.sector_name || <span className="italic text-red-400">missing</span>}
-                    {r.error && <span className="block text-[10px] text-red-400">{r.error}</span>}
+                  <td className="py-1.5 px-2 text-accent-foreground font-medium">{getCatLabel(r.ghg_category_id)}</td>
+                  <td className="py-1.5 px-2 text-muted-foreground font-mono">{r.sector_code || "—"}</td>
+                  <td className={`py-1.5 px-2 ${r.valid ? "text-foreground" : "text-destructive"}`}>
+                    {r.sector_name || <span className="italic text-destructive">missing</span>}
+                    {r.error && <span className="block text-[10px] text-destructive">{r.error}</span>}
                   </td>
-                  <td className={`py-1.5 px-2 text-right font-medium ${r.valid ? "" : "text-red-500"}`}>{r.emission_factor || "—"}</td>
-                  <td className="py-1.5 px-2 text-slate-500">{r.factor_unit || "—"}</td>
+                  <td className={`py-1.5 px-2 text-right font-medium ${r.valid ? "" : "text-destructive"}`}>{r.emission_factor || "—"}</td>
+                  <td className="py-1.5 px-2 text-muted-foreground">{r.factor_unit || "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 flex-shrink-0">
-          <p className="text-[11px] text-slate-500">
+        </SheetBody>
+        <SheetFooter className="justify-between">
+          <p className="text-[11px] text-muted-foreground mr-auto">
             {errorCount > 0 && "Rows with errors will be skipped. Only valid rows are imported."}
           </p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onClose} className="h-8 text-[13px]">Discard</Button>
-            <Button
-              onClick={onConfirm}
-              disabled={importing || validCount === 0}
-              className="bg-brand-accent hover:bg-brand-accentDk text-white h-8 text-[13px]"
-            >
-              {importing ? "Importing…" : `Import ${validCount} Items`}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+          <Button variant="outline" onClick={onClose} className="h-8 text-[13px]">Discard</Button>
+          <Button
+            onClick={onConfirm}
+            disabled={importing || validCount === 0}
+            className="bg-primary hover:bg-primaryDk text-white h-8 text-[13px]"
+          >
+            {importing ? "Importing…" : `Import ${validCount} Items`}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -1283,26 +1206,26 @@ function AssignmentsTab({ assignments, isAdmin, onCreateOpen, onDelete }: {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[13px] text-slate-600">Assign GHG categories to locations and users so they can enter Scope 3 data.</p>
+          <p className="text-[13px] text-muted-foreground">Assign GHG categories to locations and users so they can enter Scope 3 data.</p>
         </div>
         {isAdmin && (
-          <Button onClick={onCreateOpen} className="bg-brand-accent hover:bg-brand-accentDk text-white flex items-center gap-1.5 text-[13px] h-8 px-3">
+          <Button onClick={onCreateOpen} className="bg-primary hover:bg-primaryDk text-white flex items-center gap-1.5 text-[13px] h-8 px-3">
             <Plus size={14} /> Assign Category
           </Button>
         )}
       </div>
 
       {assignments.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-slate-200 rounded-lg">
-          <Users size={32} className="mx-auto text-slate-300 mb-2" />
-          <p className="text-[13px] text-slate-500 mb-1">No category assignments yet</p>
-          <p className="text-[11px] text-slate-400">Assign GHG categories to locations and users to enable Scope 3 data entry.</p>
+        <div className="text-center py-12 border border-dashed border-border rounded-lg">
+          <Users size={32} className="mx-auto text-muted-foreground/40 mb-2" />
+          <p className="text-[13px] text-muted-foreground mb-1">No category assignments yet</p>
+          <p className="text-[11px] text-muted-foreground">Assign GHG categories to locations and users to enable Scope 3 data entry.</p>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
           <table className="w-full text-[13px]">
             <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200 bg-slate-50/50">
+              <tr className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold border-b border-border bg-sunken/50">
                 <th className="text-left py-2 px-4">Category</th>
                 <th className="text-left py-2 px-4">Type</th>
                 <th className="text-left py-2 px-4">Location</th>
@@ -1314,25 +1237,25 @@ function AssignmentsTab({ assignments, isAdmin, onCreateOpen, onDelete }: {
             </thead>
             <tbody>
               {assignments.map((a) => (
-                <tr key={a.assignment_id} className="border-b border-slate-100 hover:bg-slate-50">
+                <tr key={a.assignment_id} className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken">
                   <td className="py-2 px-4">
-                    <span className="font-semibold text-brand-navy">{a.ghg_category_code}</span>
-                    <span className="text-slate-600 ml-1.5">{a.ghg_category_name}</span>
+                    <span className="font-semibold text-foreground">{a.ghg_category_code}</span>
+                    <span className="text-muted-foreground ml-1.5">{a.ghg_category_name}</span>
                   </td>
                   <td className="py-2 px-4">
-                    <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium ${a.scope3_type === "upstream" ? "bg-amber-50 text-amber-700" : "bg-sky-50 text-sky-700"}`}>
+                    <span className={`text-[11px] px-1.5 py-0.5 rounded font-medium ${a.scope3_type === "upstream" ? "bg-warn-tint text-warn" : "bg-info-tint text-info"}`}>
                       {a.scope3_type}
                     </span>
                   </td>
-                  <td className="py-2 px-4 text-slate-600">{a.location_name || "All locations"}</td>
-                  <td className="py-2 px-4 text-slate-600">{a.assigned_user_name || "Any user"}</td>
-                  <td className="py-2 px-4 text-slate-500">{a.factor_set_name || "—"}</td>
+                  <td className="py-2 px-4 text-muted-foreground">{a.location_name || "All locations"}</td>
+                  <td className="py-2 px-4 text-muted-foreground">{a.assigned_user_name || "Any user"}</td>
+                  <td className="py-2 px-4 text-muted-foreground">{a.factor_set_name || "—"}</td>
                   <td className="py-2 px-4">
-                    <span className="text-[11px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{a.entry_type}</span>
+                    <span className="text-[11px] bg-sunken text-muted-foreground px-1.5 py-0.5 rounded">{a.entry_type}</span>
                   </td>
                   {isAdmin && (
                     <td className="py-2 px-4 text-right">
-                      <button onClick={() => onDelete(a.assignment_id)} className="text-slate-400 hover:text-red-500 transition-colors">
+                      <button onClick={() => onDelete(a.assignment_id)} className="text-muted-foreground hover:text-destructive transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </td>
@@ -1355,15 +1278,15 @@ function StatCard({ label, value, icon, loading, color, sub }: {
   label: string; value: string; icon: React.ReactNode; loading: boolean;
   color: "violet" | "amber" | "sky" | "green"; sub?: string;
 }) {
-  const bgMap = { violet: "bg-violet-50", amber: "bg-amber-50", sky: "bg-sky-50", green: "bg-green-50" };
+  const bgMap = { violet: "bg-accent", amber: "bg-warn-tint", sky: "bg-info-tint", green: "bg-green-50" };
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-4">
+    <div className="bg-card border border-border rounded-lg p-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">{label}</span>
+        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
         <div className={`w-7 h-7 rounded-md ${bgMap[color]} flex items-center justify-center`}>{icon}</div>
       </div>
-      {loading ? <div className="h-6 w-24 bg-slate-100 animate-pulse rounded" /> : <div className="text-[18px] font-bold text-brand-navy">{value}</div>}
-      {sub && <div className="text-[11px] text-slate-400 mt-0.5">{sub}</div>}
+      {loading ? <div className="h-6 w-24 bg-sunken animate-pulse rounded" /> : <div className="text-[18px] font-bold text-foreground">{value}</div>}
+      {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
     </div>
   );
 }

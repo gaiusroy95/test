@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { platformApi } from "@/api/client";
-import { Breadcrumb, LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { DataTable } from "@/components/shared/DataTable";
+import { FormField as WorkspaceField } from "@/components/shared/FormField";
+import { FormRow, FormSection } from "@/components/shared/FormWorkspace";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
@@ -11,7 +15,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from "@/components/ui/sheet";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -30,6 +36,46 @@ import type { Company, SubscriptionPlan } from "@/types";
 import { formatDate, getApiError } from "@/lib/utils";
 import { getModuleIcon } from "@/lib/constants";
 import * as XLSX from "xlsx";
+
+type CompanyFormState = {
+  company_name: string;
+  company_code: string;
+  plan_id: string;
+  industry: string;
+  country: string;
+  timezone: string;
+  gstin: string;
+  pan: string;
+  registered_address: string;
+  billing_email: string;
+};
+
+type AdminFormState = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+};
+
+const emptyCompanyForm = (): CompanyFormState => ({
+  company_name: "",
+  company_code: "",
+  plan_id: "",
+  industry: "",
+  country: "India",
+  timezone: "Asia/Kolkata",
+  gstin: "",
+  pan: "",
+  registered_address: "",
+  billing_email: "",
+});
+
+const emptyAdminForm = (): AdminFormState => ({
+  first_name: "",
+  last_name: "",
+  email: "",
+  password: "",
+});
 
 const COUNTRY_OPTIONS = [
   { value: "India", label: "India" },
@@ -51,14 +97,14 @@ function UsageBar({ used, max, label }: { used: number; max: number; label: stri
   return (
     <div>
       <div className="flex justify-between text-[10px] mb-0.5">
-        <span className="text-slate-500">{label}</span>
-        <span className={`font-semibold ${isOver ? "text-red-600" : "text-slate-600"}`}>
+        <span className="text-muted-foreground">{label}</span>
+        <span className={`font-semibold ${isOver ? "text-destructive" : "text-muted-foreground"}`}>
           {used} / {max === -1 ? "∞" : max}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-100">
+      <div className="h-1.5 rounded-full bg-sunken">
         <div
-          className={`h-1.5 rounded-full transition-all ${isOver ? "bg-red-500" : pct > 80 ? "bg-amber-400" : "bg-brand-accent"}`}
+          className={`h-1.5 rounded-full transition-all ${isOver ? "bg-destructive" : pct > 80 ? "bg-amber-400" : "bg-primary"}`}
           style={{ width: max === -1 ? "20%" : `${pct}%` }}
         />
       </div>
@@ -76,6 +122,8 @@ export default function CompanyManagement() {
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
   const [actionLoading, setActionLoading] = useState(false);
+  const [companyForm, setCompanyForm] = useState<CompanyFormState>(emptyCompanyForm());
+  const [adminForm, setAdminForm] = useState<AdminFormState>(emptyAdminForm());
 
   const [createOpen, setCreateOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
@@ -125,6 +173,14 @@ export default function CompanyManagement() {
   }, [search]);
 
   const totalPages = Math.ceil(total / pageSize);
+
+  const setCompanyField = <K extends keyof CompanyFormState>(key: K, value: CompanyFormState[K]) => {
+    setCompanyForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const setAdminField = <K extends keyof AdminFormState>(key: K, value: AdminFormState[K]) => {
+    setAdminForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   // Resolve plan — prefer nested plan object, fall back to local plans state; null-safe
   const resolvePlan = (c: Company | null | undefined): SubscriptionPlan | undefined => {
@@ -292,6 +348,36 @@ export default function CompanyManagement() {
     XLSX.writeFile(wb, `ESMOS_Companies_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  const openCreateCompany = () => {
+    setCompanyForm(emptyCompanyForm());
+    setCreateOpen(true);
+  };
+
+  const openCreateAdmin = (company: Company) => {
+    setSelectedCompany(company);
+    setAdminForm(emptyAdminForm());
+    setAdminOpen(true);
+  };
+
+  const submitCreateCompany = async () => {
+    if (!companyForm.company_name.trim() || !companyForm.company_code.trim() || !companyForm.plan_id) {
+      toast.error("Company Name, Company Code, and Subscription Plan are required");
+      return;
+    }
+    await handleCreate({
+      ...companyForm,
+      plan_id: Number(companyForm.plan_id),
+    });
+  };
+
+  const submitCreateAdmin = async () => {
+    if (!adminForm.first_name.trim() || !adminForm.last_name.trim() || !adminForm.email.trim() || !adminForm.password.trim()) {
+      toast.error("All admin fields are required");
+      return;
+    }
+    await handleCreateAdmin(adminForm);
+  };
+
   const createFields: FormField[] = [
     { key: "company_name", label: "Company Name", required: true },
     { key: "company_code", label: "Company Code", required: true, helpText: "Unique short code — used in URLs and references" },
@@ -314,19 +400,15 @@ export default function CompanyManagement() {
   ];
 
   return (
-    <div className="page-root">
-      {/* Toolbar: title + filters + actions */}
-      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <div>
-          <Breadcrumb items={[{ label: "Platform Admin", href: "/platform" }, { label: "Company Management" }]} />
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight">Company Management</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">Onboard and manage tenant companies</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or code…" className="pl-8 w-[220px] h-8 text-[12px]" />
-          </div>
+    <PageShell
+      title="Company Management"
+      description="Onboard and manage tenant companies"
+      breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Company Management" }]}
+      className="max-w-[1600px]"
+    >
+      <DataTable
+        search={{ value: search, onChange: setSearch, placeholder: "Search name or code…" }}
+        filters={
           <Select value={statusFilter || "__all__"} onValueChange={(v) => { setStatusFilter(v === "__all__" ? "" : v); setPage(1); }}>
             <SelectTrigger className="w-[140px] h-8 text-[12px]">
               <SelectValue placeholder="All Status" />
@@ -338,34 +420,32 @@ export default function CompanyManagement() {
               <SelectItem value="BLOCKED">Blocked</SelectItem>
             </SelectContent>
           </Select>
-          <button
-            onClick={handleExport}
-            disabled={companies.length === 0}
-            className="flex items-center gap-2 px-3.5 h-9 rounded-lg border border-slate-200 bg-white text-[13px] font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <FileSpreadsheet size={15} className="text-emerald-600" /> Export Excel
-          </button>
-          <Button onClick={() => setCreateOpen(true)} className="h-8 text-[12px] px-3">
-            <Plus size={14} /> New Company
-          </Button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="surface">
-        {loading ? (
-          <div className="p-6"><LoadingSkeleton rows={8} cols={7} /></div>
-        ) : companies.length === 0 ? (
-          <EmptyState icon={Building2} title="No companies found" description={search || statusFilter ? "Try adjusting your filters" : "Get started by onboarding your first company"}>
-            {!search && !statusFilter && (
-              <Button onClick={() => setCreateOpen(true)}>
-                <Plus size={14} /> New Company
-              </Button>
-            )}
-          </EmptyState>
-        ) : (
+        }
+        actions={
           <>
-            <Table>
+            <button
+              onClick={handleExport}
+              disabled={companies.length === 0}
+              className="flex items-center gap-2 px-3.5 h-9 rounded-lg border border-border bg-card text-[13px] font-medium text-muted-foreground hover:bg-sunken hover:border-border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <FileSpreadsheet size={15} className="text-ok" /> Export Excel
+            </button>
+            <Button onClick={openCreateCompany} className="h-8 text-[12px] px-3">
+              <Plus size={14} /> New Company
+            </Button>
+          </>
+        }
+        loading={loading}
+        empty={companies.length === 0 ? {
+          icon: Building2,
+          title: "No companies found",
+          description: search || statusFilter ? "Try adjusting your filters" : "Get started by onboarding your first company",
+          children: !search && !statusFilter ? <Button onClick={openCreateCompany}><Plus size={14} /> New Company</Button> : undefined,
+        } : undefined}
+        pagination={{ page, pageSize, total, onPageChange: setPage }}
+        skeletonCols={7}
+      >
+        <Table>
               <TableHeader>
                 <TableRow>
                   {["Company Name", "Code", "Plan", "AI Engine", "Status", "Created", ""].map((h, i) => (
@@ -379,10 +459,10 @@ export default function CompanyManagement() {
                   return (
                     <TableRow key={c.company_id} className="cursor-pointer" onClick={() => setDetailCompany(c)}>
                       <TableCell>
-                        <div className="font-semibold text-brand-navy">{c.company_name}</div>
-                        <div className="text-[11px] text-slate-400">{c.industry || ""}{c.country ? (c.industry ? ` · ${c.country}` : c.country) : ""}</div>
+                        <div className="font-semibold text-foreground">{c.company_name}</div>
+                        <div className="text-[11px] text-muted-foreground">{c.industry || ""}{c.country ? (c.industry ? ` · ${c.country}` : c.country) : ""}</div>
                       </TableCell>
-                      <TableCell className="font-mono text-[12px] text-slate-500">{c.company_code}</TableCell>
+                      <TableCell className="font-mono text-[12px] text-muted-foreground">{c.company_code}</TableCell>
                       <TableCell>
                         {plan ? (
                           <TooltipProvider delayDuration={200}>
@@ -394,9 +474,9 @@ export default function CompanyManagement() {
                               </TooltipTrigger>
                               <TooltipContent
                                 side="right"
-                                className="bg-white border border-slate-200 shadow-lg p-3 w-52 text-inherit rounded-xl"
+                                className="bg-card border border-border shadow-lg p-3 w-52 text-inherit rounded-xl"
                               >
-                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">{plan.plan_name} — Usage</p>
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{plan.plan_name} — Usage</p>
                                 <div className="flex flex-col gap-2">
                                   <UsageBar used={c.user_count ?? 0} max={plan.max_users} label="Users" />
                                   <UsageBar used={c.location_count ?? 0} max={plan.max_locations} label="Locations" />
@@ -406,22 +486,22 @@ export default function CompanyManagement() {
                             </Tooltip>
                           </TooltipProvider>
                         ) : (
-                          <span className="text-slate-300 text-[12px]">—</span>
+                          <span className="text-muted-foreground/40 text-[12px]">—</span>
                         )}
                       </TableCell>
                       <TableCell>
                         {c.query_engine === "LLM" ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
                             <Sparkles size={9} /> AI Powered
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sunken text-muted-foreground">
                             <Cpu size={9} /> Standard
                           </span>
                         )}
                       </TableCell>
                       <TableCell><StatusBadge status={c.access_status} /></TableCell>
-                      <TableCell className="text-slate-400 text-[12px]">{formatDate(c.created_at)}</TableCell>
+                      <TableCell className="text-muted-foreground text-[12px]">{formatDate(c.created_at)}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -433,7 +513,7 @@ export default function CompanyManagement() {
                             <DropdownMenuItem onClick={() => setDetailCompany(c)}>
                               <Eye size={14} /> View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { setSelectedCompany(c); setAdminOpen(true); }}>
+                            <DropdownMenuItem onClick={() => openCreateAdmin(c)}>
                               <UserPlus size={14} /> Create Admin
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setChangePlanCompany(c); setSelectedPlanId(String(c.plan?.plan_id || "")); }}>
@@ -446,14 +526,14 @@ export default function CompanyManagement() {
                               <Layers size={14} /> Manage Capabilities
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setSupportCompany(c)}>
-                              <ShieldAlert size={14} className="text-amber-600" />
+                              <ShieldAlert size={14} className="text-warn" />
                               <span>Support Access…</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {c.access_status === "ACTIVE" && (
                               <DropdownMenuItem onClick={() => openConfirm("suspend", c)}>
-                                <Ban size={14} className="text-amber-600" />
-                                <span className="text-amber-600">Suspend</span>
+                                <Ban size={14} className="text-warn" />
+                                <span className="text-warn">Suspend</span>
                               </DropdownMenuItem>
                             )}
                             {c.access_status !== "BLOCKED" && (
@@ -479,58 +559,38 @@ export default function CompanyManagement() {
                 })}
               </TableBody>
             </Table>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100">
-                <span className="text-[12px] text-slate-500">
-                  Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
-                </span>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon-sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                    <ChevronLeft size={15} />
-                  </Button>
-                  <span className="px-3 text-[12px] font-semibold text-brand-navy">{page} / {totalPages}</span>
-                  <Button variant="outline" size="icon-sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-                    <ChevronRight size={15} />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      </DataTable>
 
       {/* ── Company Detail Drawer ── */}
-      <Dialog open={!!detailCompany} onOpenChange={(v) => { if (!v) setDetailCompany(null); }}>
-        <DialogContent className="max-w-[560px] max-h-[90vh] overflow-y-auto">
+      <Sheet open={!!detailCompany} onOpenChange={(v) => { if (!v) setDetailCompany(null); }}>
+        <SheetContent className="max-w-[640px]">
           {detailCompany && (() => {
             const plan = resolvePlan(detailCompany);
             return (
               <>
-                <DialogHeader>
+                <SheetHeader>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <DialogTitle className="text-[18px]">{detailCompany.company_name}</DialogTitle>
-                      <DialogDescription className="font-mono text-[12px] mt-0.5">{detailCompany.company_code}</DialogDescription>
+                      <SheetTitle className="text-[18px]">{detailCompany.company_name}</SheetTitle>
+                      <p className="font-mono text-[12px] mt-0.5 text-muted-foreground">{detailCompany.company_code}</p>
                     </div>
                     <StatusBadge status={detailCompany.access_status} />
                   </div>
-                </DialogHeader>
-                <DialogBody className="flex flex-col gap-5">
+                </SheetHeader>
+                <SheetBody className="flex flex-col gap-5">
 
                   {/* Plan & Usage */}
                   <div>
-                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Plan & Usage</div>
-                    <div className="bg-slate-50 rounded-lg p-4 flex flex-col gap-3">
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Plan & Usage</div>
+                    <div className="bg-sunken rounded-lg p-4 flex flex-col gap-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[13px] font-semibold text-brand-navy">{plan?.plan_name || "No plan assigned"}</span>
+                        <span className="text-[13px] font-semibold text-foreground">{plan?.plan_name || "No plan assigned"}</span>
                         {detailCompany.query_engine === "LLM" ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
                             <Sparkles size={9} /> AI Powered
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sunken text-muted-foreground">
                             <Cpu size={9} /> Standard
                           </span>
                         )}
@@ -548,10 +608,10 @@ export default function CompanyManagement() {
                           { icon: MapPin, label: "Locations", value: detailCompany.location_count ?? 0 },
                           { icon: BarChart2, label: "KPIs", value: detailCompany.kpi_count ?? 0 },
                         ].map(({ icon: Icon, label, value }) => (
-                          <div key={label} className="bg-white rounded-lg border border-slate-200 p-3 text-center">
-                            <Icon size={14} className="text-brand-accent mx-auto mb-1" />
-                            <div className="text-[18px] font-bold text-brand-navy">{value}</div>
-                            <div className="text-[10px] text-slate-400">{label}</div>
+                          <div key={label} className="bg-card rounded-lg border border-border p-3 text-center">
+                            <Icon size={14} className="text-primary mx-auto mb-1" />
+                            <div className="text-[18px] font-bold text-foreground">{value}</div>
+                            <div className="text-[10px] text-muted-foreground">{label}</div>
                           </div>
                         ))}
                       </div>
@@ -560,7 +620,7 @@ export default function CompanyManagement() {
 
                   {/* Business Details */}
                   <div>
-                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Business Details</div>
+                    <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Business Details</div>
                     <div className="flex flex-col gap-2">
                       {[
                         { label: "Industry", value: detailCompany.industry, icon: Building2 },
@@ -572,11 +632,11 @@ export default function CompanyManagement() {
                         { label: "Registered Address", value: detailCompany.registered_address, icon: MapPin },
                       ].map(({ label, value, icon: Icon }) => (
                         value ? (
-                          <div key={label} className="flex items-start gap-2.5 py-1.5 border-b border-slate-100 last:border-0">
-                            <Icon size={13} className="text-slate-400 mt-0.5 flex-shrink-0" />
+                          <div key={label} className="flex items-start gap-2.5 py-1.5 border-b border-[hsl(var(--border-hairline))] last:border-0">
+                            <Icon size={13} className="text-muted-foreground mt-0.5 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              <div className="text-[10px] text-slate-400 uppercase tracking-wider">{label}</div>
-                              <div className="text-[13px] text-brand-navy break-words">{value}</div>
+                              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
+                              <div className="text-[13px] text-foreground break-words">{value}</div>
                             </div>
                           </div>
                         ) : null
@@ -585,48 +645,134 @@ export default function CompanyManagement() {
                   </div>
 
                   {/* Dates */}
-                  <div className="flex gap-4 text-[12px] text-slate-400 pt-1 border-t border-slate-100">
-                    <span>Created: <span className="font-medium text-slate-600">{formatDate(detailCompany.created_at)}</span></span>
+                  <div className="flex gap-4 text-[12px] text-muted-foreground pt-1 border-t border-[hsl(var(--border-hairline))]">
+                    <span>Created: <span className="font-medium text-muted-foreground">{formatDate(detailCompany.created_at)}</span></span>
                     {detailCompany.updated_at && (
-                      <span>Updated: <span className="font-medium text-slate-600">{formatDate(detailCompany.updated_at)}</span></span>
+                      <span>Updated: <span className="font-medium text-muted-foreground">{formatDate(detailCompany.updated_at)}</span></span>
                     )}
                   </div>
-                </DialogBody>
-                <DialogFooter>
+                </SheetBody>
+                <SheetFooter>
                   <Button variant="outline" onClick={() => setDetailCompany(null)}>Close</Button>
-                  <Button onClick={() => { setDetailCompany(null); setSelectedCompany(detailCompany); setAdminOpen(true); }}>
+                  <Button onClick={() => { setDetailCompany(null); openCreateAdmin(detailCompany); }}>
                     <UserPlus size={14} /> Create Admin
                   </Button>
-                </DialogFooter>
+                </SheetFooter>
               </>
             );
           })()}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
-      {/* ── Create Company Dialog ── */}
-      <FormDialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onSubmit={handleCreate}
-        title="New Company"
-        description="Onboard a new tenant company"
-        fields={createFields}
-        submitLabel="Create Company"
-        loading={actionLoading}
-      />
+      {/* ── Create Company Drawer ── */}
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent className="max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>New Company</SheetTitle>
+            <p className="text-[12px] text-muted-foreground">Onboard a new tenant company.</p>
+          </SheetHeader>
+          <SheetBody className="space-y-5">
+            <FormSection title="Company Identity" description="Core account and subscription information">
+              <FormRow cols={2}>
+                <WorkspaceField label="Company Name" required>
+                  <input value={companyForm.company_name} onChange={(e) => setCompanyField("company_name", e.target.value)} className="field-input" />
+                </WorkspaceField>
+                <WorkspaceField label="Company Code" required hint="Unique short code used in references">
+                  <input value={companyForm.company_code} onChange={(e) => setCompanyField("company_code", e.target.value)} className="field-input" />
+                </WorkspaceField>
+              </FormRow>
+              <FormRow cols={2} className="mt-4">
+                <WorkspaceField label="Subscription Plan" required>
+                  <Select value={companyForm.plan_id || "__none__"} onValueChange={(v) => setCompanyField("plan_id", v === "__none__" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Select a plan" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select a plan</SelectItem>
+                      {plans.map((p) => (
+                        <SelectItem key={p.plan_id} value={String(p.plan_id)}>
+                          {p.plan_name} ({p.max_users === -1 ? "∞" : p.max_users} users, {p.max_locations === -1 ? "∞" : p.max_locations} sites)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </WorkspaceField>
+                <WorkspaceField label="Industry">
+                  <input value={companyForm.industry} onChange={(e) => setCompanyField("industry", e.target.value)} className="field-input" />
+                </WorkspaceField>
+              </FormRow>
+            </FormSection>
+            <FormSection title="Business Details" description="Regional, tax, and billing metadata">
+              <FormRow cols={2}>
+                <WorkspaceField label="Country">
+                  <Select value={companyForm.country || "__none__"} onValueChange={(v) => setCompanyField("country", v === "__none__" ? "" : v)}>
+                    <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select country</SelectItem>
+                      {COUNTRY_OPTIONS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </WorkspaceField>
+                <WorkspaceField label="Timezone">
+                  <input value={companyForm.timezone} onChange={(e) => setCompanyField("timezone", e.target.value)} className="field-input" />
+                </WorkspaceField>
+              </FormRow>
+              <FormRow cols={2} className="mt-4">
+                <WorkspaceField label="GSTIN" hint="15-character GST Identification Number">
+                  <input value={companyForm.gstin} onChange={(e) => setCompanyField("gstin", e.target.value)} className="field-input" />
+                </WorkspaceField>
+                <WorkspaceField label="PAN" hint="10-character Permanent Account Number">
+                  <input value={companyForm.pan} onChange={(e) => setCompanyField("pan", e.target.value)} className="field-input" />
+                </WorkspaceField>
+              </FormRow>
+              <WorkspaceField label="Billing Email" className="mt-4">
+                <input type="email" value={companyForm.billing_email} onChange={(e) => setCompanyField("billing_email", e.target.value)} className="field-input" />
+              </WorkspaceField>
+              <WorkspaceField label="Registered Address" className="mt-4">
+                <textarea value={companyForm.registered_address} onChange={(e) => setCompanyField("registered_address", e.target.value)} rows={3} className="field-input h-auto min-h-[88px] resize-none" />
+              </WorkspaceField>
+            </FormSection>
+          </SheetBody>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={actionLoading}>Cancel</Button>
+            <Button onClick={submitCreateCompany} disabled={actionLoading}>
+              {actionLoading ? "Creating..." : "Create Company"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      {/* ── Create Company Admin Dialog ── */}
-      <FormDialog
-        open={adminOpen}
-        onClose={() => { setAdminOpen(false); setSelectedCompany(null); }}
-        onSubmit={handleCreateAdmin}
-        title={`Create Admin — ${selectedCompany?.company_name || ""}`}
-        description="Creates a Company Admin account. The admin will create and manage all other users from within their portal."
-        fields={adminFields}
-        submitLabel="Create Admin"
-        loading={actionLoading}
-      />
+      {/* ── Create Company Admin Drawer ── */}
+      <Sheet open={adminOpen} onOpenChange={(open) => { if (!open) { setAdminOpen(false); setSelectedCompany(null); } }}>
+        <SheetContent className="max-w-xl">
+          <SheetHeader>
+            <SheetTitle>Create Admin — {selectedCompany?.company_name || ""}</SheetTitle>
+            <p className="text-[12px] text-muted-foreground">Creates the initial Company Admin account for this tenant.</p>
+          </SheetHeader>
+          <SheetBody className="space-y-5">
+            <FormSection title="Admin Identity" description="This account will manage all other tenant-side users">
+              <FormRow cols={2}>
+                <WorkspaceField label="First Name" required>
+                  <input value={adminForm.first_name} onChange={(e) => setAdminField("first_name", e.target.value)} className="field-input" />
+                </WorkspaceField>
+                <WorkspaceField label="Last Name" required>
+                  <input value={adminForm.last_name} onChange={(e) => setAdminField("last_name", e.target.value)} className="field-input" />
+                </WorkspaceField>
+              </FormRow>
+              <WorkspaceField label="Email" required className="mt-4">
+                <input type="email" value={adminForm.email} onChange={(e) => setAdminField("email", e.target.value)} className="field-input" />
+              </WorkspaceField>
+              <WorkspaceField label="Password" required className="mt-4">
+                <input type="password" value={adminForm.password} onChange={(e) => setAdminField("password", e.target.value)} className="field-input" />
+              </WorkspaceField>
+            </FormSection>
+          </SheetBody>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => { setAdminOpen(false); setSelectedCompany(null); }} disabled={actionLoading}>Cancel</Button>
+            <Button onClick={submitCreateAdmin} disabled={actionLoading}>
+              {actionLoading ? "Creating..." : "Create Admin"}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       <ConfirmDialog
         open={confirmOpen}
@@ -647,7 +793,7 @@ export default function CompanyManagement() {
             <DialogTitle>Set Query Engine</DialogTitle>
             <DialogDescription>
               Choose the AI chatbot tier for{" "}
-              <span className="font-semibold text-brand-navy">{engineCompany?.company_name}</span>
+              <span className="font-semibold text-foreground">{engineCompany?.company_name}</span>
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
@@ -660,14 +806,14 @@ export default function CompanyManagement() {
                   key={value}
                   onClick={() => setSelectedEngine(value)}
                   className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all cursor-pointer w-full bg-transparent
-                    ${selectedEngine === value ? "border-brand-accent bg-brand-accent/5" : "border-slate-200 hover:border-slate-300"}`}
+                    ${selectedEngine === value ? "border-primary bg-primary/5" : "border-border hover:border-border"}`}
                 >
-                  <div className={`mt-0.5 p-1.5 rounded-md ${selectedEngine === value ? "bg-brand-accent/10 text-brand-accent" : "bg-slate-100 text-slate-500"}`}>
+                  <div className={`mt-0.5 p-1.5 rounded-md ${selectedEngine === value ? "bg-primary/10 text-primary" : "bg-sunken text-muted-foreground"}`}>
                     <Icon size={14} />
                   </div>
                   <div>
-                    <div className="text-[13px] font-semibold text-brand-navy">{label}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">{desc}</div>
+                    <div className="text-[13px] font-semibold text-foreground">{label}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">{desc}</div>
                   </div>
                 </button>
               ))}
@@ -691,85 +837,83 @@ export default function CompanyManagement() {
             <DialogTitle>Manage Capabilities</DialogTitle>
             <DialogDescription>
               Enable or disable modules and features for{" "}
-              <span className="font-semibold text-brand-navy">{moduleCompany?.company_name}</span>.
-              <span className="block text-[11px] text-slate-500 mt-1">
+              <span className="font-semibold text-foreground">{moduleCompany?.company_name}</span>.
+              <span className="block text-[11px] text-muted-foreground mt-1">
                 Plan-inherited rows reflect this company's subscription plan. Manual changes are tagged "override" and survive plan changes.
               </span>
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
             {moduleLoading ? (
-              <div className="text-[13px] text-slate-400 py-4 text-center animate-pulse">Loading capabilities…</div>
+              <div className="text-[13px] text-muted-foreground py-4 text-center animate-pulse">Loading capabilities…</div>
             ) : (
               <div className="flex flex-col gap-4">
                 {/* Modules section */}
                 <div>
-                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Modules</div>
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Modules</div>
                   <div className="flex flex-col gap-2">
                     {companyModules.map((m) => {
                       const Icon = getModuleIcon(m.icon_name);
                       const isDeprecated = m.lifecycle_status === "DEPRECATED";
                       return (
-                        <div key={m.module_id} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                        <div key={m.module_id} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border hover:bg-sunken transition-colors">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: m.color + "22" }}>
                               <Icon size={14} style={{ color: m.color }} />
                             </div>
-                            <span className="text-[13px] font-semibold text-brand-navy truncate">{m.module_name}</span>
+                            <span className="text-[13px] font-semibold text-foreground truncate">{m.module_name}</span>
                             {isDeprecated && (
-                              <Badge className="bg-amber-50 text-amber-700 text-[10px]">Deprecated</Badge>
+                              <Badge className="bg-warn-tint text-warn text-[10px]">Deprecated</Badge>
                             )}
-                            <Badge className={`text-[10px] ${m.source === "override" ? "bg-violet-50 text-violet-700" : "bg-slate-100 text-slate-600"}`}>
+                            <Badge className={`text-[10px] ${m.source === "override" ? "bg-accent text-accent-foreground" : "bg-sunken text-muted-foreground"}`}>
                               {m.source === "override" ? "Override" : "Plan"}
                             </Badge>
                           </div>
-                          <button
-                            onClick={() => handleToggleModule(m.module_id, m.is_active)}
-                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${m.is_active ? "bg-brand-accent" : "bg-slate-200"}`}
-                          >
-                            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${m.is_active ? "left-5" : "left-0.5"}`} />
-                          </button>
+                          <Switch
+                            checked={m.is_active}
+                            onCheckedChange={() => handleToggleModule(m.module_id, m.is_active)}
+                            aria-label={`Toggle ${m.module_name}`}
+                          />
                         </div>
                       );
                     })}
                     {companyModules.length === 0 && (
-                      <div className="text-[12px] text-slate-400 py-2 text-center">No modules available</div>
+                      <div className="text-[12px] text-muted-foreground py-2 text-center">No modules available</div>
                     )}
                   </div>
                 </div>
 
                 {/* Features section */}
                 <div>
-                  <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Features</div>
+                  <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">Features</div>
                   <div className="flex flex-col gap-2">
                     {companyFeatures.map((f) => {
                       const Icon = getModuleIcon(f.icon_name);
                       const isDeprecated = f.lifecycle_status === "DEPRECATED";
                       return (
-                        <div key={f.feature_id} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+                        <div key={f.feature_id} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border hover:bg-sunken transition-colors">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: f.color + "22" }}>
                               <Icon size={14} style={{ color: f.color }} />
                             </div>
-                            <span className="text-[13px] font-semibold text-brand-navy truncate">{f.feature_name}</span>
+                            <span className="text-[13px] font-semibold text-foreground truncate">{f.feature_name}</span>
                             {isDeprecated && (
-                              <Badge className="bg-amber-50 text-amber-700 text-[10px]">Deprecated</Badge>
+                              <Badge className="bg-warn-tint text-warn text-[10px]">Deprecated</Badge>
                             )}
-                            <Badge className={`text-[10px] ${f.source === "override" ? "bg-violet-50 text-violet-700" : "bg-slate-100 text-slate-600"}`}>
+                            <Badge className={`text-[10px] ${f.source === "override" ? "bg-accent text-accent-foreground" : "bg-sunken text-muted-foreground"}`}>
                               {f.source === "override" ? "Override" : "Plan"}
                             </Badge>
                           </div>
-                          <button
-                            onClick={() => handleToggleFeature(f.feature_id, f.is_active)}
-                            className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${f.is_active ? "bg-brand-accent" : "bg-slate-200"}`}
-                          >
-                            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${f.is_active ? "left-5" : "left-0.5"}`} />
-                          </button>
+                          <Switch
+                            checked={f.is_active}
+                            onCheckedChange={() => handleToggleFeature(f.feature_id, f.is_active)}
+                            aria-label={`Toggle ${f.feature_name}`}
+                          />
                         </div>
                       );
                     })}
                     {companyFeatures.length === 0 && (
-                      <div className="text-[12px] text-slate-400 py-2 text-center">No features available</div>
+                      <div className="text-[12px] text-muted-foreground py-2 text-center">No features available</div>
                     )}
                   </div>
                 </div>
@@ -788,14 +932,14 @@ export default function CompanyManagement() {
           <DialogHeader>
             <DialogTitle>Change Subscription Plan</DialogTitle>
             <DialogDescription>
-              <span className="font-semibold text-brand-navy">{changePlanCompany?.company_name}</span>
+              <span className="font-semibold text-foreground">{changePlanCompany?.company_name}</span>
               {" "}— currently on{" "}
-              <span className="font-semibold text-brand-navy">{resolvePlan(changePlanCompany)?.plan_name || "—"}</span>
+              <span className="font-semibold text-foreground">{resolvePlan(changePlanCompany)?.plan_name || "—"}</span>
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
             <div className="flex flex-col gap-1.5">
-              <Label className="text-[12px] font-semibold text-brand-navy">Select New Plan</Label>
+              <Label className="text-[12px] font-semibold text-foreground">Select New Plan</Label>
               <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
                 <SelectTrigger>
                   <SelectValue placeholder="— Select plan —" />
@@ -829,6 +973,6 @@ export default function CompanyManagement() {
           companyName={supportCompany.company_name}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

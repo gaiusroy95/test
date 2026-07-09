@@ -8,7 +8,12 @@ import { getApiError, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { Breadcrumb } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { PageTabs } from "@/components/shared/PageTabs";
+import { FormField as WorkspaceField } from "@/components/shared/FormField";
+import { FormRow as WorkspaceRow, FormSection } from "@/components/shared/FormWorkspace";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuthStore } from "@/store/auth";
 import type { Scope3GHGCategory, Scope3FactorSet, Scope3FactorItem } from "@/types";
 
@@ -293,43 +298,32 @@ export default function PlatformScope3Page() {
 
   /* ═══ RENDER ═══════════════════════════════════════════════════════════ */
   return (
-    <div className="p-6 max-w-[1600px]">
-      {/* ── Row 1: Header ── */}
-      <div className="flex items-start justify-between mb-1">
-        <div>
-          <Breadcrumb items={[{ label: "Scope 3 Factor Management" }]} />
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight mt-1">Scope 3 Factor Management</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            Manage system (library) and company-specific emission factor datasets for Scope 3 calculations
-          </p>
-        </div>
-        {isOwner && (
-          <Button onClick={openCreateSet} className="bg-brand-accent hover:bg-brand-accentDk text-white text-[13px] h-8 px-3 flex items-center gap-1.5">
-            <Plus size={14} /> New Factor Set
-          </Button>
-        )}
-      </div>
-
-      {/* ── Row 2: Tabs (single tab — System Library only) ── */}
-      <div className="flex items-end justify-between border-b border-slate-200 mb-4">
-        <div className="flex">
-          <button className="flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px border-brand-accent text-brand-accent">
-            <Library size={14} /> System Library
-            <span className="ml-1 text-[11px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">
-              {displayedSets.length}
-            </span>
-          </button>
-        </div>
-      </div>
+    <PageShell
+      title="Scope 3 Factor Management"
+      description="Manage system library emission factor datasets for Scope 3 calculations."
+      breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Scope 3 Factor Management" }]}
+      actions={isOwner ? (
+        <Button onClick={openCreateSet} className="bg-primary hover:bg-primaryDk text-white text-[13px] h-8 px-3 flex items-center gap-1.5">
+          <Plus size={14} /> New Factor Set
+        </Button>
+      ) : undefined}
+      className="max-w-[1600px]"
+    >
+      <PageTabs
+        tabs={[{ key: "library", label: "System Library", icon: <Library size={14} />, count: displayedSets.length }]}
+        value="library"
+        onChange={() => {}}
+        className="mb-4"
+      />
 
       {/* ── Content ── */}
       {loading ? (
-        <div className="text-[13px] text-slate-400 text-center py-16">Loading…</div>
+        <div className="text-[13px] text-muted-foreground text-center py-16">Loading…</div>
       ) : displayedSets.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-slate-200 rounded-lg">
-          <Library size={32} className="mx-auto text-slate-300 mb-2" />
-          <p className="text-[13px] text-slate-500 mb-1">No library factor sets yet</p>
-          {isOwner && <p className="text-[11px] text-slate-400">Click "New Factor Set" to create one.</p>}
+        <div className="text-center py-16 border border-dashed border-border rounded-lg">
+          <Library size={32} className="mx-auto text-muted-foreground/40 mb-2" />
+          <p className="text-[13px] text-muted-foreground mb-1">No library factor sets yet</p>
+          {isOwner && <p className="text-[11px] text-muted-foreground">Click "New Factor Set" to create one.</p>}
         </div>
       ) : (
         <div className="space-y-2">
@@ -404,7 +398,7 @@ export default function PlatformScope3Page() {
         message="Delete this factor item? Any existing Scope 3 entries that used it will retain the previously calculated emission value."
         variant="destructive"
       />
-    </div>
+    </PageShell>
   );
 }
 
@@ -432,18 +426,18 @@ function FactorSetBlock({
   const isImportOpen = csvImportSetId === setId;
 
   return (
-    <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+    <div className="border border-border rounded-lg bg-card overflow-hidden">
       {/* Header row */}
-      <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50/60">
-        <button onClick={onToggle} className="text-slate-400 hover:text-slate-600 shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 hover:bg-sunken/60">
+        <button onClick={onToggle} className="text-muted-foreground hover:text-muted-foreground shrink-0">
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[13px] font-semibold text-brand-navy">{fs.set_name}</span>
-            <span className="text-[10px] bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded font-medium">Library</span>
+            <span className="text-[13px] font-semibold text-foreground">{fs.set_name}</span>
+            <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded font-medium">Library</span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-3 flex-wrap">
+          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-3 flex-wrap">
             {fs.source_name && <span>{fs.source_name}</span>}
             {fs.dataset_year && <span>{fs.dataset_year}</span>}
             {fs.currency_code && <span>{fs.currency_code}</span>}
@@ -454,7 +448,7 @@ function FactorSetBlock({
           </div>
         </div>
         {isOwner && (
-          <button onClick={onEdit} className="text-slate-400 hover:text-brand-accent transition-colors">
+          <button onClick={onEdit} className="text-muted-foreground hover:text-primary transition-colors">
             <Pencil size={14} />
           </button>
         )}
@@ -462,20 +456,20 @@ function FactorSetBlock({
 
       {/* Expanded items section */}
       {expanded && (
-        <div className="border-t border-slate-100">
+        <div className="border-t border-[hsl(var(--border-hairline))]">
           {/* Item action bar */}
           {isOwner && (
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50/50 border-b border-slate-100">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-sunken/50 border-b border-[hsl(var(--border-hairline))]">
               <button
                 onClick={onAddItem}
-                className="flex items-center gap-1.5 text-[12px] font-medium text-brand-accent hover:text-brand-accentDk transition-colors"
+                className="flex items-center gap-1.5 text-[12px] font-medium text-primary hover:text-primaryDk transition-colors"
               >
                 <Plus size={13} /> Add Item Manually
               </button>
-              <span className="text-slate-300">|</span>
+              <span className="text-muted-foreground/40">|</span>
               <button
                 onClick={() => { setCsvImportSetId(isImportOpen ? null : setId); }}
-                className="flex items-center gap-1.5 text-[12px] font-medium text-slate-600 hover:text-brand-navy transition-colors"
+                className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Upload size={13} /> Bulk Import CSV
               </button>
@@ -484,19 +478,23 @@ function FactorSetBlock({
 
           {/* CSV import controls (only shown when open for this set) */}
           {isOwner && isImportOpen && (
-            <div className="px-4 py-3 bg-amber-50/40 border-b border-amber-100 flex items-center gap-3 flex-wrap">
+            <div className="px-4 py-3 bg-warn-tint/40 border-b border-warn/30 flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <label className="text-[12px] text-slate-600 font-medium">GHG Category:</label>
-                <select
-                  value={csvCategoryId || ""}
-                  onChange={(e) => setCsvCategoryId(Number(e.target.value))}
-                  className="py-1 px-2 text-[12px] text-brand-navy border border-slate-200 rounded bg-white"
+                <label className="text-[12px] text-muted-foreground font-medium">GHG Category:</label>
+                <Select
+                  value={csvCategoryId ? String(csvCategoryId) : "__none__"}
+                  onValueChange={(value) => setCsvCategoryId(value === "__none__" ? 0 : Number(value))}
                 >
-                  <option value="">Select category…</option>
-                  {categories.map((c) => (
-                    <option key={c.category_id} value={c.category_id}>{c.code} · {c.name}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="h-8 min-w-[220px] text-[12px]">
+                    <SelectValue placeholder="Select category…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select category…</SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c.category_id} value={String(c.category_id)}>{c.code} · {c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button
                 variant="outline"
@@ -513,22 +511,22 @@ function FactorSetBlock({
                 className="hidden"
                 onChange={(e) => { if (e.target.files?.[0]) { onFileSelect(e.target.files[0]); e.target.value = ""; } }}
               />
-              <span className="text-[11px] text-slate-500">Required columns: sector_name, emission_factor. Optional: sector_code, factor_unit</span>
+              <span className="text-[11px] text-muted-foreground">Required columns: sector_name, emission_factor. Optional: sector_code, factor_unit</span>
             </div>
           )}
 
           {/* Items table */}
           {loadingItems ? (
-            <div className="text-[12px] text-slate-400 text-center py-6">Loading items…</div>
+            <div className="text-[12px] text-muted-foreground text-center py-6">Loading items…</div>
           ) : !items || items.length === 0 ? (
-            <div className="text-[12px] text-slate-400 text-center py-6">
+            <div className="text-[12px] text-muted-foreground text-center py-6">
               No items yet. {isOwner ? 'Use "Add Item Manually" or "Bulk Import CSV" above.' : "Items will appear here once added."}
             </div>
           ) : (
             <div className="overflow-auto max-h-[360px]">
               <table className="w-full text-[12px]">
-                <thead className="sticky top-0 bg-white border-b border-slate-100">
-                  <tr className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
+                <thead className="sticky top-0 bg-card border-b border-[hsl(var(--border-hairline))]">
+                  <tr className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
                     <th className="text-left py-2 px-4">Sector Code</th>
                     <th className="text-left py-2 px-4">Sector Name</th>
                     <th className="text-left py-2 px-4">GHG Category</th>
@@ -539,17 +537,17 @@ function FactorSetBlock({
                 </thead>
                 <tbody>
                   {items.map((fi) => (
-                    <tr key={fi.factor_item_id as string} className="border-b border-slate-50 hover:bg-slate-50">
-                      <td className="py-1.5 px-4 font-mono text-slate-500">{fi.sector_code || "—"}</td>
-                      <td className="py-1.5 px-4 text-brand-navy">{fi.sector_name}</td>
-                      <td className="py-1.5 px-4 text-slate-600">{catById(fi.ghg_category_id)?.code ?? fi.ghg_category_id}</td>
+                    <tr key={fi.factor_item_id as string} className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken">
+                      <td className="py-1.5 px-4 font-mono text-muted-foreground">{fi.sector_code || "—"}</td>
+                      <td className="py-1.5 px-4 text-foreground">{fi.sector_name}</td>
+                      <td className="py-1.5 px-4 text-muted-foreground">{catById(fi.ghg_category_id)?.code ?? fi.ghg_category_id}</td>
                       <td className="py-1.5 px-4 text-right font-medium">{fi.emission_factor}</td>
-                      <td className="py-1.5 px-4 text-slate-500">{fi.factor_unit || "—"}</td>
+                      <td className="py-1.5 px-4 text-muted-foreground">{fi.factor_unit || "—"}</td>
                       {isOwner && (
                         <td className="py-1.5 px-4 text-right">
                           <div className="flex items-center gap-2 justify-end">
-                            <button onClick={() => onEditItem(fi)} className="text-slate-400 hover:text-brand-accent transition-colors"><Pencil size={13} /></button>
-                            <button onClick={() => onDeleteItem(fi.factor_item_id as string)} className="text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
+                            <button onClick={() => onEditItem(fi)} className="text-muted-foreground hover:text-primary transition-colors"><Pencil size={13} /></button>
+                            <button onClick={() => onDeleteItem(fi.factor_item_id as string)} className="text-muted-foreground hover:text-destructive transition-colors"><Trash2 size={13} /></button>
                           </div>
                         </td>
                       )}
@@ -574,45 +572,48 @@ function FactorSetFormModal({ form, mode, saving, onChange, onSave, onClose }: {
   onChange: (patch: Partial<EditingSet>) => void; onSave: () => void; onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 className="text-[14px] font-semibold text-brand-navy">{mode === "create" ? "New Factor Set" : "Edit Factor Set"}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-        </div>
-        <div className="px-5 py-4 space-y-3">
-          <FormRow label="Set Name *">
-            <input value={form.set_name} onChange={(e) => onChange({ set_name: e.target.value })} className={inputCls} placeholder="e.g., USEEIO v2.0 India 2023" />
-          </FormRow>
-          <div className="grid grid-cols-2 gap-3">
-            <FormRow label="Source Name">
-              <input value={form.source_name} onChange={(e) => onChange({ source_name: e.target.value })} className={inputCls} placeholder="e.g., US EPA USEEIO" />
-            </FormRow>
-            <FormRow label="Dataset Year">
-              <input type="number" value={form.dataset_year} onChange={(e) => onChange({ dataset_year: e.target.value })} className={inputCls} placeholder="e.g., 2023" />
-            </FormRow>
-            <FormRow label="Currency Code">
-              <input value={form.currency_code} onChange={(e) => onChange({ currency_code: e.target.value })} className={inputCls} placeholder="INR" />
-            </FormRow>
-            <FormRow label="Version">
-              <input value={form.version} onChange={(e) => onChange({ version: e.target.value })} className={inputCls} placeholder="e.g., 1.1" />
-            </FormRow>
-          </div>
-          <FormRow label="Methodology">
-            <input value={form.methodology} onChange={(e) => onChange({ methodology: e.target.value })} className={inputCls} placeholder="e.g., EEIO spend-based" />
-          </FormRow>
-          <p className="text-[11px] text-slate-500 bg-violet-50/50 border border-violet-100 rounded px-3 py-2">
-            Library sets are visible to all companies. Company-specific datasets are managed by the Company Admin in their portal.
-          </p>
-        </div>
-        <div className="px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
+    <Sheet open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent className="max-w-[720px]">
+        <SheetHeader>
+          <SheetTitle>{mode === "create" ? "New Factor Set" : "Edit Factor Set"}</SheetTitle>
+        </SheetHeader>
+        <SheetBody className="space-y-5">
+          <FormSection title="Dataset Metadata" description="Configure the source, year, and methodology for this library set">
+            <WorkspaceField label="Set Name" required>
+              <input value={form.set_name} onChange={(e) => onChange({ set_name: e.target.value })} className={inputCls} placeholder="e.g., USEEIO v2.0 India 2023" />
+            </WorkspaceField>
+            <WorkspaceRow cols={2} className="mt-4">
+              <WorkspaceField label="Source Name">
+                <input value={form.source_name} onChange={(e) => onChange({ source_name: e.target.value })} className={inputCls} placeholder="e.g., US EPA USEEIO" />
+              </WorkspaceField>
+              <WorkspaceField label="Dataset Year">
+                <input type="number" value={form.dataset_year} onChange={(e) => onChange({ dataset_year: e.target.value })} className={inputCls} placeholder="e.g., 2023" />
+              </WorkspaceField>
+            </WorkspaceRow>
+            <WorkspaceRow cols={2} className="mt-4">
+              <WorkspaceField label="Currency Code">
+                <input value={form.currency_code} onChange={(e) => onChange({ currency_code: e.target.value })} className={inputCls} placeholder="INR" />
+              </WorkspaceField>
+              <WorkspaceField label="Version">
+                <input value={form.version} onChange={(e) => onChange({ version: e.target.value })} className={inputCls} placeholder="e.g., 1.1" />
+              </WorkspaceField>
+            </WorkspaceRow>
+            <WorkspaceField label="Methodology" className="mt-4">
+              <input value={form.methodology} onChange={(e) => onChange({ methodology: e.target.value })} className={inputCls} placeholder="e.g., EEIO spend-based" />
+            </WorkspaceField>
+            <p className="mt-4 text-[11px] text-muted-foreground bg-accent/50 border border-accent-foreground/20 rounded px-3 py-2">
+              Library sets are visible to all companies. Company-specific datasets are managed by the Company Admin in their portal.
+            </p>
+          </FormSection>
+        </SheetBody>
+        <SheetFooter>
           <Button variant="outline" onClick={onClose} className="text-[13px] h-8 px-3">Cancel</Button>
-          <Button onClick={onSave} disabled={saving} className="bg-brand-accent hover:bg-brand-accentDk text-white text-[13px] h-8 px-4">
+          <Button onClick={onSave} disabled={saving} className="bg-primary hover:bg-primaryDk text-white text-[13px] h-8 px-4">
             {saving ? "Saving…" : mode === "create" ? "Create" : "Save Changes"}
           </Button>
-        </div>
-      </div>
-    </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -630,49 +631,55 @@ function FactorItemFormModal({ form, mode, categories, saving, onChange, onSave,
     : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h2 className="text-[14px] font-semibold text-brand-navy">{mode === "create" ? "Add Factor Item" : "Edit Factor Item"}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-        </div>
-        <div className="px-5 py-4 space-y-3">
-          <FormRow label="GHG Category *">
-            <select value={form.ghg_category_id} onChange={(e) => onChange({ ghg_category_id: e.target.value })} className={inputCls}>
-              <option value="">Select GHG category…</option>
-              {categories.map((c) => (
-                <option key={c.category_id} value={c.category_id}>{c.code} · {c.name}</option>
-              ))}
-            </select>
-          </FormRow>
-          <div className="grid grid-cols-2 gap-3">
-            <FormRow label="Sector Code">
-              <input value={form.sector_code} onChange={(e) => onChange({ sector_code: e.target.value })} className={inputCls} placeholder="e.g., NIC-241" />
-            </FormRow>
-            <FormRow label="Sector Name *">
-              <input value={form.sector_name} onChange={(e) => onChange({ sector_name: e.target.value })} className={inputCls} placeholder="e.g., Iron and Steel" />
-            </FormRow>
-            <FormRow label="Emission Factor *">
-              <input type="number" step="any" value={form.emission_factor} onChange={(e) => onChange({ emission_factor: e.target.value })} className={inputCls} placeholder="e.g., 2.89" />
-            </FormRow>
-            <FormRow label="Factor Unit">
-              <input value={form.factor_unit} onChange={(e) => onChange({ factor_unit: e.target.value })} className={inputCls} placeholder="e.g., tCO₂e/INR_Lakh" />
-            </FormRow>
-          </div>
-          {preview && (
-            <div className="text-[11px] text-slate-500 bg-violet-50/50 border border-violet-100 rounded px-3 py-2">
-              Preview: {preview}
-            </div>
-          )}
-        </div>
-        <div className="px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
+    <Sheet open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent className="max-w-[720px]">
+        <SheetHeader>
+          <SheetTitle>{mode === "create" ? "Add Factor Item" : "Edit Factor Item"}</SheetTitle>
+        </SheetHeader>
+        <SheetBody className="space-y-5">
+          <FormSection title="Factor Item" description="Map sector activity to a GHG category and factor value">
+            <WorkspaceField label="GHG Category" required>
+              <Select value={form.ghg_category_id || "__none__"} onValueChange={(value) => onChange({ ghg_category_id: value === "__none__" ? "" : value })}>
+                <SelectTrigger><SelectValue placeholder="Select GHG category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Select GHG category…</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.category_id} value={String(c.category_id)}>{c.code} · {c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </WorkspaceField>
+            <WorkspaceRow cols={2} className="mt-4">
+              <WorkspaceField label="Sector Code">
+                <input value={form.sector_code} onChange={(e) => onChange({ sector_code: e.target.value })} className={inputCls} placeholder="e.g., NIC-241" />
+              </WorkspaceField>
+              <WorkspaceField label="Sector Name" required>
+                <input value={form.sector_name} onChange={(e) => onChange({ sector_name: e.target.value })} className={inputCls} placeholder="e.g., Iron and Steel" />
+              </WorkspaceField>
+            </WorkspaceRow>
+            <WorkspaceRow cols={2} className="mt-4">
+              <WorkspaceField label="Emission Factor" required>
+                <input type="number" step="any" value={form.emission_factor} onChange={(e) => onChange({ emission_factor: e.target.value })} className={inputCls} placeholder="e.g., 2.89" />
+              </WorkspaceField>
+              <WorkspaceField label="Factor Unit">
+                <input value={form.factor_unit} onChange={(e) => onChange({ factor_unit: e.target.value })} className={inputCls} placeholder="e.g., tCO2e/INR_Lakh" />
+              </WorkspaceField>
+            </WorkspaceRow>
+            {preview && (
+              <div className="mt-4 text-[11px] text-muted-foreground bg-accent/50 border border-accent-foreground/20 rounded px-3 py-2">
+                Preview: {preview}
+              </div>
+            )}
+          </FormSection>
+        </SheetBody>
+        <SheetFooter>
           <Button variant="outline" onClick={onClose} className="text-[13px] h-8 px-3">Cancel</Button>
-          <Button onClick={onSave} disabled={saving} className="bg-brand-accent hover:bg-brand-accentDk text-white text-[13px] h-8 px-4">
+          <Button onClick={onSave} disabled={saving} className="bg-primary hover:bg-primaryDk text-white text-[13px] h-8 px-4">
             {saving ? "Saving…" : mode === "create" ? "Add Item" : "Save Changes"}
           </Button>
-        </div>
-      </div>
-    </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -688,19 +695,16 @@ function CSVPreviewModal({ rows, categoryName, importing, onConfirm, onClose }: 
   const errorCount = rows.length - validCount;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl mx-4 flex flex-col max-h-[85vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
-          <div>
-            <h2 className="text-[14px] font-semibold text-brand-navy">Preview CSV Import</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">Category: {categoryName} · {rows.length} rows · {validCount} valid{errorCount > 0 ? ` · ${errorCount} errors` : ""}</p>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
-        </div>
-        <div className="overflow-auto flex-1 px-1">
+    <Sheet open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent className="max-w-[1000px]">
+        <SheetHeader>
+          <SheetTitle>Preview CSV Import</SheetTitle>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Category: {categoryName} · {rows.length} rows · {validCount} valid{errorCount > 0 ? ` · ${errorCount} errors` : ""}</p>
+        </SheetHeader>
+        <SheetBody className="overflow-auto px-1">
           <table className="w-full text-[12px]">
-            <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
-              <tr className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">
+            <thead className="sticky top-0 bg-sunken border-b border-border">
+              <tr className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
                 <th className="text-center py-2 px-3 w-8"></th>
                 <th className="text-left py-2 px-3">Sector Code</th>
                 <th className="text-left py-2 px-3">Sector Name</th>
@@ -710,46 +714,46 @@ function CSVPreviewModal({ rows, categoryName, importing, onConfirm, onClose }: 
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} className={`border-b border-slate-50 ${!row._valid ? "bg-red-50/60" : "hover:bg-slate-50"}`}>
+                <tr key={i} className={`border-b border-[hsl(var(--border-hairline))] ${!row._valid ? "bg-destructive-tint/60" : "hover:bg-sunken"}`}>
                   <td className="py-1.5 px-3 text-center">
                     {row._valid
                       ? <Check size={13} className="text-green-500 mx-auto" />
-                      : <AlertCircle size={13} className="text-red-500 mx-auto" aria-label={row._error} />}
+                      : <AlertCircle size={13} className="text-destructive mx-auto" aria-label={row._error} />}
                   </td>
-                  <td className="py-1.5 px-3 font-mono text-slate-500">{row.sector_code || "—"}</td>
-                  <td className="py-1.5 px-3 text-brand-navy">{row.sector_name || <span className="text-red-400 italic">missing</span>}</td>
-                  <td className="py-1.5 px-3 text-right font-medium">{row.emission_factor || <span className="text-red-400 italic">missing</span>}</td>
-                  <td className="py-1.5 px-3 text-slate-500">{row.factor_unit || "—"}</td>
+                  <td className="py-1.5 px-3 font-mono text-muted-foreground">{row.sector_code || "—"}</td>
+                  <td className="py-1.5 px-3 text-foreground">{row.sector_name || <span className="text-destructive italic">missing</span>}</td>
+                  <td className="py-1.5 px-3 text-right font-medium">{row.emission_factor || <span className="text-destructive italic">missing</span>}</td>
+                  <td className="py-1.5 px-3 text-muted-foreground">{row.factor_unit || "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-        <div className="px-5 py-4 border-t border-slate-100 flex items-center justify-between shrink-0">
-          <p className="text-[11px] text-slate-500">
+        </SheetBody>
+        <SheetFooter className="justify-between">
+          <p className="text-[11px] text-muted-foreground">
             {errorCount > 0
               ? `${errorCount} row(s) with errors will be skipped during import.`
               : "All rows look valid. Ready to import."}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose} className="text-[13px] h-8 px-3">Cancel</Button>
-            <Button onClick={onConfirm} disabled={importing || validCount === 0} className="bg-brand-accent hover:bg-brand-accentDk text-white text-[13px] h-8 px-4">
+            <Button onClick={onConfirm} disabled={importing || validCount === 0} className="bg-primary hover:bg-primaryDk text-white text-[13px] h-8 px-4">
               {importing ? "Importing…" : `Import ${validCount} Items`}
             </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
 /* ── Small helpers ── */
-const inputCls = "w-full py-1.5 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent";
+const inputCls = "w-full py-1.5 px-3 text-[13px] text-foreground border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary";
 
 function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold text-slate-600 mb-1">{label}</label>
+      <label className="block text-[11px] font-semibold text-muted-foreground mb-1">{label}</label>
       {children}
     </div>
   );

@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { Breadcrumb } from "@/components/shared/PageComponents";
+import { useParams, useNavigate } from "react-router-dom";
+import { Breadcrumb } from "@/components/shared/PageShell";
+import { PageTabs } from "@/components/shared/PageTabs";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { tenantApi } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
@@ -19,10 +21,10 @@ import SubmissionRemarksPanel from "@/components/remarks/SubmissionRemarksPanel"
 
 // ── Status config ──────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  DRAFT:     { label: "Draft",        color: "text-slate-500",   bg: "bg-slate-100",   border: "border-slate-200", icon: Clock },
-  SUBMITTED: { label: "Pending",      color: "text-amber-600",   bg: "bg-amber-50",    border: "border-amber-200", icon: Clock },
-  APPROVED:  { label: "Approved",     color: "text-emerald-600", bg: "bg-emerald-50",  border: "border-emerald-200", icon: CheckCircle2 },
-  REJECTED:  { label: "Rejected",     color: "text-red-600",     bg: "bg-red-50",      border: "border-red-200", icon: XCircle },
+  DRAFT:     { label: "Draft",        color: "text-muted-foreground",   bg: "bg-sunken",   border: "border-border", icon: Clock },
+  SUBMITTED: { label: "Pending",      color: "text-warn",   bg: "bg-warn-tint",    border: "border-warn/30", icon: Clock },
+  APPROVED:  { label: "Approved",     color: "text-ok", bg: "bg-ok-tint",  border: "border-ok/30", icon: CheckCircle2 },
+  REJECTED:  { label: "Rejected",     color: "text-destructive",     bg: "bg-destructive-tint",      border: "border-destructive/30", icon: XCircle },
 };
 
 const FILTER_TABS = [
@@ -35,7 +37,7 @@ const FILTER_TABS = [
 
 function StatusPill({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG];
-  if (!cfg) return <span className="text-[11px] text-slate-400">{status}</span>;
+  if (!cfg) return <span className="text-[11px] text-muted-foreground">{status}</span>;
   const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${cfg.color} ${cfg.bg} border ${cfg.border}`}>
@@ -67,13 +69,13 @@ function RecordDocViewer({ recordId }: { recordId: string | null }) {
 
   if (docs.length === 0) return null;
   return (
-    <div className="bg-slate-50/60 border-t border-slate-100 px-6 py-2 space-y-1">
+    <div className="bg-sunken/60 border-t border-[hsl(var(--border-hairline))] px-6 py-2 space-y-1">
       {docs.map((doc: any) => (
         <div key={doc.document_id} className="flex items-center gap-2">
-          <FileText size={11} className="text-slate-400" />
-          <span className="text-[12px] text-brand-navy flex-1 truncate">{doc.file_name}</span>
-          {doc.file_size_bytes && <span className="text-[10px] text-slate-400">{(doc.file_size_bytes / 1024).toFixed(1)}KB</span>}
-          <button onClick={() => handleDownload(doc.document_id, doc.file_name)} className="p-1 rounded hover:bg-sky-50 text-slate-400 hover:text-brand-accent transition-colors">
+          <FileText size={11} className="text-muted-foreground" />
+          <span className="text-[12px] text-foreground flex-1 truncate">{doc.file_name}</span>
+          {doc.file_size_bytes && <span className="text-[10px] text-muted-foreground">{(doc.file_size_bytes / 1024).toFixed(1)}KB</span>}
+          <button onClick={() => handleDownload(doc.document_id, doc.file_name)} className="p-1 rounded hover:bg-info-tint text-muted-foreground hover:text-primary transition-colors">
             <Download size={11} />
           </button>
         </div>
@@ -84,6 +86,8 @@ function RecordDocViewer({ recordId }: { recordId: string | null }) {
 
 // ── Main page ──────────────────────────────────────────────────────────
 export default function ReviewPage() {
+  const { id: routeId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const modules = useModulesStore((s) => s.modules);
   const isSupport = useIsSupportSession();
@@ -189,6 +193,26 @@ export default function ReviewPage() {
 
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
 
+  // Deep link: /app/review/:id
+  useEffect(() => {
+    if (routeId && routeId !== selectedId) {
+      loadDetail(routeId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeId]);
+
+  const selectSubmission = (id: string) => {
+    navigate(`/app/review/${id}`, { replace: true });
+    loadDetail(id);
+  };
+
+  const clearSelection = () => {
+    navigate("/app/review", { replace: true });
+    setSelectedId(null);
+    setDetail(null);
+    setSelectedScope3(null);
+  };
+
   const loadScope3Detail = (batch: Scope3Batch) => {
     if (selectedScope3?.batch_id === batch.batch_id) {
       setSelectedScope3(null);
@@ -201,8 +225,7 @@ export default function ReviewPage() {
 
   const loadDetail = async (id: string) => {
     if (selectedId === id) {
-      setSelectedId(null);
-      setDetail(null);
+      clearSelection();
       return;
     }
     setSelectedScope3(null); // clear Scope 3 selection
@@ -332,48 +355,37 @@ export default function ReviewPage() {
   const selectedSubmission = submissions.find(s => s.submission_id === selectedId);
 
   return (
-    <div className="flex h-full bg-slate-50 overflow-hidden">
+    <div className="flex h-full bg-sunken overflow-hidden">
 
       {/* ── LEFT PANEL: Submissions list ── */}
-      <div className={`flex flex-col bg-white border-r border-slate-200 transition-all duration-200 ${selectedId || selectedScope3 ? "w-[400px] flex-shrink-0" : "flex-1"}`}>
+      <div className={`flex flex-col bg-card border-r border-border transition-all duration-200 ${selectedId || selectedScope3 ? "w-[400px] flex-shrink-0" : "flex-1"}`}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200">
+        <div className="px-6 py-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "Review & Approvals" }]} />
-              <h1 className="text-lg font-bold text-brand-navy tracking-tight">Review & Approvals</h1>
-              <p className="text-label text-slate-500 mt-0.5">{total + scope3Batches.length} submission{(total + scope3Batches.length) !== 1 ? "s" : ""}</p>
+              <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "Review & Approvals" }]} className="mb-1" />
+              <h1 className="text-xl font-extrabold text-foreground tracking-tight">Review & Approvals</h1>
+              <p className="text-label text-muted-foreground mt-0.5">{total + scope3Batches.length} submission{(total + scope3Batches.length) !== 1 ? "s" : ""}</p>
             </div>
           </div>
-          {/* Filter tabs */}
-          <div className="flex gap-1 flex-wrap">
-            {FILTER_TABS.map(tab => {
-              const count = tab.key ? filterCounts[tab.key] : undefined;
-              return (
-                <button
-                  key={tab.key}
-                  onClick={() => { setActiveFilter(tab.key); setSelectedId(null); setDetail(null); }}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all flex items-center gap-1 ${activeFilter === tab.key ? "bg-brand-navy text-white" : "text-slate-500 hover:bg-slate-100"}`}
-                >
-                  {tab.label}
-                  {count != null && count > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeFilter === tab.key ? "bg-white/20 text-white" : "bg-brand-accent/10 text-brand-accent"}`}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <PageTabs
+            tabs={FILTER_TABS.map((tab) => ({
+              key: tab.key,
+              label: tab.label,
+              count: tab.key ? filterCounts[tab.key as keyof typeof filterCounts] : undefined,
+            }))}
+            value={activeFilter}
+            onChange={(key) => { setActiveFilter(key); clearSelection(); }}
+          />
         </div>
 
         {/* List */}
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-12 text-[13px] text-slate-400 animate-pulse">Loading…</div>
+            <div className="flex items-center justify-center py-12 text-[13px] text-muted-foreground animate-pulse">Loading…</div>
           ) : submissions.length === 0 && scope3Batches.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-              <ClipboardCheck size={32} className="mb-3 text-slate-300" />
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <ClipboardCheck size={32} className="mb-3 text-muted-foreground/40" />
               <p className="text-[13px] font-semibold">No submissions found</p>
               <p className="text-[12px] mt-1">
                 {activeFilter ? `No ${activeFilter.toLowerCase()} submissions` : "No submissions yet"}
@@ -394,40 +406,40 @@ export default function ReviewPage() {
             return (
               <button
                 key={sub.submission_id}
-                onClick={() => loadDetail(sub.submission_id)}
-                className={`w-full text-left px-5 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors
-                  ${isSelected ? "bg-sky-50/60 border-l-2 border-l-brand-accent" : ""}`}
+                onClick={() => selectSubmission(sub.submission_id)}
+                className={`w-full text-left px-5 py-3 border-b border-[hsl(var(--border-hairline))] hover:bg-sunken transition-colors
+                  ${isSelected ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
               >
                 <div className="flex items-start justify-between gap-2 mb-1.5">
                   <div className="flex items-center gap-2 min-w-0">
-                    <MapPin size={13} className="text-slate-400 flex-shrink-0" />
-                    <span className="text-[13px] font-bold text-brand-navy truncate">{sub.location_name}</span>
+                    <MapPin size={13} className="text-muted-foreground flex-shrink-0" />
+                    <span className="text-[13px] font-bold text-foreground truncate">{sub.location_name}</span>
                   </div>
                   <StatusPill status={sub.status} />
                 </div>
-                <div className="flex items-center gap-3 text-[12px] text-slate-500 mb-2">
+                <div className="flex items-center gap-3 text-[12px] text-muted-foreground mb-2">
                   <span className="flex items-center gap-1">
-                    <Calendar size={11} className="text-slate-400" />
+                    <Calendar size={11} className="text-muted-foreground" />
                     {sub.month_name} · {sub.year_label}
                   </span>
-                  <span className="text-slate-300">|</span>
-                  <span><span className="font-semibold text-brand-navy">{sub.filled_count}</span>/{sub.kpi_count} KPIs</span>
+                  <span className="text-muted-foreground/40">|</span>
+                  <span><span className="font-semibold text-foreground">{sub.filled_count}</span>/{sub.kpi_count} KPIs</span>
                 </div>
                 {/* Progress bar */}
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
+                <div className="h-1.5 bg-sunken rounded-full overflow-hidden mb-2">
                   <div
-                    className={`h-full rounded-full transition-all ${sub.status === "APPROVED" ? "bg-emerald-400" : sub.status === "REJECTED" ? "bg-red-400" : "bg-brand-accent"}`}
+                    className={`h-full rounded-full transition-all ${sub.status === "APPROVED" ? "bg-ok" : sub.status === "REJECTED" ? "bg-destructive" : "bg-primary"}`}
                     style={{ width: `${completeness}%` }}
                   />
                 </div>
                 {sub.submitted_by_name && (
-                  <p className="text-[11px] text-slate-400">
-                    Submitted by <span className="font-medium text-slate-500">{sub.submitted_by_name}</span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Submitted by <span className="font-medium text-muted-foreground">{sub.submitted_by_name}</span>
                     {relativeDate && ` · ${relativeDate}`}
                   </p>
                 )}
                 {sub.reviewer_notes && sub.status === "REJECTED" && (
-                  <p className="text-[11px] text-red-500 mt-1 truncate">Reason: {sub.reviewer_notes}</p>
+                  <p className="text-[11px] text-destructive mt-1 truncate">Reason: {sub.reviewer_notes}</p>
                 )}
               </button>
             );
@@ -436,9 +448,9 @@ export default function ReviewPage() {
           {/* ── Scope 3 Batches ── */}
           {scope3Batches.length > 0 && (
             <>
-              <div className="px-5 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+              <div className="px-5 py-2 bg-sunken border-b border-[hsl(var(--border-hairline))] flex items-center gap-2">
                 <Package2 size={12} className="text-violet-500" />
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Scope 3 Batches</span>
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Scope 3 Batches</span>
               </div>
               {scope3Batches.map((b) => {
                 const isSelected = selectedScope3?.batch_id === b.batch_id;
@@ -449,33 +461,33 @@ export default function ReviewPage() {
                   <button
                     key={b.batch_id}
                     onClick={() => loadScope3Detail(b)}
-                    className={`w-full text-left px-5 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors
-                      ${isSelected ? "bg-violet-50/60 border-l-2 border-l-violet-500" : ""}`}
+                    className={`w-full text-left px-5 py-3 border-b border-[hsl(var(--border-hairline))] hover:bg-sunken transition-colors
+                      ${isSelected ? "bg-accent/60 border-l-2 border-l-violet-500" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2 min-w-0">
                         <Package2 size={13} className="text-violet-500 flex-shrink-0" />
-                        <span className="text-[13px] font-bold text-brand-navy truncate">{b.ghg_category_name}</span>
+                        <span className="text-[13px] font-bold text-foreground truncate">{b.ghg_category_name}</span>
                       </div>
                       <StatusPill status={b.status} />
                     </div>
-                    <div className="flex items-center gap-3 text-[12px] text-slate-500 mb-1.5">
+                    <div className="flex items-center gap-3 text-[12px] text-muted-foreground mb-1.5">
                       <span className="flex items-center gap-1">
-                        <Calendar size={11} className="text-slate-400" />
+                        <Calendar size={11} className="text-muted-foreground" />
                         {monthLabel} {b.reporting_year}
                       </span>
-                      <span className="text-slate-300">|</span>
+                      <span className="text-muted-foreground/40">|</span>
                       <span>{b.total_rows} entries</span>
-                      <span className="text-slate-300">|</span>
-                      <span className="font-semibold text-brand-navy">{(b.total_emissions ?? 0).toFixed(2)} tCO2e</span>
+                      <span className="text-muted-foreground/40">|</span>
+                      <span className="font-semibold text-foreground">{(b.total_emissions ?? 0).toFixed(2)} tCO2e</span>
                     </div>
                     {b.uploader_name && (
-                      <p className="text-[11px] text-slate-400">
-                        By <span className="font-medium text-slate-500">{b.uploader_name}</span>
+                      <p className="text-[11px] text-muted-foreground">
+                        By <span className="font-medium text-muted-foreground">{b.uploader_name}</span>
                       </p>
                     )}
                     {b.rejection_reason && b.status === "REJECTED" && (
-                      <p className="text-[11px] text-red-500 mt-1 truncate">Reason: {b.rejection_reason}</p>
+                      <p className="text-[11px] text-destructive mt-1 truncate">Reason: {b.rejection_reason}</p>
                     )}
                   </button>
                 );
@@ -504,59 +516,59 @@ export default function ReviewPage() {
         <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {detailLoading ? (
-            <div className="flex-1 flex items-center justify-center text-[13px] text-slate-400 animate-pulse">
+            <div className="flex-1 flex items-center justify-center text-[13px] text-muted-foreground animate-pulse">
               Loading submission…
             </div>
           ) : detail ? (
             <>
               {/* Detail header */}
-              <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0">
+              <div className="bg-card border-b border-border px-6 py-4 flex-shrink-0">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-3 mb-1">
-                      <h2 className="text-[16px] font-bold text-brand-navy">
+                      <h2 className="text-[16px] font-bold text-foreground">
                         {selectedSubmission?.location_name || "Submission"}
                       </h2>
                       {detailStatusCfg && <StatusPill status={detail.status} />}
                     </div>
-                    <div className="flex items-center gap-3 text-[12px] text-slate-500">
+                    <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <Calendar size={12} className="text-slate-400" />
+                        <Calendar size={12} className="text-muted-foreground" />
                         {selectedSubmission?.month_name} · {selectedSubmission?.year_label}
                       </span>
-                      <span className="text-slate-300">|</span>
+                      <span className="text-muted-foreground/40">|</span>
                       <span>{detail.kpi_values.length} value{detail.kpi_values.length !== 1 ? "s" : ""} filled</span>
                     </div>
                     {detail.status === "REJECTED" && detail.reviewer_notes && (
-                      <div className="mt-2 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                        <AlertCircle size={13} className="text-red-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-[12px] text-red-600">{detail.reviewer_notes}</span>
+                      <div className="mt-2 flex items-start gap-2 bg-destructive-tint border border-destructive/30 rounded-lg px-3 py-2">
+                        <AlertCircle size={13} className="text-destructive flex-shrink-0 mt-0.5" />
+                        <span className="text-[12px] text-destructive">{detail.reviewer_notes}</span>
                       </div>
                     )}
                     {detail.status === "APPROVED" && (
-                      <div className="mt-2 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                      <div className="mt-2 flex items-center gap-2 bg-ok-tint border border-ok/30 rounded-lg px-3 py-2">
                         <CheckCircle2 size={13} className="text-emerald-500" />
-                        <span className="text-[12px] text-emerald-600 font-semibold">Approved{detail.reviewed_at ? ` on ${formatDate(detail.reviewed_at)}` : ""}</span>
+                        <span className="text-[12px] text-ok font-semibold">Approved{detail.reviewed_at ? ` on ${formatDate(detail.reviewed_at)}` : ""}</span>
                       </div>
                     )}
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       onClick={() => setShowRemarksPanel((v) => !v)}
-                      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${showRemarksPanel ? "bg-brand-accent text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${showRemarksPanel ? "bg-primary text-white" : "border border-border text-muted-foreground hover:bg-sunken"}`}
                       title="Auditor Remarks"
                     >
                       <MessageSquare size={13} />
                       Remarks
                       {remarksCount > 0 && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${showRemarksPanel ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${showRemarksPanel ? "bg-primary-foreground/20 text-white" : "bg-warn-tint text-warn"}`}>
                           {remarksCount}
                         </span>
                       )}
                     </button>
                     <button
-                      onClick={() => { setSelectedId(null); setDetail(null); setShowRemarksPanel(false); }}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400"
+                      onClick={() => { clearSelection(); setShowRemarksPanel(false); }}
+                      className="p-1.5 rounded-lg hover:bg-sunken text-muted-foreground"
                     >
                       <XIcon size={16} />
                     </button>
@@ -567,7 +579,7 @@ export default function ReviewPage() {
                 <div className="flex gap-1 mt-3 overflow-x-auto">
                   <button
                     onClick={() => setActiveDetailModule(null)}
-                    className={`px-3 py-1 rounded-md text-[12px] font-semibold whitespace-nowrap transition-all ${activeDetailModule === null ? "bg-brand-navy text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                    className={`px-3 py-1 rounded-md text-[12px] font-semibold whitespace-nowrap transition-all ${activeDetailModule === null ? "bg-primary text-white" : "text-muted-foreground hover:bg-sunken"}`}
                   >
                     All
                   </button>
@@ -580,11 +592,11 @@ export default function ReviewPage() {
                       <button
                         key={m.module_id}
                         onClick={() => setActiveDetailModule(m.module_id === activeDetailModule ? null : m.module_id)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-semibold whitespace-nowrap transition-all ${activeDetailModule === m.module_id ? "text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-semibold whitespace-nowrap transition-all ${activeDetailModule === m.module_id ? "text-white" : "text-muted-foreground hover:bg-sunken"}`}
                         style={activeDetailModule === m.module_id ? { background: m.color } : {}}
                       >
                         <Icon size={12} /> {m.module_name}
-                        <span className={`text-[10px] ${activeDetailModule === m.module_id ? "opacity-75" : "text-slate-400"}`}>{filled}</span>
+                        <span className={`text-[10px] ${activeDetailModule === m.module_id ? "opacity-75" : "text-muted-foreground"}`}>{filled}</span>
                       </button>
                     );
                   })}
@@ -603,9 +615,9 @@ export default function ReviewPage() {
                   });
                   if (!hasAnyData && detail.kpi_values.length === 0) {
                     return (
-                      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                        <BarChart3 size={32} className="mb-3 text-slate-300" />
-                        <p className="text-[13px] font-semibold text-slate-500">No data entered</p>
+                      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                        <BarChart3 size={32} className="mb-3 text-muted-foreground/40" />
+                        <p className="text-[13px] font-semibold text-muted-foreground">No data entered</p>
                         <p className="text-[12px] mt-1">This submission has no KPI values recorded</p>
                       </div>
                     );
@@ -626,18 +638,18 @@ export default function ReviewPage() {
                   if (filledModKpis.length === 0 && directInds.length === 0) return null;
 
                   return (
-                    <div key={mod.module_id} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div key={mod.module_id} className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
                       {/* Module header */}
-                      <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100" style={{ background: mod.bg_color }}>
+                      <div className="flex items-center gap-3 px-5 py-3 border-b border-[hsl(var(--border-hairline))]" style={{ background: mod.bg_color }}>
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: mod.color + "22" }}>
                           <Icon size={14} style={{ color: mod.color }} />
                         </div>
-                        <span className="text-[13px] font-bold text-brand-navy">{mod.module_name}</span>
-                        <span className="text-[11px] text-slate-400">{filledModKpis.length + directInds.length} values</span>
+                        <span className="text-[13px] font-bold text-foreground">{mod.module_name}</span>
+                        <span className="text-[11px] text-muted-foreground">{filledModKpis.length + directInds.length} values</span>
                       </div>
 
                       {/* Column headers */}
-                      <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 px-5 py-2 bg-slate-50/60 border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-[0.07em]">
+                      <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 px-5 py-2 bg-sunken/60 border-b border-[hsl(var(--border-hairline))] text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.07em]">
                         <span>KPI / Indicator</span>
                         <span>Unit</span>
                         <span className="text-right">Quantity</span>
@@ -652,22 +664,22 @@ export default function ReviewPage() {
                         const key = `ind_${ind.indicator_id}`;
                         const docOpen = docPanelOpen.has(key);
                         return (
-                          <div key={ind.indicator_id} className="border-b border-slate-100 last:border-b-0">
-                            <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 items-center px-5 py-2.5 hover:bg-slate-50/30">
+                          <div key={ind.indicator_id} className="border-b border-[hsl(var(--border-hairline))] last:border-b-0">
+                            <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 items-center px-5 py-2.5 hover:bg-sunken/30">
                               <div className="flex items-center gap-2 min-w-0">
-                                <BarChart3 size={12} className="text-brand-accent/50 flex-shrink-0" />
-                                <span className="text-[12px] text-brand-navy truncate">{ind.indicator_name}</span>
-                                <span className="text-[10px] bg-sky-50 text-sky-600 border border-sky-200 px-1 rounded font-semibold flex-shrink-0">Direct</span>
+                                <BarChart3 size={12} className="text-primary/50 flex-shrink-0" />
+                                <span className="text-[12px] text-foreground truncate">{ind.indicator_name}</span>
+                                <span className="text-[10px] bg-info-tint text-info border border-info/30 px-1 rounded font-semibold flex-shrink-0">Direct</span>
                               </div>
-                              <span className="text-[11px] text-slate-400 font-mono">—</span>
-                              <span className="text-right text-[13px] font-mono font-semibold text-brand-navy">
+                              <span className="text-[11px] text-muted-foreground font-mono">—</span>
+                              <span className="text-right text-[13px] font-mono font-semibold text-foreground">
                                 {Number(v.quantity).toLocaleString()}
                               </span>
-                              <span className="text-right text-[12px] font-mono text-slate-400">—</span>
-                              <span className="text-right text-[12px] font-mono text-slate-400">—</span>
+                              <span className="text-right text-[12px] font-mono text-muted-foreground">—</span>
+                              <span className="text-right text-[12px] font-mono text-muted-foreground">—</span>
                               <button
                                 onClick={() => toggleDocPanel(key)}
-                                className={`relative flex items-center justify-center w-6 h-6 rounded transition-all ${docOpen ? "text-brand-accent" : recordDocCounts[v.record_id] > 0 ? "text-amber-400 hover:text-amber-500" : "text-slate-300 hover:text-slate-500"}`}
+                                className={`relative flex items-center justify-center w-6 h-6 rounded transition-all ${docOpen ? "text-primary" : recordDocCounts[v.record_id] > 0 ? "text-amber-400 hover:text-amber-500" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
                               >
                                 <Paperclip size={11} />
                                 {recordDocCounts[v.record_id] > 0 && !docOpen && (
@@ -688,14 +700,14 @@ export default function ReviewPage() {
                         if (indKpis.length === 0) return null;
                         const isExp = expandedIndicators.has(ind.indicator_id);
                         return (
-                          <div key={ind.indicator_id} className="border-b border-slate-100 last:border-b-0">
+                          <div key={ind.indicator_id} className="border-b border-[hsl(var(--border-hairline))] last:border-b-0">
                             <button
                               onClick={() => toggleIndicator(ind.indicator_id)}
-                              className="w-full flex items-center gap-2 px-5 py-2 bg-slate-50/40 hover:bg-slate-50 transition-colors text-left"
+                              className="w-full flex items-center gap-2 px-5 py-2 bg-sunken/40 hover:bg-sunken transition-colors text-left"
                             >
-                              {isExp ? <ChevronDown size={13} className="text-slate-400" /> : <ChevronRight size={13} className="text-slate-400" />}
-                              <span className="text-[12px] font-semibold text-brand-navy">{ind.indicator_name}</span>
-                              <span className="text-[10px] text-slate-400 ml-auto">{indKpis.length}</span>
+                              {isExp ? <ChevronDown size={13} className="text-muted-foreground" /> : <ChevronRight size={13} className="text-muted-foreground" />}
+                              <span className="text-[12px] font-semibold text-foreground">{ind.indicator_name}</span>
+                              <span className="text-[10px] text-muted-foreground ml-auto">{indKpis.length}</span>
                             </button>
                             {isExp && indKpis.map((kpi: KPI) => {
                               const v = kpiValueMap[kpi.kpi_id];
@@ -703,33 +715,33 @@ export default function ReviewPage() {
                               const docOpen = docPanelOpen.has(key);
                               const isAutoEmission = kpi.is_emission_source;
                               return (
-                                <div key={kpi.kpi_id} className="border-t border-slate-100/70">
-                                  <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 items-center px-5 py-2.5 hover:bg-slate-50/30">
+                                <div key={kpi.kpi_id} className="border-t border-[hsl(var(--border-hairline))]/70">
+                                  <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 items-center px-5 py-2.5 hover:bg-sunken/30">
                                     <div className="flex items-center gap-2 min-w-0">
-                                      {isAutoEmission ? <Lock size={11} className="text-slate-300 flex-shrink-0" /> : <BarChart3 size={12} className="text-slate-300 flex-shrink-0" />}
-                                      <span className="text-[12px] text-brand-navy truncate">{kpi.kpi_name}</span>
+                                      {isAutoEmission ? <Lock size={11} className="text-muted-foreground/40 flex-shrink-0" /> : <BarChart3 size={12} className="text-muted-foreground/40 flex-shrink-0" />}
+                                      <span className="text-[12px] text-foreground truncate">{kpi.kpi_name}</span>
                                     </div>
-                                    <span className="text-[11px] text-slate-400 font-mono">{kpi.unit}</span>
-                                    <span className="text-right text-[13px] font-mono font-semibold text-brand-navy">
+                                    <span className="text-[11px] text-muted-foreground font-mono">{kpi.unit}</span>
+                                    <span className="text-right text-[13px] font-mono font-semibold text-foreground">
                                       {Number(v.quantity).toLocaleString()}
                                     </span>
                                     <div className="relative group text-right">
-                                      <span className={`text-[12px] font-mono text-slate-500 ${v.mj_value != null ? "cursor-help" : ""}`}>
+                                      <span className={`text-[12px] font-mono text-muted-foreground ${v.mj_value != null ? "cursor-help" : ""}`}>
                                         {v.mj_value != null ? Number(v.mj_value).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}
                                       </span>
                                       {v.mj_value != null && Number(v.quantity) > 0 && (
-                                        <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-20 bg-brand-navy text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                                        <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-20 bg-primary text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                                           <span className="text-white/60">MJ factor · </span>
                                           {(Number(v.mj_value) / Number(v.quantity)).toFixed(4)} MJ / {kpi.unit}
                                         </div>
                                       )}
                                     </div>
                                     <div className="relative group text-right">
-                                      <span className={`text-[12px] font-mono text-slate-500 ${v.emission_value != null ? "cursor-help" : ""}`}>
+                                      <span className={`text-[12px] font-mono text-muted-foreground ${v.emission_value != null ? "cursor-help" : ""}`}>
                                         {v.emission_value != null ? Number(v.emission_value).toLocaleString(undefined, { maximumFractionDigits: 4 }) : "—"}
                                       </span>
                                       {v.emission_value != null && Number(v.quantity) > 0 && (
-                                        <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-20 bg-brand-navy text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                                        <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-20 bg-primary text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                                           <span className="text-white/60">Emission factor · </span>
                                           {(Number(v.emission_value) / Number(v.quantity)).toFixed(4)} tCO₂e / {kpi.unit}
                                         </div>
@@ -737,7 +749,7 @@ export default function ReviewPage() {
                                     </div>
                                     <button
                                       onClick={() => toggleDocPanel(key)}
-                                      className={`relative flex items-center justify-center w-6 h-6 rounded transition-all ${docOpen ? "text-brand-accent" : recordDocCounts[v.record_id] > 0 ? "text-amber-400 hover:text-amber-500" : "text-slate-300 hover:text-slate-500"}`}
+                                      className={`relative flex items-center justify-center w-6 h-6 rounded transition-all ${docOpen ? "text-primary" : recordDocCounts[v.record_id] > 0 ? "text-amber-400 hover:text-amber-500" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
                                     >
                                       <Paperclip size={11} />
                                       {recordDocCounts[v.record_id] > 0 && !docOpen && (
@@ -761,33 +773,33 @@ export default function ReviewPage() {
                         const key = `kpi_${kpi.kpi_id}`;
                         const docOpen = docPanelOpen.has(key);
                         return (
-                          <div key={kpi.kpi_id} className="border-t border-slate-100/70">
-                            <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 items-center px-5 py-2.5 hover:bg-slate-50/30">
+                          <div key={kpi.kpi_id} className="border-t border-[hsl(var(--border-hairline))]/70">
+                            <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 items-center px-5 py-2.5 hover:bg-sunken/30">
                               <div className="flex items-center gap-2 min-w-0">
-                                <BarChart3 size={12} className="text-slate-300 flex-shrink-0" />
-                                <span className="text-[12px] text-brand-navy truncate">{kpi.kpi_name}</span>
+                                <BarChart3 size={12} className="text-muted-foreground/40 flex-shrink-0" />
+                                <span className="text-[12px] text-foreground truncate">{kpi.kpi_name}</span>
                               </div>
-                              <span className="text-[11px] text-slate-400 font-mono">{kpi.unit}</span>
-                              <span className="text-right text-[13px] font-mono font-semibold text-brand-navy">
+                              <span className="text-[11px] text-muted-foreground font-mono">{kpi.unit}</span>
+                              <span className="text-right text-[13px] font-mono font-semibold text-foreground">
                                 {Number(v.quantity).toLocaleString()}
                               </span>
                               <div className="relative group text-right">
-                                <span className={`text-[12px] font-mono text-slate-500 ${v.mj_value != null ? "cursor-help" : ""}`}>
+                                <span className={`text-[12px] font-mono text-muted-foreground ${v.mj_value != null ? "cursor-help" : ""}`}>
                                   {v.mj_value != null ? Number(v.mj_value).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}
                                 </span>
                                 {v.mj_value != null && Number(v.quantity) > 0 && (
-                                  <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-20 bg-brand-navy text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                                  <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-20 bg-primary text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                                     <span className="text-white/60">MJ factor · </span>
                                     {(Number(v.mj_value) / Number(v.quantity)).toFixed(4)} MJ / {kpi.unit}
                                   </div>
                                 )}
                               </div>
                               <div className="relative group text-right">
-                                <span className={`text-[12px] font-mono text-slate-500 ${v.emission_value != null ? "cursor-help" : ""}`}>
+                                <span className={`text-[12px] font-mono text-muted-foreground ${v.emission_value != null ? "cursor-help" : ""}`}>
                                   {v.emission_value != null ? Number(v.emission_value).toLocaleString(undefined, { maximumFractionDigits: 4 }) : "—"}
                                 </span>
                                 {v.emission_value != null && Number(v.quantity) > 0 && (
-                                  <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-20 bg-brand-navy text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                                  <div className="pointer-events-none absolute bottom-full right-0 mb-1.5 hidden group-hover:block z-20 bg-primary text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                                     <span className="text-white/60">Emission factor · </span>
                                     {(Number(v.emission_value) / Number(v.quantity)).toFixed(4)} tCO₂e / {kpi.unit}
                                   </div>
@@ -795,7 +807,7 @@ export default function ReviewPage() {
                               </div>
                               <button
                                 onClick={() => toggleDocPanel(key)}
-                                className={`relative flex items-center justify-center w-6 h-6 rounded transition-all ${docOpen ? "text-brand-accent" : recordDocCounts[v.record_id] > 0 ? "text-amber-400 hover:text-amber-500" : "text-slate-300 hover:text-slate-500"}`}
+                                className={`relative flex items-center justify-center w-6 h-6 rounded transition-all ${docOpen ? "text-primary" : recordDocCounts[v.record_id] > 0 ? "text-amber-400 hover:text-amber-500" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
                               >
                                 <Paperclip size={11} />
                                 {recordDocCounts[v.record_id] > 0 && !docOpen && (
@@ -815,26 +827,26 @@ export default function ReviewPage() {
 
                 {/* Submission-level documents */}
                 {detailDocs.length > 0 && (
-                  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                    <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
-                      <Paperclip size={14} className="text-slate-400" />
-                      <span className="text-[13px] font-bold text-brand-navy">Supporting Documents</span>
-                      <span className="text-[11px] text-slate-400">{detailDocs.length} file{detailDocs.length !== 1 ? "s" : ""}</span>
+                  <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+                    <div className="flex items-center gap-2 px-5 py-3 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
+                      <Paperclip size={14} className="text-muted-foreground" />
+                      <span className="text-[13px] font-bold text-foreground">Supporting Documents</span>
+                      <span className="text-[11px] text-muted-foreground">{detailDocs.length} file{detailDocs.length !== 1 ? "s" : ""}</span>
                     </div>
-                    <div className="divide-y divide-slate-100">
+                    <div className="divide-y divide-border/60">
                       {detailDocs.map((doc: any) => (
                         <div key={doc.document_id} className="flex items-center gap-3 px-5 py-3">
-                          <FileText size={13} className="text-slate-400 flex-shrink-0" />
+                          <FileText size={13} className="text-muted-foreground flex-shrink-0" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-medium text-brand-navy truncate">{doc.file_name}</p>
-                            <p className="text-[11px] text-slate-400">
+                            <p className="text-[13px] font-medium text-foreground truncate">{doc.file_name}</p>
+                            <p className="text-[11px] text-muted-foreground">
                               {doc.file_size_bytes ? `${(doc.file_size_bytes / 1024).toFixed(1)} KB · ` : ""}
                               {formatDate(doc.uploaded_at)}
                             </p>
                           </div>
                           <button
                             onClick={() => handleDownloadDoc(doc.document_id, doc.file_name)}
-                            className="p-1.5 rounded hover:bg-sky-50 text-slate-400 hover:text-brand-accent transition-colors"
+                            className="p-1.5 rounded hover:bg-info-tint text-muted-foreground hover:text-primary transition-colors"
                           >
                             <Download size={13} />
                           </button>
@@ -846,13 +858,13 @@ export default function ReviewPage() {
 
                 {/* Already reviewed info */}
                 {(detail.status === "APPROVED" || detail.status === "REJECTED") && (
-                  <div className={`rounded-xl border p-4 text-[12px] ${detail.status === "APPROVED" ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>
-                    <p className={`font-semibold mb-1 ${detail.status === "APPROVED" ? "text-emerald-700" : "text-red-700"}`}>
+                  <div className={`rounded-xl border p-4 text-[12px] ${detail.status === "APPROVED" ? "bg-ok-tint border-ok/30" : "bg-destructive-tint border-destructive/30"}`}>
+                    <p className={`font-semibold mb-1 ${detail.status === "APPROVED" ? "text-ok" : "text-destructive"}`}>
                       {detail.status === "APPROVED" ? "Approved" : "Rejected"}
                       {detail.reviewed_at && ` on ${formatDate(detail.reviewed_at)}`}
                     </p>
                     {detail.reviewer_notes && (
-                      <p className={detail.status === "APPROVED" ? "text-emerald-600" : "text-red-600"}>
+                      <p className={detail.status === "APPROVED" ? "text-ok" : "text-destructive"}>
                         {detail.reviewer_notes}
                       </p>
                     )}
@@ -862,10 +874,10 @@ export default function ReviewPage() {
 
               {/* ── Review action panel (sticky bottom) ── */}
               {canReview && detail.status === "SUBMITTED" && (
-                <div className="bg-white border-t border-slate-200 px-6 py-4 flex-shrink-0 shadow-lg">
-                  <p className="text-[12px] font-bold text-brand-navy mb-2">
+                <div className="bg-card border-t border-border px-6 py-4 flex-shrink-0 shadow-lg">
+                  <p className="text-[12px] font-bold text-foreground mb-2">
                     Review Decision
-                    {showRejectInput && <span className="text-red-500 ml-1">— Rejection notes required</span>}
+                    {showRejectInput && <span className="text-destructive ml-1">— Rejection notes required</span>}
                   </p>
                   <textarea
                     value={reviewNotes}
@@ -873,7 +885,7 @@ export default function ReviewPage() {
                     rows={2}
                     placeholder={showRejectInput ? "Provide a reason for rejection (required)…" : "Optional notes for the submitter…"}
                     className={`w-full py-2 px-3 rounded-lg border text-[13px] outline-none resize-none transition-colors mb-3
-                      ${showRejectInput ? "border-red-200 focus:border-red-400" : "border-slate-200 focus:border-brand-accent"}`}
+                      ${showRejectInput ? "border-destructive/30 focus:border-red-400" : "border-border focus:border-primary"}`}
                   />
                   <div className="flex items-center gap-2">
                     {!showRejectInput ? (
@@ -881,13 +893,13 @@ export default function ReviewPage() {
                         <button
                           onClick={handleApprove}
                           disabled={actionLoading}
-                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-emerald-500 text-white text-[13px] font-semibold hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-ok text-white text-[13px] font-semibold hover:bg-emerald-600 transition-colors disabled:opacity-50"
                         >
                           <Check size={15} /> {actionLoading ? "Processing…" : "Approve Submission"}
                         </button>
                         <button
                           onClick={() => setShowRejectInput(true)}
-                          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-red-200 text-red-600 text-[13px] font-semibold hover:bg-red-50 transition-colors"
+                          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg border border-destructive/30 text-destructive text-[13px] font-semibold hover:bg-destructive-tint transition-colors"
                         >
                           <XIcon size={15} /> Reject
                         </button>
@@ -897,13 +909,13 @@ export default function ReviewPage() {
                         <button
                           onClick={handleReject}
                           disabled={actionLoading || !reviewNotes.trim()}
-                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-500 text-white text-[13px] font-semibold hover:bg-red-600 transition-colors disabled:opacity-50"
+                          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-destructive text-white text-[13px] font-semibold hover:bg-red-600 transition-colors disabled:opacity-50"
                         >
                           <XCircle size={15} /> {actionLoading ? "Processing…" : "Confirm Rejection"}
                         </button>
                         <button
                           onClick={() => { setShowRejectInput(false); setReviewNotes(""); }}
-                          className="px-4 py-2.5 rounded-lg border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                          className="px-4 py-2.5 rounded-lg border border-border text-[13px] font-semibold text-muted-foreground hover:bg-sunken transition-colors"
                         >
                           Cancel
                         </button>
@@ -914,7 +926,7 @@ export default function ReviewPage() {
               )}
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-400">
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <p className="text-[13px]">Failed to load submission</p>
             </div>
           )}
@@ -931,10 +943,10 @@ export default function ReviewPage() {
 
       {/* Empty right panel prompt when nothing selected */}
       {!selectedId && !selectedScope3 && (
-        <div className="hidden lg:flex flex-1 items-center justify-center bg-slate-50">
-          <div className="text-center text-slate-400">
-            <ClipboardCheck size={40} className="mx-auto mb-3 text-slate-300" />
-            <p className="text-[14px] font-semibold text-slate-500">Select a submission to review</p>
+        <div className="hidden lg:flex flex-1 items-center justify-center bg-sunken">
+          <div className="text-center text-muted-foreground">
+            <ClipboardCheck size={40} className="mx-auto mb-3 text-muted-foreground/40" />
+            <p className="text-[14px] font-semibold text-muted-foreground">Select a submission to review</p>
             <p className="text-[12px] mt-1">Click any item on the left to view details</p>
           </div>
         </div>

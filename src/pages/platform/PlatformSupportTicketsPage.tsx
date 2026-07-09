@@ -14,7 +14,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LifeBuoy, Send, Check, MessageSquare, Clock, RefreshCw, ShieldAlert } from "lucide-react";
 import { platformApi } from "@/api/client";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { formatDateTime, getApiError } from "@/lib/utils";
 import { toast } from "sonner";
 import { SupportAccessDialog } from "@/components/platform/SupportAccessDialog";
@@ -53,10 +54,10 @@ interface TicketDetail extends TicketSummary {
 }
 
 const STATUS_BADGE: Record<TicketStatus, string> = {
-  OPEN:              "bg-amber-50 text-amber-700 border-amber-200",
-  PENDING_PLATFORM:  "bg-amber-50 text-amber-700 border-amber-200",
-  PENDING_TENANT:    "bg-sky-50 text-sky-700 border-sky-200",
-  CLOSED:            "bg-slate-50 text-slate-500 border-slate-200",
+  OPEN:              "bg-warn-tint text-warn border-warn/30",
+  PENDING_PLATFORM:  "bg-warn-tint text-warn border-warn/30",
+  PENDING_TENANT:    "bg-info-tint text-info border-info/30",
+  CLOSED:            "bg-sunken text-muted-foreground border-border",
 };
 const STATUS_LABEL: Record<TicketStatus, string> = {
   OPEN:              "Awaiting Reply",
@@ -108,17 +109,16 @@ export default function PlatformSupportTicketsPage() {
   }, [tickets, statusFilter]);
 
   return (
-    <div className="p-6 max-w-[1600px]">
-      <PageHeader
-        title="Support Tickets"
-        description="In-app helpdesk inbox — replies route back into the tenant's portal automatically."
-        breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Support Tickets" }]}
-      >
+    <PageShell
+      title="Support Tickets"
+      description="In-app helpdesk inbox — replies route back into the tenant's portal automatically."
+      breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Support Tickets" }]}
+      actions={
         <Button onClick={refreshList} variant="outline" className="text-[13px] h-8 px-3 inline-flex items-center gap-1.5">
           <RefreshCw size={14} /> Refresh
         </Button>
-      </PageHeader>
-
+      }
+    >
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-5 lg:col-span-4">
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
@@ -133,8 +133,8 @@ export default function PlatformSupportTicketsPage() {
                 onClick={() => setStatusFilter(v)}
                 className={`text-[11px] px-2 py-1 rounded border transition-colors ${
                   statusFilter === v
-                    ? "border-brand-accent bg-brand-accent/10 text-brand-accent font-semibold"
-                    : "border-slate-200 text-slate-500 hover:bg-slate-50"
+                    ? "border-primary bg-primary/10 text-primary font-semibold"
+                    : "border-border text-muted-foreground hover:bg-sunken"
                 }`}
               >
                 {l}
@@ -142,13 +142,13 @@ export default function PlatformSupportTicketsPage() {
             ))}
           </div>
 
-          <div className="border border-slate-200 rounded-lg bg-white max-h-[calc(100vh-220px)] overflow-y-auto">
+          <div className="border border-border rounded-lg bg-card max-h-[calc(100vh-220px)] overflow-y-auto">
             {loadingList ? (
-              <div className="text-[12px] text-slate-400 text-center py-10">Loading…</div>
+              <div className="text-[12px] text-muted-foreground text-center py-10">Loading…</div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-12 px-4">
-                <LifeBuoy size={28} className="mx-auto text-slate-300 mb-2" />
-                <p className="text-[13px] text-slate-500">No tickets in this view.</p>
+                <LifeBuoy size={28} className="mx-auto text-muted-foreground/40 mb-2" />
+                <p className="text-[13px] text-muted-foreground">No tickets in this view.</p>
               </div>
             ) : (
               filtered.map((t) => {
@@ -157,8 +157,8 @@ export default function PlatformSupportTicketsPage() {
                   <button
                     key={t.ticket_id}
                     onClick={() => setSelectedId(t.ticket_id)}
-                    className={`block w-full text-left px-3 py-2.5 border-b border-slate-100 transition-colors ${
-                      isActive ? "bg-brand-accent/5" : "hover:bg-slate-50"
+                    className={`block w-full text-left px-3 py-2.5 border-b border-[hsl(var(--border-hairline))] transition-colors ${
+                      isActive ? "bg-primary/5" : "hover:bg-sunken"
                     }`}
                   >
                     <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
@@ -166,17 +166,17 @@ export default function PlatformSupportTicketsPage() {
                         {STATUS_LABEL[t.status]}
                       </span>
                       {t.priority === "HIGH" && (
-                        <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">High</span>
+                        <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-destructive-tint text-destructive border border-destructive/30">High</span>
                       )}
-                      <span className="text-[10px] text-slate-500 truncate">{t.company_name ?? "—"}</span>
+                      <span className="text-[10px] text-muted-foreground truncate">{t.company_name ?? "—"}</span>
                     </div>
-                    <p className="text-[13px] font-semibold text-brand-navy truncate">{t.subject}</p>
+                    <p className="text-[13px] font-semibold text-foreground truncate">{t.subject}</p>
                     {t.last_message_preview && (
-                      <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                         {t.last_author_kind === "platform" ? "You: " : ""}{t.last_message_preview}
                       </p>
                     )}
-                    <p className="text-[10px] text-slate-400 mt-1 inline-flex items-center gap-1">
+                    <p className="text-[10px] text-muted-foreground mt-1 inline-flex items-center gap-1">
                       <Clock size={10} /> {formatDateTime(t.updated_at)} · <MessageSquare size={10} /> {t.message_count}
                     </p>
                   </button>
@@ -198,9 +198,9 @@ export default function PlatformSupportTicketsPage() {
               }
             />
           ) : (
-            <div className="border border-dashed border-slate-200 rounded-lg py-20 text-center">
-              <LifeBuoy size={36} className="mx-auto text-slate-300 mb-3" />
-              <p className="text-[13px] text-slate-500">Select a ticket to view the conversation.</p>
+            <div className="border border-dashed border-border rounded-lg py-20 text-center">
+              <LifeBuoy size={36} className="mx-auto text-muted-foreground/40 mb-3" />
+              <p className="text-[13px] text-muted-foreground">Select a ticket to view the conversation.</p>
             </div>
           )}
         </div>
@@ -215,7 +215,7 @@ export default function PlatformSupportTicketsPage() {
           presetReason={detail ? `Investigating Ticket #${detail.ticket_id.slice(0, 8)} — ${detail.subject}` : undefined}
         />
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -232,6 +232,7 @@ function PlatformThreadView({
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -253,19 +254,20 @@ function PlatformThreadView({
   };
 
   const handleClose = async () => {
-    if (!confirm("Close this ticket? The tenant can reopen it by sending another reply.")) return;
     setClosing(true);
     try {
       const res = await platformApi.closePlatformTicket(ticket.ticket_id);
       onClosed(res.data);
+      setCloseConfirmOpen(false);
     } catch (err: any) {
       toast.error(getApiError(err, "Failed to close ticket"));
     } finally { setClosing(false); }
   };
 
   return (
-    <div className="border border-slate-200 rounded-lg bg-white flex flex-col max-h-[calc(100vh-180px)]">
-      <div className="px-5 py-3 border-b border-slate-100">
+    <>
+    <div className="border border-border rounded-lg bg-card flex flex-col max-h-[calc(100vh-180px)]">
+      <div className="px-5 py-3 border-b border-[hsl(var(--border-hairline))]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -273,12 +275,12 @@ function PlatformThreadView({
                 {STATUS_LABEL[ticket.status]}
               </span>
               {ticket.priority === "HIGH" && (
-                <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-red-50 text-red-600 border border-red-200">High</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-destructive-tint text-destructive border border-destructive/30">High</span>
               )}
-              <span className="text-[11px] text-slate-400">#{ticket.ticket_id.slice(0, 8)}</span>
+              <span className="text-[11px] text-muted-foreground">#{ticket.ticket_id.slice(0, 8)}</span>
             </div>
-            <h2 className="text-[15px] font-semibold text-brand-navy">{ticket.subject}</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <h2 className="text-[15px] font-semibold text-foreground">{ticket.subject}</h2>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
               <span className="font-medium">{ticket.company_name}</span> · opened by {ticket.opened_by_name ?? "—"} · {formatDateTime(ticket.created_at)}
             </p>
           </div>
@@ -286,7 +288,7 @@ function PlatformThreadView({
             <Button
               variant="outline"
               onClick={() => onRequestSupportAccess(ticket)}
-              className="text-[12px] h-7 px-3 inline-flex items-center gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50"
+              className="text-[12px] h-7 px-3 inline-flex items-center gap-1.5 border-warn/30 text-warn hover:bg-warn-tint"
               title="Open the Support Access flow with this ticket pre-filled as the reason"
             >
               <ShieldAlert size={12} /> Request Support Access
@@ -294,7 +296,7 @@ function PlatformThreadView({
             {!isClosed && (
               <Button
                 variant="outline"
-                onClick={handleClose}
+                onClick={() => setCloseConfirmOpen(true)}
                 disabled={closing}
                 className="text-[12px] h-7 px-3 inline-flex items-center gap-1.5"
               >
@@ -307,15 +309,15 @@ function PlatformThreadView({
 
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {loading ? (
-          <div className="text-[12px] text-slate-400 text-center py-10">Loading…</div>
+          <div className="text-[12px] text-muted-foreground text-center py-10">Loading…</div>
         ) : ticket.messages.length === 0 ? (
-          <div className="text-[12px] text-slate-400 text-center py-10">No messages.</div>
+          <div className="text-[12px] text-muted-foreground text-center py-10">No messages.</div>
         ) : (
           ticket.messages.map((m) => <MessageBubble key={m.message_id} m={m} />)
         )}
         {isClosed && (
           <div className="text-center py-3">
-            <span className="text-[11px] text-slate-400 inline-flex items-center gap-1">
+            <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
               <Check size={12} /> Closed by {ticket.closed_by_kind === "platform" ? "you" : "tenant"} · {ticket.closed_at ? formatDateTime(ticket.closed_at) : ""}
             </span>
           </div>
@@ -323,7 +325,7 @@ function PlatformThreadView({
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-slate-100 p-3">
+      <div className="border-t border-[hsl(var(--border-hairline))] p-3">
         <div className="flex items-end gap-2">
           <textarea
             value={reply}
@@ -331,18 +333,28 @@ function PlatformThreadView({
             rows={2}
             placeholder={isClosed ? "Replying will reopen this ticket…" : "Type your reply to the tenant…"}
             maxLength={5000}
-            className="flex-1 py-2 px-3 text-[13px] text-brand-navy border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-accent resize-none"
+            className="flex-1 py-2 px-3 text-[13px] text-foreground border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary resize-none"
           />
           <Button
             onClick={handleReply}
             disabled={sending || reply.trim().length === 0}
-            className="bg-brand-accent hover:bg-brand-accentDk text-white text-[13px] h-9 px-4 inline-flex items-center gap-1.5"
+            className="bg-primary hover:bg-primaryDk text-white text-[13px] h-9 px-4 inline-flex items-center gap-1.5"
           >
             <Send size={14} /> {sending ? "Sending…" : "Send"}
           </Button>
         </div>
       </div>
     </div>
+    <ConfirmDialog
+      open={closeConfirmOpen}
+      onClose={() => setCloseConfirmOpen(false)}
+      onConfirm={handleClose}
+      title="Close ticket?"
+      message="The tenant can reopen it by sending another reply."
+      confirmLabel="Close ticket"
+      loading={closing}
+    />
+    </>
   );
 }
 
@@ -352,18 +364,18 @@ function MessageBubble({ m }: { m: TicketMessage }) {
   return (
     <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[80%] rounded-lg px-3.5 py-2 ${
-        isMe ? "bg-violet-50 border border-violet-200" : "bg-brand-accent/10 border border-brand-accent/20"
+        isMe ? "bg-accent border border-accent-foreground/20" : "bg-primary/10 border border-primary/20"
       }`}>
         <div className="flex items-center gap-2 mb-1">
-          <span className={`text-[11px] font-semibold ${isMe ? "text-violet-800" : "text-brand-navy"}`}>
+          <span className={`text-[11px] font-semibold ${isMe ? "text-accent-foreground" : "text-foreground"}`}>
             {m.author_name ?? m.author_email ?? (isMe ? "You" : "Tenant")}
           </span>
           {!isMe && (
-            <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-slate-200 text-slate-700 font-semibold">Tenant</span>
+            <span className="text-[9px] uppercase tracking-wider px-1 py-0.5 rounded bg-border text-foreground/90 font-semibold">Tenant</span>
           )}
-          <span className="text-[10px] text-slate-400">{formatDateTime(m.created_at)}</span>
+          <span className="text-[10px] text-muted-foreground">{formatDateTime(m.created_at)}</span>
         </div>
-        <p className="text-[12.5px] text-slate-700 whitespace-pre-wrap break-words">{m.body}</p>
+        <p className="text-[12.5px] text-foreground/90 whitespace-pre-wrap break-words">{m.body}</p>
       </div>
     </div>
   );

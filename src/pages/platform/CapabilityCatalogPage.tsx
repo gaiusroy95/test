@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { platformApi } from "@/api/client";
-import { PageHeader } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { PageTabs } from "@/components/shared/PageTabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from "@/components/ui/sheet";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { toast } from "sonner";
 import { CheckCircle2, Archive, AlertCircle, Edit3, Send, MinusCircle } from "lucide-react";
@@ -16,10 +17,10 @@ type TabKey = "modules" | "features";
 type CapabilityKind = "module" | "feature";
 
 const LIFECYCLE_STYLES: Record<LifecycleStatus, { bg: string; text: string; label: string }> = {
-  DRAFT:      { bg: "bg-amber-50",  text: "text-amber-700",  label: "Draft" },
-  PUBLISHED:  { bg: "bg-green-50",  text: "text-green-700",  label: "Published" },
+  DRAFT:      { bg: "bg-warn-tint",  text: "text-warn",  label: "Draft" },
+  PUBLISHED:  { bg: "bg-green-50",  text: "text-ok",  label: "Published" },
   DEPRECATED: { bg: "bg-orange-50", text: "text-orange-700", label: "Deprecated" },
-  ARCHIVED:   { bg: "bg-slate-100", text: "text-slate-600",  label: "Archived" },
+  ARCHIVED:   { bg: "bg-sunken", text: "text-muted-foreground",  label: "Archived" },
 };
 
 interface PlanRow {
@@ -175,34 +176,24 @@ export default function CapabilityCatalogPage() {
     : features.map(f => ({ kind: "feature" as const, id: f.feature_id, name: f.feature_name, key: f.key, iconName: f.icon_name, color: f.color, lifecycle: f.lifecycle_status }));
 
   return (
-    <div className="p-6 max-w-[1600px]">
-      <PageHeader
+    <PageShell
         title="Capability Catalog"
         description="Manage modules, features, and which subscription plans include them"
-        breadcrumb={[{ label: "Platform" }, { label: "Catalog" }]}
+        breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Capability Catalog" }]}
+        className="max-w-[1600px]"
+      >
+
+      <PageTabs
+        tabs={[
+          { key: "modules", label: "Modules", count: modules.length },
+          { key: "features", label: "Features", count: features.length },
+        ]}
+        value={tab}
+        onChange={(key) => setTab(key as TabKey)}
+        className="mb-4"
       />
 
-      {/* Tab bar */}
-      <div className="flex items-end justify-between border-b border-slate-200 mb-4">
-        <div className="flex">
-          <button
-            onClick={() => setTab("modules")}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors
-              ${tab === "modules" ? "border-brand-accent text-brand-accent" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}
-          >
-            Modules <span className="text-[11px] text-slate-400">({modules.length})</span>
-          </button>
-          <button
-            onClick={() => setTab("features")}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors
-              ${tab === "features" ? "border-brand-accent text-brand-accent" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}
-          >
-            Features <span className="text-[11px] text-slate-400">({features.length})</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+      <div className="surface overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -214,9 +205,9 @@ export default function CapabilityCatalogPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-slate-400 py-8">Loading…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Loading…</TableCell></TableRow>
             ) : rows.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-slate-400 py-8">No {tab} yet</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No {tab} yet</TableCell></TableRow>
             ) : rows.map(r => {
               const Icon = getModuleIcon(r.iconName);
               const lcStyle = LIFECYCLE_STYLES[r.lifecycle];
@@ -227,10 +218,10 @@ export default function CapabilityCatalogPage() {
                       <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: r.color + "22" }}>
                         <Icon size={14} style={{ color: r.color }} />
                       </div>
-                      <span className="font-semibold text-brand-navy">{r.name}</span>
+                      <span className="font-semibold text-foreground">{r.name}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-[12px] text-slate-500 font-mono">{r.key}</TableCell>
+                  <TableCell className="text-[12px] text-muted-foreground font-mono">{r.key}</TableCell>
                   <TableCell>
                     <Badge className={`${lcStyle.bg} ${lcStyle.text}`}>{lcStyle.label}</Badge>
                   </TableCell>
@@ -299,44 +290,44 @@ export default function CapabilityCatalogPage() {
       />
 
       {/* Publish dialog */}
-      <Dialog open={!!publishTarget} onOpenChange={(v) => { if (!v) setPublishTarget(null); }}>
-        <DialogContent className="max-w-[460px]">
-          <DialogHeader>
-            <DialogTitle>Publish: {publishTarget?.name}</DialogTitle>
-            <DialogDescription>
+      <Sheet open={!!publishTarget} onOpenChange={(v) => { if (!v) setPublishTarget(null); }}>
+        <SheetContent className="max-w-[520px]">
+          <SheetHeader>
+            <SheetTitle>Publish: {publishTarget?.name}</SheetTitle>
+            <p className="text-[12px] text-muted-foreground mt-0.5">
               Choose which subscription plans include this capability. All companies on the selected plans will gain access immediately.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogBody>
+            </p>
+          </SheetHeader>
+          <SheetBody>
             {publishPlansLoading ? (
-              <div className="text-[13px] text-slate-400 py-4 text-center animate-pulse">Loading plans…</div>
+              <div className="text-[13px] text-muted-foreground py-4 text-center animate-pulse">Loading plans…</div>
             ) : (
               <div className="flex flex-col gap-2">
                 {publishPlans.map(p => (
-                  <label key={p.plan_id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer">
+                  <label key={p.plan_id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border hover:bg-sunken transition-colors cursor-pointer">
                     <input
                       type="checkbox"
                       checked={p.included}
                       onChange={() => togglePublishPlan(p.plan_id)}
-                      className="w-4 h-4 accent-brand-accent"
+                      className="w-4 h-4 accent-primary"
                     />
-                    <span className="text-[13px] font-semibold text-brand-navy">{p.plan_name}</span>
+                    <span className="text-[13px] font-semibold text-foreground">{p.plan_name}</span>
                   </label>
                 ))}
                 {publishPlans.length === 0 && (
-                  <div className="text-[12px] text-slate-400 py-2 text-center">No plans found</div>
+                  <div className="text-[12px] text-muted-foreground py-2 text-center">No plans found</div>
                 )}
               </div>
             )}
-          </DialogBody>
-          <DialogFooter>
+          </SheetBody>
+          <SheetFooter>
             <Button variant="outline" onClick={() => setPublishTarget(null)} disabled={actionLoading}>Cancel</Button>
             <Button onClick={confirmPublish} disabled={actionLoading || publishPlansLoading}>
               {actionLoading ? "Publishing…" : "Publish"}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </PageShell>
   );
 }

@@ -3,7 +3,8 @@ import { tenantApi } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
 import { getModuleIcon } from "@/lib/constants";
 import { useModulesStore } from "@/store/modules";
-import { Breadcrumb, LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { toast } from "sonner";
@@ -172,41 +173,40 @@ export default function IndicatorsPage() {
   const scopeLabel: Record<number, string> = { 1: "Scope 1", 2: "Scope 2", 3: "Scope 3" };
   const energyLabel: Record<string, string> = { RENEWABLE: "Renewable", NON_RENEWABLE: "Non-Renewable", NOT_APPLICABLE: "N/A" };
 
-  return (
-    <div className="p-6 max-w-[1200px]">
-      {/* Row 1: Title + action */}
-      <div className="flex items-center justify-between mb-1">
-        <div>
-          <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "Indicators" }]} />
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight">Indicators</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">System indicators are read-only. Custom indicators can be added by admins.</p>
-        </div>
-        {isAdmin && (
-          <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-accent text-[12px] font-semibold text-white hover:bg-brand-accentDk transition-colors">
-            <Plus size={14} /> Add Custom Indicator
+  const moduleTabs = (
+    <div className="flex border-b border-border -mb-px">
+      <button onClick={() => setModuleFilter(null)}
+        className={`px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${!moduleFilter ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground/90 hover:border-border"}`}>
+        All
+      </button>
+      {modules.map((m) => {
+        const Icon = getModuleIcon(m.icon_name);
+        return (
+          <button key={m.module_id} onClick={() => setModuleFilter(m.module_id)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${moduleFilter === m.module_id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground/90 hover:border-border"}`}>
+            <Icon size={14} style={{ color: moduleFilter === m.module_id ? undefined : m.color }} /> {m.module_name}
           </button>
-        )}
-      </div>
+        );
+      })}
+    </div>
+  );
 
-      {/* Row 2: Underline module filter tabs */}
-      <div className="flex border-b border-slate-200 mb-4">
-        <button onClick={() => setModuleFilter(null)}
-          className={`px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${!moduleFilter ? "border-brand-accent text-brand-accent" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}>
-          All
+  return (
+    <PageShell
+      title="Indicators"
+      description="System indicators are read-only. Custom indicators can be added by admins."
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Indicators" }]}
+      className="max-w-[1200px]"
+      toolbar={moduleTabs}
+      actions={isAdmin ? (
+        <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-primary text-[12px] font-semibold text-white hover:bg-primaryDk transition-colors">
+          <Plus size={14} /> Add Custom Indicator
         </button>
-        {modules.map((m) => {
-          const Icon = getModuleIcon(m.icon_name);
-          return (
-            <button key={m.module_id} onClick={() => setModuleFilter(m.module_id)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${moduleFilter === m.module_id ? "border-brand-accent text-brand-accent" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}>
-              <Icon size={14} style={{ color: moduleFilter === m.module_id ? undefined : m.color }} /> {m.module_name}
-            </button>
-          );
-        })}
-      </div>
+      ) : undefined}
+    >
 
       {loading ? <LoadingSkeleton rows={8} cols={4} /> : indicators.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200">
+        <div className="surface-elevated overflow-hidden">
           <EmptyState icon={FolderTree} title="No indicators found" description="Indicators are pre-loaded by the platform. Custom indicators can be added by admins." />
         </div>
       ) : (
@@ -215,14 +215,14 @@ export default function IndicatorsPage() {
             if (g.cats.length === 0) return null;
             const Icon = getModuleIcon(g.icon_name);
             return (
-              <div key={g.module_id} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div key={g.module_id} className="surface-elevated overflow-hidden">
                 {/* Module header */}
-                <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50/60 border-b border-slate-100">
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-sunken/60 border-b border-[hsl(var(--border-hairline))]">
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: g.bg_color }}>
                     <Icon size={17} style={{ color: g.color }} />
                   </div>
-                  <span className="text-[14px] font-bold text-brand-navy">{g.module_name}</span>
-                  <span className="text-[11px] text-slate-400">{g.cats.length} indicator{g.cats.length !== 1 ? "s" : ""}</span>
+                  <span className="text-[14px] font-bold text-foreground">{g.module_name}</span>
+                  <span className="text-[11px] text-muted-foreground">{g.cats.length} indicator{g.cats.length !== 1 ? "s" : ""}</span>
                 </div>
 
                 {/* Indicators with expandable KPIs */}
@@ -231,65 +231,65 @@ export default function IndicatorsPage() {
                     const kpis = getKpisForIndicator(indicator);
                     const isExpanded = expanded.has(indicator.indicator_id);
                     return (
-                      <div key={indicator.indicator_id} className="border-b border-slate-100 last:border-b-0">
+                      <div key={indicator.indicator_id} className="border-b border-[hsl(var(--border-hairline))] last:border-b-0">
                         {/* Indicator row */}
-                        <div className="flex items-center justify-between px-4 py-2 hover:bg-slate-50/40 transition-colors">
+                        <div className="flex items-center justify-between px-4 py-2 hover:bg-sunken/40 transition-colors">
                           <div className="flex items-center gap-3">
                             <button
                               onClick={() => toggleExpand(indicator.indicator_id)}
-                              className="p-0.5 rounded text-slate-400 hover:text-brand-navy transition-colors"
+                              className="p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors"
                             >
                               {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                             </button>
-                            <span className="text-[13px] font-semibold text-brand-navy">{indicator.indicator_name}</span>
+                            <span className="text-[13px] font-semibold text-foreground">{indicator.indicator_name}</span>
                             {indicator.is_system ? (
-                              <span className="flex items-center gap-1 text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                              <span className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground bg-sunken px-2 py-0.5 rounded-full">
                                 <Lock size={10} /> System
                               </span>
                             ) : (
-                              <span className="text-[10px] font-semibold text-brand-accent bg-sky-50 px-2 py-0.5 rounded-full">Custom</span>
+                              <span className="text-[10px] font-semibold text-primary bg-info-tint px-2 py-0.5 rounded-full">Custom</span>
                             )}
                             {indicator.input_type && indicator.input_type !== "numeric" && (
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${indicator.input_type === "boolean" ? "bg-violet-50 text-violet-600" : "bg-amber-50 text-amber-600"}`}>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${indicator.input_type === "boolean" ? "bg-accent text-accent-foreground" : "bg-warn-tint text-warn"}`}>
                                 {indicator.input_type === "boolean" ? "Yes/No" : "Text"}
                               </span>
                             )}
                             {indicator.unit && (
-                              <span className="text-[11px] text-slate-400 font-mono">{indicator.unit}</span>
+                              <span className="text-[11px] text-muted-foreground font-mono">{indicator.unit}</span>
                             )}
-                            <span className="text-[11px] text-slate-400">{kpis.length} KPI{kpis.length !== 1 ? "s" : ""}</span>
+                            <span className="text-[11px] text-muted-foreground">{kpis.length} KPI{kpis.length !== 1 ? "s" : ""}</span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-[11px] text-slate-400">Order: {indicator.display_order}</span>
+                            <span className="text-[11px] text-muted-foreground">Order: {indicator.display_order}</span>
                             {isAdmin && !indicator.is_system && (
-                              <button onClick={() => setEditIndicator(indicator)} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors" title="Edit">
+                              <button onClick={() => setEditIndicator(indicator)} className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground hover:text-muted-foreground transition-colors" title="Edit">
                                 <Pencil size={13} />
                               </button>
                             )}
                             {indicator.is_system && isAdmin && (
-                              <span className="text-[10px] text-slate-400 italic">Read-only</span>
+                              <span className="text-[10px] text-muted-foreground italic">Read-only</span>
                             )}
                           </div>
                         </div>
 
                         {/* KPIs under this indicator */}
                         {isExpanded && (
-                          <div className="bg-slate-50/30 border-t border-slate-100">
+                          <div className="bg-sunken/30 border-t border-[hsl(var(--border-hairline))]">
                             {kpis.length === 0 ? (
-                              <div className="px-12 py-3 text-[12px] text-slate-400 flex items-center gap-2">
-                                <BarChart3 size={13} className="text-slate-300" /> No KPIs assigned to this indicator yet
+                              <div className="px-12 py-3 text-[12px] text-muted-foreground flex items-center gap-2">
+                                <BarChart3 size={13} className="text-muted-foreground/40" /> No KPIs assigned to this indicator yet
                               </div>
                             ) : (
                               kpis.map((kpi) => {
                                 const kpiMod = modules.find((x) => x.module_id === kpi.module_id);
                                 const isCrossModule = kpi.module_id !== indicator.module_id;
                                 return (
-                                  <div key={kpi.kpi_id} className="flex items-center gap-3 px-12 py-2 border-b border-slate-100/60 last:border-b-0">
-                                    <BarChart3 size={13} className="text-slate-300 flex-shrink-0" />
-                                    <span className="text-[13px] font-medium text-brand-navy">{kpi.kpi_name}</span>
-                                    <span className="text-[11px] text-slate-400 font-mono">{isCrossModule ? "tCO₂e" : kpi.unit}</span>
+                                  <div key={kpi.kpi_id} className="flex items-center gap-3 px-12 py-2 border-b border-[hsl(var(--border-hairline))]/60 last:border-b-0">
+                                    <BarChart3 size={13} className="text-muted-foreground/40 flex-shrink-0" />
+                                    <span className="text-[13px] font-medium text-foreground">{kpi.kpi_name}</span>
+                                    <span className="text-[11px] text-muted-foreground font-mono">{isCrossModule ? "tCO₂e" : kpi.unit}</span>
                                     {kpi.energy_type && kpi.energy_type !== "NOT_APPLICABLE" && (
-                                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600">{energyLabel[kpi.energy_type]}</span>
+                                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn">{energyLabel[kpi.energy_type]}</span>
                                     )}
                                   </div>
                                 );
@@ -307,24 +307,24 @@ export default function IndicatorsPage() {
                   const unassigned = getUnassignedKpis(g.module_id);
                   if (unassigned.length === 0) return null;
                   return (
-                    <div className="border-t border-dashed border-slate-200">
-                      <div className="flex items-center gap-2 px-4 py-2 bg-slate-50/40">
-                        <BarChart3 size={13} className="text-slate-400" />
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <div className="border-t border-dashed border-border">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-sunken/40">
+                        <BarChart3 size={13} className="text-muted-foreground" />
+                        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                           Unassigned KPIs ({unassigned.length})
                         </span>
-                        <span className="text-[10px] text-slate-400 italic">— not linked to any indicator. Edit in KPI Setup to assign.</span>
+                        <span className="text-[10px] text-muted-foreground italic">— not linked to any indicator. Edit in KPI Setup to assign.</span>
                       </div>
                       {unassigned.map((kpi) => (
-                        <div key={kpi.kpi_id} className="flex items-center gap-3 px-8 py-2 border-t border-slate-100/60">
-                          <BarChart3 size={13} className="text-slate-300 flex-shrink-0" />
-                          <span className="text-[13px] font-medium text-brand-navy">{kpi.kpi_name}</span>
-                          <span className="text-[11px] text-slate-400 font-mono">{kpi.unit}</span>
+                        <div key={kpi.kpi_id} className="flex items-center gap-3 px-8 py-2 border-t border-[hsl(var(--border-hairline))]/60">
+                          <BarChart3 size={13} className="text-muted-foreground/40 flex-shrink-0" />
+                          <span className="text-[13px] font-medium text-foreground">{kpi.kpi_name}</span>
+                          <span className="text-[11px] text-muted-foreground font-mono">{kpi.unit}</span>
                           {kpi.scope_number && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{scopeLabel[kpi.scope_number]}</span>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-sunken text-muted-foreground">{scopeLabel[kpi.scope_number]}</span>
                           )}
                           {kpi.energy_type && kpi.energy_type !== "NOT_APPLICABLE" && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600">{energyLabel[kpi.energy_type]}</span>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn">{energyLabel[kpi.energy_type]}</span>
                           )}
                         </div>
                       ))}
@@ -339,6 +339,6 @@ export default function IndicatorsPage() {
 
       <FormDialog open={createOpen} onClose={() => setCreateOpen(false)} onSubmit={handleCreate} title="Add Custom Indicator" description="Create a company-specific indicator under a module" fields={createFields} submitLabel="Create Indicator" loading={actionLoading} />
       <FormDialog open={!!editIndicator} onClose={() => setEditIndicator(null)} onSubmit={handleEdit} title="Edit Indicator" fields={editFields} submitLabel="Save" loading={actionLoading} initialData={editIndicator ? { indicator_name: editIndicator.indicator_name, description: editIndicator.description ?? "", input_type: editIndicator.input_type ?? "numeric", unit: editIndicator.unit ?? "", show_when_indicator_id: editIndicator.show_when?.indicator_id ?? "__none__", show_when_equals: String(editIndicator.show_when?.equals ?? ""), display_order: editIndicator.display_order } : undefined} />
-    </div>
+    </PageShell>
   );
 }

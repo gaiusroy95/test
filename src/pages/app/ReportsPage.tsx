@@ -4,6 +4,11 @@ import { tenantApi } from "@/api/client";
 import { useModulesStore } from "@/store/modules";
 import { useVocabulariesStore } from "@/store/vocabularies";
 import { Breadcrumb, PageHeader, StatCard, LoadingSkeleton } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { PageTabs } from "@/components/shared/PageTabs";
+import { FilterBar, FilterSelect } from "@/components/shared/FilterBar";
+import { ChartCard } from "@/components/shared/ChartCard";
+import { CHART_COLORS, CHART_AXIS, CHART_GRID, chartTooltipStyle } from "@/components/shared/ChartTheme";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "sonner";
 import {
@@ -55,6 +60,7 @@ export default function ReportsPage() {
   const assignedLocationIds = (user as any)?.assigned_location_ids as string[] | undefined;
 
   const [tab, setTab] = useState<ReportTab>("analytics");
+  const [brsrLoading, setBrsrLoading] = useState(false);
   const [entries, setEntries] = useState<ESGInput[]>([]);
   const [metrics, setMetrics] = useState<KPI[]>([]);
   const [indicators, setIndicators] = useState<Indicator[]>([]);
@@ -608,6 +614,7 @@ export default function ReportsPage() {
       toast.error("Select a Financial Year first.");
       return;
     }
+    setBrsrLoading(true);
     try {
       toast.info("Generating BRSR report…");
       const res = await tenantApi.downloadBrsrReport(Number(selectedFY));
@@ -626,6 +633,8 @@ export default function ReportsPage() {
       toast.success("BRSR report downloaded");
     } catch (err: any) {
       toast.error(getApiError(err, "Failed to generate BRSR report"));
+    } finally {
+      setBrsrLoading(false);
     }
   };
 
@@ -680,76 +689,82 @@ export default function ReportsPage() {
     toast.success("Report exported as Excel");
   };
 
-  if (loading) return <div className="p-6"><PageHeader title="Reports & Analytics" /><LoadingSkeleton rows={6} cols={3} /></div>;
+  if (loading) {
+    return (
+      <PageShell title="Reports & Analytics" breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Reports" }]} fullWidth>
+        <LoadingSkeleton rows={6} cols={3} />
+      </PageShell>
+    );
+  }
 
-  const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <h3 className="text-[14px] font-bold text-brand-navy mb-4">{title}</h3>
-      {children}
-    </div>
-  );
+  const hasFilters = !!(selectedFY || (!isLocationUser && selectedLocation) || selectedMonth);
 
   return (
-    <div className="p-6 max-w-[1600px]">
-      {/* Row 1: Title */}
-      <div className="flex items-center justify-between mb-1">
-        <div>
-          <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "Reports & Analytics" }]} />
-          <h1 className="text-lg font-bold text-brand-navy tracking-tight">Reports & Analytics</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">Approved data only</p>
-        </div>
-      </div>
-
-      {/* Row 2: Underline tabs (left) + Filters + Export (right) */}
-      <div className="flex items-end justify-between border-b border-slate-200 mb-4">
-        <div className="flex">
-          <button onClick={() => setTab("analytics")}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${tab === "analytics" ? "border-brand-accent text-brand-accent" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}>
-            <Database size={14} /> Analytics
-          </button>
-          <button onClick={() => setTab("annexure")}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${tab === "annexure" ? "border-brand-accent text-brand-accent" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}>
-            <FileText size={14} /> Report
-          </button>
-        </div>
-        <div className="flex items-center gap-2 pb-2">
-          <select value={selectedFY} onChange={(e) => setSelectedFY(e.target.value)} className="py-1.5 px-3 rounded-lg border border-slate-200 text-[12px] bg-white outline-none text-brand-navy">
-            <option value="">All FY</option>
-            {reportingYears.map((r) => <option key={r.year_id} value={r.year_id}>{r.financial_year?.fy_label || `FY ${r.year_id}`}</option>)}
-          </select>
-          {!isLocationUser && (
-            <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="py-1.5 px-3 rounded-lg border border-slate-200 text-[12px] bg-white outline-none text-brand-navy">
-              <option value="">All Locations</option>
-              {locations.map((l) => <option key={l.location_id} value={l.location_id}>{l.location_name}</option>)}
-            </select>
-          )}
-          {tab === "analytics" && (
-            <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="py-1.5 px-3 rounded-lg border border-slate-200 text-[12px] bg-white outline-none text-brand-navy">
-              <option value="">All Months</option>
-              {MONTH_NAMES.map((name, i) => <option key={i + 1} value={i + 1}>{name}</option>)}
-            </select>
-          )}
-          {(selectedFY || (!isLocationUser && selectedLocation) || selectedMonth) && (
-            <button onClick={() => { setSelectedFY(""); setSelectedMonth(""); if (!isLocationUser) setSelectedLocation(""); }}
-              className="text-[12px] text-brand-accent font-semibold hover:underline px-1">
-              Clear
-            </button>
-          )}
+    <PageShell
+      title="Reports & Analytics"
+      description="Approved data only"
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Reports & Analytics" }]}
+      fullWidth
+      toolbar={
+        <PageTabs
+          tabs={[
+            { key: "analytics", label: "Analytics", icon: <Database size={14} /> },
+            { key: "annexure", label: "Report", icon: <FileText size={14} /> },
+          ]}
+          value={tab}
+          onChange={(k) => setTab(k as ReportTab)}
+        />
+      }
+      actions={
+        <div className="flex items-center gap-2">
           {tab === "annexure" && (
-            <button onClick={exportXLSX} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[12px] font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
-              <FileSpreadsheet size={13} className="text-emerald-600" /> Export Excel
+            <button onClick={exportXLSX} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-[12px] font-medium text-muted-foreground hover:bg-sunken transition-colors">
+              <FileSpreadsheet size={13} className="text-ok" /> Export Excel
             </button>
           )}
           <button
             onClick={downloadBrsr}
-            disabled={!selectedFY}
-            title={selectedFY ? "Download BRSR workbook (approved data only, with data gap highlights)" : "Select a Financial Year to enable"}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-accent hover:bg-brand-accentDk text-white text-[12px] font-semibold transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+            disabled={!selectedFY || brsrLoading}
+            title={selectedFY ? "Download BRSR workbook" : "Select a Financial Year to enable"}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primaryDk text-white text-[12px] font-semibold transition-colors disabled:bg-border disabled:cursor-not-allowed"
           >
-            <FileDown size={13} /> Generate BRSR
+            <FileDown size={13} /> {brsrLoading ? "Generating…" : "Generate BRSR"}
           </button>
         </div>
-      </div>
+      }
+    >
+      <FilterBar showClear={hasFilters} onClear={() => { setSelectedFY(""); setSelectedMonth(""); if (!isLocationUser) setSelectedLocation(""); }} className="mb-4">
+        <FilterSelect
+          label="Financial Year"
+          value={selectedFY}
+          onChange={setSelectedFY}
+          placeholder="All FY"
+          options={reportingYears.map((r) => ({
+            value: String(r.year_id),
+            label: r.financial_year?.fy_label || `FY ${r.year_id}`,
+          }))}
+        />
+        {!isLocationUser && (
+          <FilterSelect
+            label="Location"
+            value={selectedLocation}
+            onChange={setSelectedLocation}
+            placeholder="All Locations"
+            options={locations.map((l) => ({ value: l.location_id, label: l.location_name }))}
+            minWidth={170}
+          />
+        )}
+        {tab === "analytics" && (
+          <FilterSelect
+            label="Month"
+            value={selectedMonth}
+            onChange={setSelectedMonth}
+            placeholder="All Months"
+            options={MONTH_NAMES.map((name, i) => ({ value: String(i + 1), label: name }))}
+            minWidth={120}
+          />
+        )}
+      </FilterBar>
 
       {/* ══════ ANALYTICS TAB ══════ */}
       {tab === "analytics" && (
@@ -758,28 +773,28 @@ export default function ReportsPage() {
             <p className="text-[12px] text-amber-500 mb-3">No entries found for the selected filters</p>
           )}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
-            <StatCard icon={Zap} label={energyStatLabel} value={energyStatValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} accent="#f59e0b" />
-            <StatCard icon={Wind} label="Total Emissions (tCO₂e)" value={totalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent="#64748b" />
-            <StatCard icon={Droplets} label="Total Water (kL)" value={waterTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} accent="#0ea5e9" />
-            <StatCard icon={Trash2} label="Total Waste (MT)" value={wasteTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent="#22c55e" />
-            <StatCard icon={Package2} label="Scope 3 Emissions (tCO₂e)" value={scope3TotalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent="#7c3aed" />
+            <StatCard icon={Zap} label={energyStatLabel} value={energyStatValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} accent={CHART_COLORS[4]} />
+            <StatCard icon={Wind} label="Total Emissions (tCO₂e)" value={totalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent={CHART_COLORS[7]} />
+            <StatCard icon={Droplets} label="Total Water (kL)" value={waterTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} accent={CHART_COLORS[4]} />
+            <StatCard icon={Trash2} label="Total Waste (MT)" value={wasteTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent={CHART_COLORS[2]} />
+            <StatCard icon={Package2} label="Scope 3 Emissions (tCO₂e)" value={scope3TotalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent={CHART_COLORS[6]} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
             <ChartCard title={hasEmissionData ? "Monthly Emissions (tCO₂e)" : "Monthly Energy Consumption (Qty)"}>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={monthlyEmissions}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }} />
-                  <Bar dataKey="value" name={hasEmissionData ? "Emissions (tCO₂e)" : "Quantity"} fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_AXIS }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: CHART_AXIS }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={chartTooltipStyle} />
+                  <Bar dataKey="value" name={hasEmissionData ? "Emissions (tCO₂e)" : "Quantity"} fill={CHART_COLORS[4]} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
 
             <ChartCard title="Emissions by Scope">
-              {scopeTotalsForPie.length === 0 ? <p className="text-center text-slate-400 text-sm py-16">No emission data</p> : (
+              {scopeTotalsForPie.length === 0 ? <p className="text-center text-muted-foreground text-sm py-16">No emission data</p> : (
                 <div className="flex items-center gap-4">
                   <ResponsiveContainer width="55%" height={220}>
                     <PieChart>
@@ -792,8 +807,8 @@ export default function ReportsPage() {
                   <div className="flex-1 flex flex-col gap-2">
                     {scopeTotalsForPie.map((m, i) => (
                       <div key={i} className="flex items-center justify-between text-[12px]">
-                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded" style={{ background: m.color }} /><span className="text-slate-600">{m.name}</span></div>
-                        <span className="font-bold text-brand-navy">{m.value.toLocaleString()} tCO₂e</span>
+                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded" style={{ background: m.color }} /><span className="text-muted-foreground">{m.name}</span></div>
+                        <span className="font-bold text-foreground">{m.value.toLocaleString()} tCO₂e</span>
                       </div>
                     ))}
                   </div>
@@ -814,7 +829,7 @@ export default function ReportsPage() {
             </ChartCard>
 
             <ChartCard title="GHG Scope Breakdown">
-              {scopeTotals.length === 0 ? <p className="text-center text-slate-400 text-sm py-16">No scope data</p> : (
+              {scopeTotals.length === 0 ? <p className="text-center text-muted-foreground text-sm py-16">No scope data</p> : (
                 <div className="flex items-center gap-4">
                   <ResponsiveContainer width="55%" height={220}>
                     <PieChart>
@@ -827,8 +842,8 @@ export default function ReportsPage() {
                   <div className="flex-1 flex flex-col gap-3">
                     {scopeTotals.map((s, i) => (
                       <div key={i}>
-                        <div className="flex justify-between text-[12px] mb-0.5"><span className="text-slate-600">{s.name}</span><span className="font-bold text-brand-navy">{s.value.toLocaleString()}</span></div>
-                        <div className="h-1.5 rounded-full bg-slate-100"><div className="h-full rounded-full" style={{ background: s.color, width: `${(s.value / scopeTotals.reduce((a, b) => a + b.value, 0)) * 100}%` }} /></div>
+                        <div className="flex justify-between text-[12px] mb-0.5"><span className="text-muted-foreground">{s.name}</span><span className="font-bold text-foreground">{s.value.toLocaleString()}</span></div>
+                        <div className="h-1.5 rounded-full bg-sunken"><div className="h-full rounded-full" style={{ background: s.color, width: `${(s.value / scopeTotals.reduce((a, b) => a + b.value, 0)) * 100}%` }} /></div>
                       </div>
                     ))}
                   </div>
@@ -889,9 +904,9 @@ export default function ReportsPage() {
           {/* Header bar */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] text-slate-500">
+              <p className="text-[12px] text-muted-foreground">
                 <strong>{fyLabel}</strong> · {locationDisplayLabel}
-                {reportColumns.length > 0 && <span className="ml-2 text-slate-400">— {reportColumns.length} indicators/KPIs · {reportRows.length} row{reportRows.length !== 1 ? "s" : ""}</span>}
+                {reportColumns.length > 0 && <span className="ml-2 text-muted-foreground">— {reportColumns.length} indicators/KPIs · {reportRows.length} row{reportRows.length !== 1 ? "s" : ""}</span>}
               </p>
             </div>
             {/* Module legend */}
@@ -906,12 +921,12 @@ export default function ReportsPage() {
           </div>
 
           {reportColumns.length === 0 ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-16 text-center">
-              <p className="text-slate-400 text-[14px]">No data available for selected filters.</p>
-              <p className="text-slate-300 text-[12px] mt-1">Enter ESG data or adjust the filters above.</p>
+            <div className="bg-card rounded-xl border border-border p-16 text-center">
+              <p className="text-muted-foreground text-[14px]">No data available for selected filters.</p>
+              <p className="text-muted-foreground/40 text-[12px] mt-1">Enter ESG data or adjust the filters above.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="text-[12px] border-collapse" style={{ minWidth: "100%" }}>
                   <thead>
@@ -919,14 +934,14 @@ export default function ReportsPage() {
                     <tr>
                       {["Location", "Financial Year", "Month"].map(h => (
                         <th key={h} rowSpan={3}
-                          className="border border-slate-200 px-3 py-2.5 bg-slate-100 text-brand-navy font-bold text-[11px] uppercase whitespace-nowrap text-left align-bottom"
+                          className="border border-border px-3 py-2.5 bg-sunken text-foreground font-bold text-[11px] uppercase whitespace-nowrap text-left align-bottom"
                           style={{ minWidth: h === "Location" ? 140 : 100 }}>
                           {h}
                         </th>
                       ))}
                       {moduleGroups.map(mod => (
                         <th key={mod.moduleId} colSpan={mod.count}
-                          className="border border-slate-200 px-3 py-2 font-bold text-[11px] uppercase tracking-wide text-center"
+                          className="border border-border px-3 py-2 font-bold text-[11px] uppercase tracking-wide text-center"
                           style={{ background: mod.bg, color: mod.color }}>
                           {mod.label}
                         </th>
@@ -937,9 +952,9 @@ export default function ReportsPage() {
                     <tr>
                       {indicatorGroups.map((ig, i) => (
                         <th key={i} colSpan={ig.count}
-                          className="border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-center whitespace-nowrap"
+                          className="border border-border px-3 py-1.5 text-[11px] font-semibold text-center whitespace-nowrap"
                           style={{ color: ig.moduleColor, background: ig.moduleBg }}>
-                          {ig.label || <span className="text-slate-300">—</span>}
+                          {ig.label || <span className="text-muted-foreground/40">—</span>}
                         </th>
                       ))}
                     </tr>
@@ -948,7 +963,7 @@ export default function ReportsPage() {
                     <tr>
                       {reportColumns.map(col => (
                         <th key={col.colId}
-                          className="border border-slate-200 px-3 py-2 text-center font-semibold whitespace-nowrap"
+                          className="border border-border px-3 py-2 text-center font-semibold whitespace-nowrap"
                           style={{ color: col.moduleColor, background: `${col.moduleColor}10`, minWidth: 100 }}>
                           <div>{col.label}</div>
                         </th>
@@ -959,20 +974,20 @@ export default function ReportsPage() {
                   <tbody>
                     {reportRows.map((row, ri) => (
                       <tr key={`${row.locationId}_${row.yearId}_${row.monthId}`}
-                        className={`hover:bg-slate-50/60 transition-colors ${ri % 2 === 0 ? "bg-white" : "bg-slate-50/30"}`}>
-                        <td className="border border-slate-100 px-3 py-2 font-semibold text-brand-navy whitespace-nowrap">{row.locationName}</td>
-                        <td className="border border-slate-100 px-3 py-2 text-slate-500 whitespace-nowrap">{row.fyLabel}</td>
-                        <td className="border border-slate-100 px-3 py-2 text-slate-500 whitespace-nowrap">{row.monthName}</td>
+                        className={`hover:bg-sunken/60 transition-colors ${ri % 2 === 0 ? "bg-card" : "bg-sunken/30"}`}>
+                        <td className="border border-[hsl(var(--border-hairline))] px-3 py-2 font-semibold text-foreground whitespace-nowrap">{row.locationName}</td>
+                        <td className="border border-[hsl(var(--border-hairline))] px-3 py-2 text-muted-foreground whitespace-nowrap">{row.fyLabel}</td>
+                        <td className="border border-[hsl(var(--border-hairline))] px-3 py-2 text-muted-foreground whitespace-nowrap">{row.monthName}</td>
                         {reportColumns.map(col => {
                           const val = row.values.get(col.colId);
                           const isDerived = col.colId.startsWith("dm_");
                           // For derived cols: only hide when no result (null). For others: also hide calculated-zero.
                           const isEmpty = val == null || (!isDerived && col.field !== "quantity" && val === 0);
                           return (
-                            <td key={col.colId} className="border border-slate-100 px-3 py-2 text-right font-mono text-[12px]">
+                            <td key={col.colId} className="border border-[hsl(var(--border-hairline))] px-3 py-2 text-right font-mono text-[12px]">
                               {!isEmpty
                                 ? <span style={{ color: col.moduleColor }} className="font-semibold">{val!.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-                                : <span className="text-slate-200">—</span>
+                                : <span className="text-border">—</span>
                               }
                             </td>
                           );
@@ -981,7 +996,7 @@ export default function ReportsPage() {
                     ))}
                     {reportRows.length === 0 && (
                       <tr>
-                        <td colSpan={3 + reportColumns.length} className="py-10 text-center text-slate-400 text-[13px]">
+                        <td colSpan={3 + reportColumns.length} className="py-10 text-center text-muted-foreground text-[13px]">
                           No entries found for selected filters
                         </td>
                       </tr>
@@ -996,45 +1011,45 @@ export default function ReportsPage() {
           {filteredScope3.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center gap-2 mb-3">
-                <Package2 size={15} className="text-violet-600" />
-                <h3 className="text-[14px] font-bold text-brand-navy">Scope 3 Emissions Summary</h3>
-                <span className="text-[11px] text-slate-400">Approved batches only</span>
+                <Package2 size={15} className="text-accent-foreground" />
+                <h3 className="text-[14px] font-bold text-foreground">Scope 3 Emissions Summary</h3>
+                <span className="text-[11px] text-muted-foreground">Approved batches only</span>
               </div>
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
                 <table className="w-full text-[12px] border-collapse">
                   <thead>
-                    <tr className="bg-violet-50">
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-violet-700 border-b border-slate-200">Category</th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-violet-700 border-b border-slate-200">Entry Type</th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-violet-700 border-b border-slate-200">Year</th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-violet-700 border-b border-slate-200">Month</th>
-                      <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-violet-700 border-b border-slate-200">Rows</th>
-                      <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-violet-700 border-b border-slate-200">tCO₂e</th>
+                    <tr className="bg-accent">
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-accent-foreground border-b border-border">Category</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-accent-foreground border-b border-border">Entry Type</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-accent-foreground border-b border-border">Year</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-accent-foreground border-b border-border">Month</th>
+                      <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-accent-foreground border-b border-border">Rows</th>
+                      <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-accent-foreground border-b border-border">tCO₂e</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredScope3.map((b: any, i: number) => (
-                      <tr key={b.batch_id || i} className={i % 2 === 0 ? "bg-white" : "bg-slate-50/30"}>
-                        <td className="px-4 py-2 text-brand-navy font-medium border-b border-slate-100">
-                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 mr-1.5">
+                      <tr key={b.batch_id || i} className={i % 2 === 0 ? "bg-card" : "bg-sunken/30"}>
+                        <td className="px-4 py-2 text-foreground font-medium border-b border-[hsl(var(--border-hairline))]">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent text-accent-foreground mr-1.5">
                             C{String(b.ghg_category_id ?? 0).padStart(2, "0")}
                           </span>
                           {b.ghg_category_name ?? "—"}
                         </td>
-                        <td className="px-4 py-2 text-slate-500 border-b border-slate-100">{b.entry_type ?? "—"}</td>
-                        <td className="px-4 py-2 text-slate-500 border-b border-slate-100">{b.reporting_year ?? "—"}</td>
-                        <td className="px-4 py-2 text-slate-500 border-b border-slate-100">{b.reporting_month ? MONTH_NAMES[(b.reporting_month - 1) % 12] : "Annual"}</td>
-                        <td className="px-4 py-2 text-right text-slate-600 border-b border-slate-100">{b.valid_rows ?? b.total_rows ?? "—"}</td>
-                        <td className="px-4 py-2 text-right font-bold text-violet-700 border-b border-slate-100 font-mono">
+                        <td className="px-4 py-2 text-muted-foreground border-b border-[hsl(var(--border-hairline))]">{b.entry_type ?? "—"}</td>
+                        <td className="px-4 py-2 text-muted-foreground border-b border-[hsl(var(--border-hairline))]">{b.reporting_year ?? "—"}</td>
+                        <td className="px-4 py-2 text-muted-foreground border-b border-[hsl(var(--border-hairline))]">{b.reporting_month ? MONTH_NAMES[(b.reporting_month - 1) % 12] : "Annual"}</td>
+                        <td className="px-4 py-2 text-right text-muted-foreground border-b border-[hsl(var(--border-hairline))]">{b.valid_rows ?? b.total_rows ?? "—"}</td>
+                        <td className="px-4 py-2 text-right font-bold text-accent-foreground border-b border-[hsl(var(--border-hairline))] font-mono">
                           {(b.total_emissions != null) ? Number(b.total_emissions).toLocaleString(undefined, { maximumFractionDigits: 4 }) : "—"}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-violet-50/60">
-                      <td colSpan={5} className="px-4 py-2.5 text-right text-[12px] font-bold text-violet-800 border-t border-slate-200">Total Scope 3</td>
-                      <td className="px-4 py-2.5 text-right text-[13px] font-bold text-violet-800 border-t border-slate-200 font-mono">
+                    <tr className="bg-accent/60">
+                      <td colSpan={5} className="px-4 py-2.5 text-right text-[12px] font-bold text-accent-foreground border-t border-border">Total Scope 3</td>
+                      <td className="px-4 py-2.5 text-right text-[13px] font-bold text-accent-foreground border-t border-border font-mono">
                         {scope3TotalEmissions.toLocaleString(undefined, { maximumFractionDigits: 4 })} tCO₂e
                       </td>
                     </tr>
@@ -1045,6 +1060,6 @@ export default function ReportsPage() {
           )}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

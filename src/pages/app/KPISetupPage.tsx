@@ -3,15 +3,26 @@ import { tenantApi } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
 import { getModuleIcon } from "@/lib/constants";
 import { useModulesStore } from "@/store/modules";
-import { Breadcrumb, LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { PageTabs } from "@/components/shared/PageTabs";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { FormField as WorkspaceField } from "@/components/shared/FormField";
+import { FormSection, FormRow } from "@/components/shared/FormWorkspace";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { toast } from "sonner";
 import {
-  Plus, BarChart3, ChevronRight, ChevronLeft, X, Pencil, Trash2,
+  Plus, BarChart3, ChevronRight, ChevronLeft, Pencil, Trash2,
   FlaskConical, Eye, EyeOff, Package2,
 } from "lucide-react";
+import {
+  Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  SelectGroup, SelectLabel,
+} from "@/components/ui/select";
 
 const Scope3SetupPage = lazy(() => import("@/pages/app/Scope3SetupPage"));
 import type { KPI, ConversionFactor, Indicator, DerivedMetric, OperandType, OperandField, DerivedOperator, UOM } from "@/types";
@@ -405,7 +416,7 @@ export default function KPISetupPage() {
     } catch (err: any) { toast.error(getApiError(err, "Failed to deactivate")); }
   };
 
-  const scopeColors: Record<number, string> = { 1: "bg-red-50 text-red-600", 2: "bg-amber-50 text-amber-600", 3: "bg-blue-50 text-blue-600" };
+  const scopeColors: Record<number, string> = { 1: "bg-destructive-tint text-destructive", 2: "bg-warn-tint text-warn", 3: "bg-info-tint text-info" };
   const energyLabel: Record<string, string> = { RENEWABLE: "Renewable", NON_RENEWABLE: "Non-Renewable", NOT_APPLICABLE: "N/A" };
   const totalPages = Math.ceil(total / pageSize);
 
@@ -448,13 +459,13 @@ export default function KPISetupPage() {
 
     return (
       <div className="flex-1 min-w-0">
-        <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">{label}</label>
+        <label className="block text-[12px] font-semibold text-foreground mb-1.5">{label}</label>
         {/* Type selector buttons */}
         <div className="flex flex-wrap gap-1 mb-2">
           {TYPE_BTNS.map(({ type, label: lbl }) => (
             <button key={type} type="button"
               onClick={() => setDmField(typeKey, type)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all ${currentType === type ? "bg-brand-navy text-white border-brand-navy" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all ${currentType === type ? "bg-primary text-white border-primary" : "bg-card text-muted-foreground border-border hover:border-border"}`}
             >{lbl}</button>
           ))}
         </div>
@@ -462,101 +473,110 @@ export default function KPISetupPage() {
         {/* KPI + field */}
         {currentType === "kpi_field" && (
           <div className="flex gap-2">
-            <select value={(dmForm as any)[kpiKey] || ""} onChange={(e) => setDmField(kpiKey, e.target.value)}
-              className="flex-1 py-[8px] px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:border-brand-accent">
-              <option value="">Select KPI...</option>
-              {kpis.map((k) => <option key={k.kpi_id} value={k.kpi_id}>{k.kpi_name} ({k.unit})</option>)}
-            </select>
-            <select value={(dmForm as any)[fieldKey] || "quantity"} onChange={(e) => setDmField(fieldKey, e.target.value as OperandField)}
-              className="w-[150px] py-[8px] px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:border-brand-accent">
-              {(["quantity", "mj_value", "emission_value"] as OperandField[]).map((f) => (
-                <option key={f} value={f}>{FIELD_LABELS[f]}</option>
-              ))}
-            </select>
+            <Select value={String((dmForm as any)[kpiKey] || "__none__")} onValueChange={(value) => setDmField(kpiKey, value === "__none__" ? "" : value)}>
+              <SelectTrigger className="flex-1 h-[36px] text-[12px]">
+                <SelectValue placeholder="Select KPI..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Select KPI...</SelectItem>
+                {kpis.map((k) => <SelectItem key={k.kpi_id} value={String(k.kpi_id)}>{k.kpi_name} ({k.unit})</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={String((dmForm as any)[fieldKey] || "quantity")} onValueChange={(value) => setDmField(fieldKey, value as OperandField)}>
+              <SelectTrigger className="w-[150px] h-[36px] text-[12px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(["quantity", "mj_value", "emission_value"] as OperandField[]).map((f) => (
+                  <SelectItem key={f} value={f}>{FIELD_LABELS[f]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
         {/* Indicator (quantity only — indicators have no factor-calculated fields) */}
         {currentType === "indicator_field" && (
           <div className="flex gap-2 items-center">
-            <select value={(dmForm as any)[indKey] || ""} onChange={(e) => setDmField(indKey, e.target.value)}
-              className="flex-1 py-[8px] px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:border-brand-accent">
-              <option value="">Select Indicator...</option>
-              {indicators.map((i) => <option key={i.indicator_id} value={i.indicator_id}>{i.indicator_name}</option>)}
-            </select>
-            <span className="text-[11px] text-slate-400 whitespace-nowrap">Quantity only</span>
+            <Select value={String((dmForm as any)[indKey] || "__none__")} onValueChange={(value) => setDmField(indKey, value === "__none__" ? "" : value)}>
+              <SelectTrigger className="flex-1 h-[36px] text-[12px]">
+                <SelectValue placeholder="Select Indicator..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Select Indicator...</SelectItem>
+                {indicators.map((i) => <SelectItem key={i.indicator_id} value={String(i.indicator_id)}>{i.indicator_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <span className="text-[11px] text-muted-foreground whitespace-nowrap">Quantity only</span>
           </div>
         )}
 
         {/* Derived metric (another step's result) */}
         {currentType === "derived" && (
-          <select value={(dmForm as any)[derKey] || ""} onChange={(e) => setDmField(derKey, e.target.value)}
-            className="w-full py-[8px] px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:border-brand-accent">
-            <option value="">Select Derived Metric (Step)...</option>
-            {derivedMetrics
-              .filter((d) => !editDm || d.metric_id !== editDm.metric_id) // prevent self-reference
-              .map((d) => <option key={d.metric_id} value={d.metric_id}>{d.name} ({d.unit})</option>)}
-          </select>
+          <Select value={String((dmForm as any)[derKey] || "__none__")} onValueChange={(value) => setDmField(derKey, value === "__none__" ? "" : value)}>
+            <SelectTrigger className="h-[36px] text-[12px]">
+              <SelectValue placeholder="Select Derived Metric (Step)..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Select Derived Metric (Step)...</SelectItem>
+              {derivedMetrics
+                .filter((d) => !editDm || d.metric_id !== editDm.metric_id)
+                .map((d) => <SelectItem key={d.metric_id} value={String(d.metric_id)}>{d.name} ({d.unit})</SelectItem>)}
+            </SelectContent>
+          </Select>
         )}
 
         {/* Constant number */}
         {currentType === "constant" && (
           <input type="number" step="any" value={(dmForm as any)[constKey] || ""} onChange={(e) => setDmField(constKey, e.target.value)}
             placeholder="Enter a fixed number..."
-            className="w-full py-[8px] px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-brand-accent" />
+            className="w-full py-[8px] px-2.5 rounded-lg border border-border text-[12px] outline-none focus:border-primary" />
         )}
       </div>
     );
   };
 
-  return (
-    <div className="p-6 max-w-[1400px]">
-      {/* Row 1: Title + action button */}
-      <div className="flex items-center justify-between mb-1">
-        <div>
-          <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "KPI Setup" }]} />
-          <h1 className="text-[18px] font-bold text-brand-navy tracking-tight">KPI Setup</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            {pageTab === "kpis"
-              ? `${total} KPI${total !== 1 ? "s" : ""} — Define what your company tracks`
-              : pageTab === "derived"
-              ? `${derivedMetrics.length} derived metric${derivedMetrics.length !== 1 ? "s" : ""} — Computed from KPI data`
-              : "Scope 3 emission factors and activity assignments"}
-          </p>
-        </div>
-        <div>
-          {isAdmin && pageTab === "kpis" && (
-            <button onClick={openCreate} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-accent text-[12px] font-semibold text-white hover:bg-brand-accentDk transition-colors">
-              <Plus size={14} /> Add KPI
-            </button>
-          )}
-          {isAdmin && pageTab === "derived" && (
-            <button onClick={openDmCreate} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-brand-accent text-[12px] font-semibold text-white hover:bg-brand-accentDk transition-colors">
-              <Plus size={14} /> Add Derived Metric
-            </button>
-          )}
-        </div>
-      </div>
+  const kpiSubtitle = pageTab === "kpis"
+    ? `${total} KPI${total !== 1 ? "s" : ""} — Define what your company tracks`
+    : pageTab === "derived"
+      ? `${derivedMetrics.length} derived metric${derivedMetrics.length !== 1 ? "s" : ""} — Computed from KPI data`
+      : "Scope 3 emission factors and activity assignments";
 
-      {/* Row 2: Underline tabs */}
-      <div className="flex border-b border-slate-200 mb-4">
-        <button onClick={() => setPageTab("kpis")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${pageTab === "kpis" ? "border-brand-accent text-brand-accent" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}>
-          <BarChart3 size={14} /> KPIs
-        </button>
-        <button onClick={() => setPageTab("derived")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${pageTab === "derived" ? "border-brand-accent text-brand-accent" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}>
-          <FlaskConical size={14} /> Derived Metrics
-        </button>
-        <button onClick={() => setPageTab("scope3")}
-          className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${pageTab === "scope3" ? "border-brand-accent text-brand-accent" : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"}`}>
-          <Package2 size={14} /> Scope 3 Setup
-        </button>
-      </div>
+  const pageActions = isAdmin ? (
+    pageTab === "kpis" ? (
+      <button onClick={openCreate} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-primary text-[12px] font-semibold text-white hover:bg-primaryDk transition-colors">
+        <Plus size={14} /> Add KPI
+      </button>
+    ) : pageTab === "derived" ? (
+      <button onClick={openDmCreate} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-primary text-[12px] font-semibold text-white hover:bg-primaryDk transition-colors">
+        <Plus size={14} /> Add Derived Metric
+      </button>
+    ) : null
+  ) : null;
+
+  return (
+    <PageShell
+      title="KPI Setup"
+      description={kpiSubtitle}
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "KPI Setup" }]}
+      className="max-w-[1400px]"
+      actions={pageActions}
+      toolbar={
+        <PageTabs
+          value={pageTab}
+          onChange={(key) => setPageTab(key as PageTab)}
+          tabs={[
+            { key: "kpis", label: "KPIs", icon: <BarChart3 size={14} /> },
+            { key: "derived", label: "Derived Metrics", icon: <FlaskConical size={14} /> },
+            { key: "scope3", label: "Scope 3 Setup", icon: <Package2 size={14} /> },
+          ]}
+        />
+      }
+    >
 
       {/* ── SCOPE 3 SETUP SECTION ── */}
       {pageTab === "scope3" && (
-        <Suspense fallback={<div className="bg-white rounded-xl border border-slate-200 p-6"><LoadingSkeleton rows={6} cols={3} /></div>}>
+        <Suspense fallback={<div className="bg-card rounded-xl border border-border p-6"><LoadingSkeleton rows={6} cols={3} /></div>}>
           <Scope3SetupPage embedded />
         </Suspense>
       )}
@@ -565,23 +585,23 @@ export default function KPISetupPage() {
       {pageTab === "derived" && (
         <div>
           {dmLoading ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-6"><LoadingSkeleton rows={5} cols={4} /></div>
+            <div className="bg-card rounded-xl border border-border p-6"><LoadingSkeleton rows={5} cols={4} /></div>
           ) : derivedMetrics.length === 0 ? (
             <EmptyState icon={FlaskConical} title="No derived metrics yet"
               description="Create calculated KPIs from existing data for advanced reporting">
               {isAdmin && (
-                <button onClick={openDmCreate} className="mt-2 px-4 py-2 rounded-lg bg-brand-accent text-white text-[13px] font-semibold">
+                <button onClick={openDmCreate} className="mt-2 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold">
                   <Plus size={14} className="inline mr-1" /> Add Derived Metric
                 </button>
               )}
             </EmptyState>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
               <table className="w-full text-[13px] border-collapse">
                 <thead>
-                  <tr className="border-b-2 border-slate-100 bg-slate-50/60">
+                  <tr className="border-b-2 border-[hsl(var(--border-hairline))] bg-sunken/60">
                     {["Name", "Formula", "Unit", "Module", "In Report", ...(isAdmin ? ["Actions"] : [])].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -598,38 +618,38 @@ export default function KPISetupPage() {
                     const opSymbol: Record<string, string> = { "+": "+", "-": "−", "*": "×", "/": "÷" };
 
                     return (
-                      <tr key={dm.metric_id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                      <tr key={dm.metric_id} className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/50 transition-colors">
                         <td className="px-4 py-2">
-                          <div className="font-semibold text-brand-navy">{dm.name}</div>
-                          {dm.description && <div className="text-[11px] text-slate-400 truncate max-w-[180px]">{dm.description}</div>}
+                          <div className="font-semibold text-foreground">{dm.name}</div>
+                          {dm.description && <div className="text-[11px] text-muted-foreground truncate max-w-[180px]">{dm.description}</div>}
                         </td>
-                        <td className="px-4 py-2 text-[11px] text-slate-600 font-mono max-w-[280px]">
+                        <td className="px-4 py-2 text-[11px] text-muted-foreground font-mono max-w-[280px]">
                           {dm.formula ? (
-                            <span className="text-slate-500">{displayFormula(dm.formula, kpis, indicators, derivedMetrics)}</span>
+                            <span className="text-muted-foreground">{displayFormula(dm.formula, kpis, indicators, derivedMetrics)}</span>
                           ) : (
                             <>
-                              <span className="text-slate-500">{operandLabel(dm.lhs_type || "", dm.lhs_kpi, dm.lhs_field, dm.lhs_constant)}</span>
-                              <span className="mx-1.5 font-bold text-brand-navy">{opSymbol[dm.operator || ""]}</span>
-                              <span className="text-slate-500">{operandLabel(dm.rhs_type || "", dm.rhs_kpi, dm.rhs_field, dm.rhs_constant)}</span>
+                              <span className="text-muted-foreground">{operandLabel(dm.lhs_type || "", dm.lhs_kpi, dm.lhs_field, dm.lhs_constant)}</span>
+                              <span className="mx-1.5 font-bold text-foreground">{opSymbol[dm.operator || ""]}</span>
+                              <span className="text-muted-foreground">{operandLabel(dm.rhs_type || "", dm.rhs_kpi, dm.rhs_field, dm.rhs_constant)}</span>
                             </>
                           )}
                         </td>
-                        <td className="px-4 py-2 text-slate-500 font-mono text-[12px]">{dm.unit}</td>
+                        <td className="px-4 py-2 text-muted-foreground font-mono text-[12px]">{dm.unit}</td>
                         <td className="px-4 py-2">
                           {ModIcon && mod ? (
-                            <span className="flex items-center gap-1.5 text-[12px] text-slate-500">
+                            <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                               <ModIcon size={14} style={{ color: mod.color }} /> {mod.module_name}
                             </span>
-                          ) : <span className="text-slate-300 text-[12px]">—</span>}
+                          ) : <span className="text-muted-foreground/40 text-[12px]">—</span>}
                         </td>
                         <td className="px-4 py-2">
                           {isAdmin ? (
                             <button onClick={() => handleDmToggleReport(dm)} title="Toggle visibility"
-                              className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${dm.show_in_report ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+                              className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${dm.show_in_report ? "bg-ok-tint text-ok" : "bg-warn-tint text-warn"}`}>
                               {dm.show_in_report ? <><Eye size={11} /> In Report</> : <><EyeOff size={11} /> Intermediate</>}
                             </button>
                           ) : (
-                            <span className={`text-[11px] font-semibold ${dm.show_in_report ? "text-emerald-600" : "text-amber-600"}`}>
+                            <span className={`text-[11px] font-semibold ${dm.show_in_report ? "text-ok" : "text-warn"}`}>
                               {dm.show_in_report ? "In Report" : "Intermediate"}
                             </span>
                           )}
@@ -637,10 +657,10 @@ export default function KPISetupPage() {
                         {isAdmin && (
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-1">
-                              <button onClick={() => openDmEdit(dm)} title="Edit" className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-brand-navy transition-colors">
+                              <button onClick={() => openDmEdit(dm)} title="Edit" className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground hover:text-foreground transition-colors">
                                 <Pencil size={14} />
                               </button>
-                              <button onClick={() => handleDmDelete(dm)} title="Remove" className="p-1.5 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors">
+                              <button onClick={() => handleDmDelete(dm)} title="Remove" className="p-1.5 rounded-md hover:bg-destructive-tint text-muted-foreground hover:text-destructive transition-colors">
                                 <Trash2 size={14} />
                               </button>
                             </div>
@@ -654,65 +674,61 @@ export default function KPISetupPage() {
             </div>
           )}
 
-          {/* ── Create / Edit Derived Metric Modal ── */}
-          {dmCreateOpen && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDmCreateOpen(false)} />
-              <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col z-10">
-                <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100">
+          {/* ── Create / Edit Derived Metric ── */}
+          <Sheet open={dmCreateOpen} onOpenChange={(open) => { if (!open) setDmCreateOpen(false); }}>
+            <SheetContent className="max-w-[920px]">
+              <SheetHeader>
+                <div className="flex items-start justify-between gap-3 pr-8">
                   <div>
-                    <h3 className="text-[17px] font-bold text-brand-navy">{editDm ? "Edit Derived Metric" : "Add Derived Metric"}</h3>
-                    <p className="text-[12px] text-slate-500 mt-0.5">Define a calculated column from existing KPI, Indicator, or prior step data</p>
+                    <SheetTitle>{editDm ? "Edit Derived Metric" : "Add Derived Metric"}</SheetTitle>
+                    <p className="text-[12px] text-muted-foreground mt-0.5">Define a calculated column from existing KPI, Indicator, or prior step data</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {/* Prominent intermediate step toggle — at the top where it can't be missed */}
-                    <label className="flex items-center gap-2 cursor-pointer group">
-                      <div
-                        onClick={() => setDmField("is_intermediate", !dmForm.is_intermediate)}
-                        className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${dmForm.is_intermediate ? "bg-amber-400" : "bg-emerald-500"}`}
-                      >
-                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${dmForm.is_intermediate ? "translate-x-0.5" : "translate-x-5"}`} />
-                      </div>
-                      <span className={`text-[12px] font-semibold ${dmForm.is_intermediate ? "text-amber-600" : "text-emerald-600"}`}>
-                        {dmForm.is_intermediate ? "Intermediate (hidden from report)" : "Visible in report"}
-                      </span>
-                    </label>
-                    <button onClick={() => setDmCreateOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><X size={17} /></button>
-                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer group shrink-0">
+                    <div
+                      onClick={() => setDmField("is_intermediate", !dmForm.is_intermediate)}
+                      className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${dmForm.is_intermediate ? "bg-amber-400" : "bg-ok"}`}
+                    >
+                      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${dmForm.is_intermediate ? "translate-x-0.5" : "translate-x-5"}`} />
+                    </div>
+                    <span className={`text-[12px] font-semibold ${dmForm.is_intermediate ? "text-warn" : "text-ok"}`}>
+                      {dmForm.is_intermediate ? "Intermediate" : "In report"}
+                    </span>
+                  </label>
                 </div>
+              </SheetHeader>
 
-                <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4">
+              <SheetBody className="flex flex-col gap-4">
                   {/* Name + Unit */}
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Name <span className="text-red-400">*</span></label>
+                      <label className="block text-[12px] font-semibold text-foreground mb-1.5">Name <span className="text-destructive">*</span></label>
                       <input value={dmForm.name} onChange={(e) => setDmField("name", e.target.value)}
                         placeholder="e.g. Emission Intensity"
-                        className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none focus:border-brand-accent transition-colors" />
+                        className="w-full py-[9px] px-3 rounded-lg border border-border text-[13px] outline-none focus:border-primary transition-colors" />
                     </div>
                     <div className="w-[120px]">
-                      <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Unit <span className="text-red-400">*</span></label>
+                      <label className="block text-[12px] font-semibold text-foreground mb-1.5">Unit <span className="text-destructive">*</span></label>
                       <input value={dmForm.unit} onChange={(e) => setDmField("unit", e.target.value)}
                         placeholder="tCO₂e/kL"
-                        className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none focus:border-brand-accent transition-colors" />
+                        className="w-full py-[9px] px-3 rounded-lg border border-border text-[13px] outline-none focus:border-primary transition-colors" />
                     </div>
                   </div>
 
                   {/* Description */}
                   <div>
-                    <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Description</label>
+                    <label className="block text-[12px] font-semibold text-foreground mb-1.5">Description</label>
                     <input value={dmForm.description} onChange={(e) => setDmField("description", e.target.value)}
                       placeholder="Optional — explain what this metric represents"
-                      className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none focus:border-brand-accent transition-colors" />
+                      className="w-full py-[9px] px-3 rounded-lg border border-border text-[13px] outline-none focus:border-primary transition-colors" />
                   </div>
 
                   {/* Module + Indicator grouping */}
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Group under Module</label>
+                      <label className="block text-[12px] font-semibold text-foreground mb-1.5">Group under Module</label>
                       <div className="flex flex-wrap gap-1.5">
                         <button type="button" onClick={() => setDmField("module_id", "")}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all ${!dmForm.module_id ? "bg-brand-navy text-white border-brand-navy" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}>
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all ${!dmForm.module_id ? "bg-primary text-white border-primary" : "bg-card text-muted-foreground border-border hover:border-border"}`}>
                           None
                         </button>
                         {modules.map((m) => {
@@ -720,7 +736,7 @@ export default function KPISetupPage() {
                           const sel = dmForm.module_id === m.module_id;
                           return (
                             <button key={m.module_id} type="button" onClick={() => setDmField("module_id", m.module_id)}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all ${sel ? "text-white border-transparent" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all ${sel ? "text-white border-transparent" : "bg-card text-muted-foreground border-border hover:border-border"}`}
                               style={sel ? { background: m.color, borderColor: m.color } : {}}>
                               <Icon size={11} style={{ color: sel ? "#fff" : m.color }} /> {m.module_name}
                             </button>
@@ -729,28 +745,32 @@ export default function KPISetupPage() {
                       </div>
                     </div>
                     <div className="w-[200px]">
-                      <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Link to Indicator</label>
-                      <select value={dmForm.indicator_id || ""} onChange={(e) => setDmField("indicator_id", e.target.value)}
-                        className="w-full py-[8px] px-2.5 rounded-lg border border-slate-200 text-[12px] outline-none bg-white focus:border-brand-accent">
-                        <option value="">None</option>
-                        {indicators
-                          .filter((i) => !dmForm.module_id || i.module_id === Number(dmForm.module_id))
-                          .map((i) => <option key={i.indicator_id} value={i.indicator_id}>{i.indicator_name}</option>)}
-                      </select>
+                      <label className="block text-[12px] font-semibold text-foreground mb-1.5">Link to Indicator</label>
+                      <Select value={String(dmForm.indicator_id || "__none__")} onValueChange={(value) => setDmField("indicator_id", value === "__none__" ? "" : value)}>
+                        <SelectTrigger className="h-[36px] text-[12px]">
+                          <SelectValue placeholder="None" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">None</SelectItem>
+                          {indicators
+                            .filter((i) => !dmForm.module_id || i.module_id === Number(dmForm.module_id))
+                            .map((i) => <SelectItem key={i.indicator_id} value={String(i.indicator_id)}>{i.indicator_name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
                   {/* Formula builder — mode toggle */}
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <div className="bg-sunken rounded-xl p-4 border border-border">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="text-[12px] font-bold text-brand-navy">Formula Builder</div>
-                      <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+                      <div className="text-[12px] font-bold text-foreground">Formula Builder</div>
+                      <div className="flex rounded-lg border border-border overflow-hidden">
                         <button type="button" onClick={() => setDmField("formulaMode", false)}
-                          className={`px-3 py-1 text-[11px] font-semibold transition-colors ${!dmForm.formulaMode ? "bg-brand-accent text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                          className={`px-3 py-1 text-[11px] font-semibold transition-colors ${!dmForm.formulaMode ? "bg-primary text-white" : "bg-card text-muted-foreground hover:bg-sunken"}`}>
                           Simple
                         </button>
                         <button type="button" onClick={() => setDmField("formulaMode", true)}
-                          className={`px-3 py-1 text-[11px] font-semibold transition-colors ${dmForm.formulaMode ? "bg-brand-accent text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                          className={`px-3 py-1 text-[11px] font-semibold transition-colors ${dmForm.formulaMode ? "bg-primary text-white" : "bg-card text-muted-foreground hover:bg-sunken"}`}>
                           Formula
                         </button>
                       </div>
@@ -762,12 +782,16 @@ export default function KPISetupPage() {
                         <div className="flex items-start gap-3">
                           <OperandSelector prefix="lhs" label="Left Operand" />
                           <div className="flex-shrink-0 pt-7">
-                            <select value={dmForm.operator} onChange={(e) => setDmField("operator", e.target.value as DerivedOperator)}
-                              className="py-[8px] px-2.5 rounded-lg border border-slate-200 text-[13px] font-bold text-brand-navy outline-none bg-white focus:border-brand-accent w-[120px]">
-                              {Object.entries(OP_LABELS).map(([op, lbl]) => (
-                                <option key={op} value={op}>{lbl}</option>
-                              ))}
-                            </select>
+                            <Select value={dmForm.operator} onValueChange={(value) => setDmField("operator", value as DerivedOperator)}>
+                              <SelectTrigger className="w-[140px] h-[36px] text-[13px] font-bold">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(OP_LABELS).map(([op, lbl]) => (
+                                  <SelectItem key={op} value={op}>{lbl}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <OperandSelector prefix="rhs" label="Right Operand" />
                         </div>
@@ -781,10 +805,10 @@ export default function KPISetupPage() {
                             return String(constant || "0");
                           };
                           return (
-                            <div className="mt-3 px-3 py-2 bg-white rounded-lg border border-slate-100 text-[11px] text-slate-600 font-mono">
-                              <span className="text-[10px] text-slate-400 uppercase tracking-wider mr-2">Preview:</span>
+                            <div className="mt-3 px-3 py-2 bg-card rounded-lg border border-[hsl(var(--border-hairline))] text-[11px] text-muted-foreground font-mono">
+                              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-2">Preview:</span>
                               {operandLabel(dmForm.lhs_type, dmForm.lhs_kpi_id, dmForm.lhs_field, dmForm.lhs_constant, dmForm.lhs_indicator_id, dmForm.lhs_derived_id)}
-                              <span className="mx-2 font-bold text-brand-navy">{opSym[dmForm.operator] || dmForm.operator}</span>
+                              <span className="mx-2 font-bold text-foreground">{opSym[dmForm.operator] || dmForm.operator}</span>
                               {operandLabel(dmForm.rhs_type, dmForm.rhs_kpi_id, dmForm.rhs_field, dmForm.rhs_constant, dmForm.rhs_indicator_id, dmForm.rhs_derived_id)}
                             </div>
                           );
@@ -797,22 +821,22 @@ export default function KPISetupPage() {
                           {/* Formula display + operator buttons */}
                           <div className="flex-1 flex flex-col gap-2">
                             {/* Human-readable formula display */}
-                            <div className="w-full min-h-[60px] px-3 py-2.5 rounded-lg border border-slate-200 bg-white text-[13px] font-medium text-brand-navy">
+                            <div className="w-full min-h-[60px] px-3 py-2.5 rounded-lg border border-border bg-card text-[13px] font-medium text-foreground">
                               {dmForm.formula.trim() ? (
                                 displayFormula(dmForm.formula, allKpis.length > 0 ? allKpis : kpis, indicators, derivedMetrics)
                               ) : (
-                                <span className="text-slate-300 text-[12px]">Click fields from the right panel and operators below to build your formula...</span>
+                                <span className="text-muted-foreground/40 text-[12px]">Click fields from the right panel and operators below to build your formula...</span>
                               )}
                             </div>
                             {/* Operator + control buttons */}
                             <div className="flex gap-1.5 flex-wrap items-center">
                               {["+", "-", "*", "/", "(", ")", "100"].map((op) => (
                                 <button key={op} type="button" onClick={() => insertFormulaToken(op === "100" ? " * 100" : ` ${op} `)}
-                                  className="px-2.5 py-1 rounded border border-slate-200 text-[12px] font-mono font-bold text-brand-navy bg-white hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                                  className="px-2.5 py-1 rounded border border-border text-[12px] font-mono font-bold text-foreground bg-card hover:bg-sunken hover:border-border transition-colors">
                                   {op === "100" ? "×100" : op}
                                 </button>
                               ))}
-                              <div className="w-px h-5 bg-slate-200 mx-1" />
+                              <div className="w-px h-5 bg-border mx-1" />
                               <button type="button" onClick={() => {
                                 // Remove last token or character
                                 const f = dmForm.formula;
@@ -823,17 +847,17 @@ export default function KPISetupPage() {
                                   setDmField("formula", f.trimEnd().slice(0, -1).trimEnd());
                                 }
                               }}
-                                className="px-2.5 py-1 rounded border border-slate-200 text-[11px] font-semibold text-amber-600 bg-white hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                                className="px-2.5 py-1 rounded border border-border text-[11px] font-semibold text-warn bg-card hover:bg-warn-tint hover:border-warn/40 transition-colors"
                                 title="Remove last item">⌫ Undo</button>
                               <button type="button" onClick={() => setDmField("formula", "")}
-                                className="px-2.5 py-1 rounded border border-slate-200 text-[11px] font-semibold text-red-500 bg-white hover:bg-red-50 hover:border-red-300 transition-colors"
+                                className="px-2.5 py-1 rounded border border-border text-[11px] font-semibold text-destructive bg-card hover:bg-destructive-tint hover:border-destructive/40 transition-colors"
                                 title="Clear entire formula">Clear</button>
                             </div>
                           </div>
 
                           {/* Fields panel */}
-                          <div className="w-[220px] flex-shrink-0 bg-white rounded-lg border border-slate-200 max-h-[280px] overflow-y-auto">
-                            <div className="px-3 py-2 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider sticky top-0 bg-white">
+                          <div className="w-[220px] flex-shrink-0 bg-card rounded-lg border border-border max-h-[280px] overflow-y-auto">
+                            <div className="px-3 py-2 border-b border-[hsl(var(--border-hairline))] text-[10px] font-bold text-muted-foreground uppercase tracking-wider sticky top-0 bg-card">
                               Available Fields
                             </div>
                             {modules.map((mod) => {
@@ -843,7 +867,7 @@ export default function KPISetupPage() {
                               const ModIcon = getModuleIcon(mod.icon_name);
                               return (
                                 <div key={mod.module_id}>
-                                  <div className="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase flex items-center gap-1.5 border-b border-slate-100">
+                                  <div className="px-3 py-1.5 bg-sunken text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5 border-b border-[hsl(var(--border-hairline))]">
                                     <ModIcon size={11} style={{ color: mod.color }} />{mod.module_name}
                                   </div>
                                   {modInds.map((ind) => {
@@ -853,23 +877,23 @@ export default function KPISetupPage() {
                                       <div key={ind.indicator_id}>
                                         {isDirect ? (
                                           <button type="button" onClick={() => insertFormulaToken(`[ind:${ind.indicator_id}]`)}
-                                            className="w-full text-left px-3 py-1.5 text-[11px] text-brand-navy hover:bg-sky-50 transition-colors flex items-center gap-1.5 border-b border-slate-50">
+                                            className="w-full text-left px-3 py-1.5 text-[11px] text-foreground hover:bg-info-tint transition-colors flex items-center gap-1.5 border-b border-[hsl(var(--border-hairline))]">
                                             <span className="text-sky-500 text-[9px] font-bold">IND</span>
                                             <span className="truncate">{ind.indicator_name}</span>
                                           </button>
                                         ) : (
                                           <>
-                                            <div className="px-3 py-1 text-[10px] text-slate-400 font-semibold border-b border-slate-50">{ind.indicator_name}</div>
+                                            <div className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-[hsl(var(--border-hairline))]">{ind.indicator_name}</div>
                                             {indKpis.map((k) => (
-                                              <div key={k.kpi_id} className="flex border-b border-slate-50">
+                                              <div key={k.kpi_id} className="flex border-b border-[hsl(var(--border-hairline))]">
                                                 <button type="button" onClick={() => insertFormulaToken(`[kpi:${k.kpi_id}:quantity]`)}
-                                                  className="flex-1 text-left pl-5 pr-1 py-1.5 text-[11px] text-brand-navy hover:bg-sky-50 transition-colors truncate">
+                                                  className="flex-1 text-left pl-5 pr-1 py-1.5 text-[11px] text-foreground hover:bg-info-tint transition-colors truncate">
                                                   {k.kpi_name}
                                                 </button>
                                                 <button type="button" onClick={() => insertFormulaToken(`[kpi:${k.kpi_id}:mj_value]`)} title="MJ value"
-                                                  className="px-1.5 py-1.5 text-[9px] font-bold text-amber-500 hover:bg-amber-50 transition-colors">MJ</button>
+                                                  className="px-1.5 py-1.5 text-[9px] font-bold text-amber-500 hover:bg-warn-tint transition-colors">MJ</button>
                                                 <button type="button" onClick={() => insertFormulaToken(`[kpi:${k.kpi_id}:emission_value]`)} title="Emission value"
-                                                  className="px-1.5 py-1.5 text-[9px] font-bold text-red-400 hover:bg-red-50 transition-colors">CO₂</button>
+                                                  className="px-1.5 py-1.5 text-[9px] font-bold text-destructive hover:bg-destructive-tint transition-colors">CO₂</button>
                                               </div>
                                             ))}
                                           </>
@@ -879,15 +903,15 @@ export default function KPISetupPage() {
                                   })}
                                   {/* KPIs not under any indicator */}
                                   {fKpis.filter((k) => !k.indicator_id).map((k) => (
-                                    <div key={k.kpi_id} className="flex border-b border-slate-50">
+                                    <div key={k.kpi_id} className="flex border-b border-[hsl(var(--border-hairline))]">
                                       <button type="button" onClick={() => insertFormulaToken(`[kpi:${k.kpi_id}:quantity]`)}
-                                        className="flex-1 text-left px-3 py-1.5 text-[11px] text-brand-navy hover:bg-sky-50 transition-colors truncate">
+                                        className="flex-1 text-left px-3 py-1.5 text-[11px] text-foreground hover:bg-info-tint transition-colors truncate">
                                         {k.kpi_name}
                                       </button>
                                       <button type="button" onClick={() => insertFormulaToken(`[kpi:${k.kpi_id}:mj_value]`)} title="MJ value"
-                                        className="px-1.5 py-1.5 text-[9px] font-bold text-amber-500 hover:bg-amber-50 transition-colors">MJ</button>
+                                        className="px-1.5 py-1.5 text-[9px] font-bold text-amber-500 hover:bg-warn-tint transition-colors">MJ</button>
                                       <button type="button" onClick={() => insertFormulaToken(`[kpi:${k.kpi_id}:emission_value]`)} title="Emission value"
-                                        className="px-1.5 py-1.5 text-[9px] font-bold text-red-400 hover:bg-red-50 transition-colors">CO₂</button>
+                                        className="px-1.5 py-1.5 text-[9px] font-bold text-destructive hover:bg-destructive-tint transition-colors">CO₂</button>
                                     </div>
                                   ))}
                                 </div>
@@ -896,12 +920,12 @@ export default function KPISetupPage() {
                             {/* Existing derived metrics */}
                             {derivedMetrics.filter((d) => d.metric_id !== editDm?.metric_id).length > 0 && (
                               <>
-                                <div className="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase border-b border-slate-100 border-t">
+                                <div className="px-3 py-1.5 bg-sunken text-[10px] font-bold text-muted-foreground uppercase border-b border-[hsl(var(--border-hairline))] border-t">
                                   Derived Metrics
                                 </div>
                                 {derivedMetrics.filter((d) => d.metric_id !== editDm?.metric_id).map((d) => (
                                   <button key={d.metric_id} type="button" onClick={() => insertFormulaToken(`[dm:${d.metric_id}]`)}
-                                    className="w-full text-left px-3 py-1.5 text-[11px] text-purple-700 hover:bg-purple-50 transition-colors border-b border-slate-50 truncate">
+                                    className="w-full text-left px-3 py-1.5 text-[11px] text-purple-700 hover:bg-purple-50 transition-colors border-b border-[hsl(var(--border-hairline))] truncate">
                                     {d.name} ({d.unit})
                                   </button>
                                 ))}
@@ -915,23 +939,22 @@ export default function KPISetupPage() {
 
                   {/* Step order — used to ensure intermediate steps compute before final steps */}
                   <div className="flex items-center gap-3">
-                    <label className="text-[12px] font-semibold text-slate-600">Step / Display Order</label>
+                    <label className="text-[12px] font-semibold text-muted-foreground">Step / Display Order</label>
                     <input type="number" min={0} value={dmForm.display_order}
                       onChange={(e) => setDmField("display_order", e.target.value)}
-                      className="w-[60px] py-1.5 px-2 rounded-lg border border-slate-200 text-[12px] outline-none focus:border-brand-accent text-center" />
-                    <span className="text-[11px] text-slate-400">Lower = computed first. Intermediate steps must have lower order than final steps that reference them.</span>
+                      className="w-[60px] py-1.5 px-2 rounded-lg border border-border text-[12px] outline-none focus:border-primary text-center" />
+                    <span className="text-[11px] text-muted-foreground">Lower = computed first. Intermediate steps must have lower order than final steps that reference them.</span>
                   </div>
-                </div>
+              </SheetBody>
 
-                <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100">
-                  <button onClick={() => setDmCreateOpen(false)} className="px-4 py-2.5 rounded-lg border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
-                  <button onClick={handleDmSave} disabled={actionLoading} className="px-5 py-2.5 rounded-lg bg-brand-accent text-[13px] font-semibold text-white hover:bg-brand-accentDk transition-colors disabled:opacity-60">
-                    {actionLoading ? "Saving..." : editDm ? "Update" : "Create"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+              <SheetFooter>
+                <button onClick={() => setDmCreateOpen(false)} className="px-4 py-2.5 rounded-lg border border-border text-[13px] font-semibold text-muted-foreground hover:bg-sunken transition-colors">Cancel</button>
+                <button onClick={handleDmSave} disabled={actionLoading} className="px-5 py-2.5 rounded-lg bg-primary text-[13px] font-semibold text-white hover:bg-primaryDk transition-colors disabled:opacity-60">
+                  {actionLoading ? "Saving..." : editDm ? "Update" : "Create"}
+                </button>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
         </div>
       )}
 
@@ -939,14 +962,14 @@ export default function KPISetupPage() {
       {pageTab === "kpis" && <>
 
       {/* Module Tabs */}
-      <div className="flex gap-1 mb-5 bg-slate-100 rounded-lg p-1 w-fit">
-        <button onClick={() => { setActiveModule(null); setPage(1); }} className={`px-4 py-2 rounded-md text-[13px] font-semibold transition-all ${!activeModule ? "bg-white text-brand-navy shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+      <div className="flex gap-1 mb-5 bg-sunken rounded-lg p-1 w-fit">
+        <button onClick={() => { setActiveModule(null); setPage(1); }} className={`px-4 py-2 rounded-md text-[13px] font-semibold transition-all ${!activeModule ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground/90"}`}>
           All
         </button>
         {modules.map((m) => {
           const Icon = getModuleIcon(m.icon_name);
           return (
-            <button key={m.module_id} onClick={() => { setActiveModule(m.module_id); setPage(1); }} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-[13px] font-semibold transition-all ${activeModule === m.module_id ? "bg-white text-brand-navy shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+            <button key={m.module_id} onClick={() => { setActiveModule(m.module_id); setPage(1); }} className={`flex items-center gap-1.5 px-4 py-2 rounded-md text-[13px] font-semibold transition-all ${activeModule === m.module_id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground/90"}`}>
               <Icon size={14} style={{ color: m.color }} /> {m.module_name}
             </button>
           );
@@ -955,20 +978,20 @@ export default function KPISetupPage() {
 
       <div className="flex gap-5">
         {/* KPIs table */}
-        <div className={`bg-white rounded-xl border border-slate-200 overflow-hidden ${factorKPI ? "flex-1" : "w-full"} transition-all`}>
+        <div className="bg-card rounded-xl border border-border overflow-hidden w-full transition-all">
           {loading ? (
             <div className="p-6"><LoadingSkeleton rows={8} cols={6} /></div>
           ) : kpis.length === 0 ? (
             <EmptyState icon={BarChart3} title="No KPIs found" description={activeModule ? "No KPIs in this module yet" : "Define your first ESG KPI to start tracking"}>
-              {isAdmin && <button onClick={openCreate} className="mt-2 px-4 py-2 rounded-lg bg-brand-accent text-white text-[13px] font-semibold"><Plus size={14} className="inline mr-1" /> Add KPI</button>}
+              {isAdmin && <button onClick={openCreate} className="mt-2 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold"><Plus size={14} className="inline mr-1" /> Add KPI</button>}
             </EmptyState>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-[13px] border-collapse">
                 <thead>
-                  <tr className="border-b-2 border-slate-100 bg-slate-50/60">
+                  <tr className="border-b-2 border-[hsl(var(--border-hairline))] bg-sunken/60">
                     {["KPI", "Unit", "Module", "Scope", "Energy Type", "Factors", ...(isAdmin ? ["Actions"] : [])].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-slate-500 font-semibold text-[11px] uppercase tracking-wider">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-muted-foreground font-semibold text-[11px] uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -977,22 +1000,22 @@ export default function KPISetupPage() {
                     const mod = modules.find((x) => x.module_id === m.module_id);
                     const ModIcon = mod ? getModuleIcon(mod.icon_name) : null;
                     return (
-                      <tr key={m.kpi_id} className={`border-b border-slate-100 hover:bg-slate-50/60 transition-colors ${factorKPI?.kpi_id === m.kpi_id ? "bg-sky-50/40" : ""}`}>
+                      <tr key={m.kpi_id} className={`border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/60 transition-colors ${factorKPI?.kpi_id === m.kpi_id ? "bg-info-tint/40" : ""}`}>
                         <td className="px-4 py-2">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-brand-navy">{m.kpi_name}</span>
+                            <span className="font-semibold text-foreground">{m.kpi_name}</span>
                             {m.input_type && m.input_type !== "numeric" && (
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${m.input_type === "boolean" ? "bg-violet-50 text-violet-600" : "bg-amber-50 text-amber-600"}`}>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${m.input_type === "boolean" ? "bg-accent text-accent-foreground" : "bg-warn-tint text-warn"}`}>
                                 {m.input_type === "boolean" ? "Yes/No" : "Text"}
                               </span>
                             )}
                           </div>
-                          {m.description && <div className="text-[11px] text-slate-400 truncate max-w-[200px]">{m.description}</div>}
+                          {m.description && <div className="text-[11px] text-muted-foreground truncate max-w-[200px]">{m.description}</div>}
                         </td>
-                        <td className="px-4 py-2 text-slate-500 font-mono text-[12px]">{m.input_type === "numeric" || !m.input_type ? m.unit : "—"}</td>
+                        <td className="px-4 py-2 text-muted-foreground font-mono text-[12px]">{m.input_type === "numeric" || !m.input_type ? m.unit : "—"}</td>
                         <td className="px-4 py-2">
                           {ModIcon && mod && (
-                            <span className="flex items-center gap-1.5 text-[12px] text-slate-500">
+                            <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
                               <ModIcon size={14} style={{ color: mod.color }} /> {mod.module_name}
                             </span>
                           )}
@@ -1002,21 +1025,21 @@ export default function KPISetupPage() {
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${scopeColors[m.scope_number]}`}>
                               Scope {m.scope_number}
                             </span>
-                          ) : <span className="text-slate-300">—</span>}
+                          ) : <span className="text-muted-foreground/40">—</span>}
                         </td>
-                        <td className="px-4 py-2 text-[12px] text-slate-500">{m.energy_type ? energyLabel[m.energy_type] : "—"}</td>
+                        <td className="px-4 py-2 text-[12px] text-muted-foreground">{m.energy_type ? energyLabel[m.energy_type] : "—"}</td>
                         <td className="px-4 py-2">
-                          <button onClick={() => loadFactors(m)} className="flex items-center gap-1 text-[12px] font-semibold text-brand-accent hover:underline">
+                          <button onClick={() => loadFactors(m)} className="flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
                             View <ChevronRight size={12} />
                           </button>
                         </td>
                         {isAdmin && (
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-1">
-                              <button onClick={() => openEdit(m)} title="Edit KPI" className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-brand-navy transition-colors">
+                              <button onClick={() => openEdit(m)} title="Edit KPI" className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground hover:text-foreground transition-colors">
                                 <Pencil size={14} />
                               </button>
-                              <button onClick={() => handleDeactivate(m)} title="Deactivate" className="p-1.5 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors">
+                              <button onClick={() => handleDeactivate(m)} title="Deactivate" className="p-1.5 rounded-md hover:bg-destructive-tint text-muted-foreground hover:text-destructive transition-colors">
                                 <Trash2 size={14} />
                               </button>
                             </div>
@@ -1030,44 +1053,32 @@ export default function KPISetupPage() {
             </div>
           )}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-              <span className="text-[12px] text-slate-500">Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}</span>
+            <div className="flex items-center justify-between px-4 py-3 border-t border-[hsl(var(--border-hairline))]">
+              <span className="text-[12px] text-muted-foreground">Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}</span>
               <div className="flex items-center gap-1">
-                <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronLeft size={16} className="text-slate-500" /></button>
-                <span className="px-3 text-[12px] font-semibold text-brand-navy">{page} / {totalPages}</span>
-                <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50"><ChevronRight size={16} className="text-slate-500" /></button>
+                <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-sunken"><ChevronLeft size={16} className="text-muted-foreground" /></button>
+                <span className="px-3 text-[12px] font-semibold text-foreground">{page} / {totalPages}</span>
+                <button disabled={page >= totalPages} onClick={() => setPage(page + 1)} className="p-1.5 rounded-lg border border-border disabled:opacity-40 hover:bg-sunken"><ChevronRight size={16} className="text-muted-foreground" /></button>
               </div>
             </div>
           )}
         </div>
 
         {/* Conversion Factors Panel (slide-over) */}
-        {factorKPI && (
-          <div className="w-[400px] bg-white rounded-xl border border-slate-200 flex flex-col animate-slide-in-right flex-shrink-0">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-              <div>
-                <div className="text-[14px] font-bold text-brand-navy">Conversion Factors</div>
-                <div className="text-[12px] text-slate-400">{factorKPI.kpi_name} ({factorKPI.unit})</div>
-              </div>
-              <div className="flex items-center gap-1">
-                {isAdmin && (
-                  <button onClick={() => setAddFactorOpen(true)} className="p-1.5 rounded-md bg-brand-accent/10 text-brand-accent hover:bg-brand-accent/20 transition-colors">
-                    <Plus size={16} />
-                  </button>
-                )}
-                <button onClick={() => setFactorKPI(null)} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 transition-colors">
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
+        <Sheet open={!!factorKPI} onOpenChange={(open) => { if (!open) setFactorKPI(null); }}>
+          <SheetContent className="max-w-[420px]">
+            <SheetHeader>
+              <SheetTitle>Conversion Factors</SheetTitle>
+              <p className="text-[12px] text-muted-foreground">{factorKPI?.kpi_name} {factorKPI ? `(${factorKPI.unit})` : ""}</p>
+            </SheetHeader>
+            <SheetBody className="p-4">
               {factorsLoading ? (
                 <LoadingSkeleton rows={3} cols={2} />
               ) : factors.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[13px] text-slate-400 mb-3">No conversion factors yet</p>
+                  <p className="text-[13px] text-muted-foreground mb-3">No conversion factors yet</p>
                   {isAdmin && (
-                    <button onClick={() => setAddFactorOpen(true)} className="text-[12px] font-semibold text-brand-accent hover:underline">
+                    <button onClick={() => setAddFactorOpen(true)} className="text-[12px] font-semibold text-primary hover:underline">
                       + Add first factor
                     </button>
                   )}
@@ -1079,48 +1090,54 @@ export default function KPISetupPage() {
                     const isActive = f.valid_from <= today && (!f.valid_to || f.valid_to >= today);
                     const isEditing = editFactorId === f.factor_id;
                     return (
-                      <div key={f.factor_id} className={`p-3.5 rounded-lg border ${isActive ? "border-brand-accent/40 bg-sky-50/40" : "border-slate-100 bg-slate-50/40"}`}>
+                      <div key={f.factor_id} className={`p-3.5 rounded-lg border ${isActive ? "border-primary/40 bg-info-tint/40" : "border-[hsl(var(--border-hairline))] bg-sunken/40"}`}>
                         <div className="flex items-center justify-between mb-2">
                           {isEditing ? (
                             <div className="grid grid-cols-2 gap-2 text-[12px] flex-1">
                               <div className="flex flex-col gap-1">
-                                <span className="text-slate-400 text-[11px]">Energy Factor</span>
+                                <span className="text-muted-foreground text-[11px]">Energy Factor</span>
                                 <div className="flex gap-1">
                                   <input type="number" step="any" value={editFactorForm.energy_factor}
                                     onChange={e => setEditFactorForm(p => ({ ...p, energy_factor: e.target.value }))}
-                                    className="flex-1 min-w-0 px-2 py-1 rounded border border-slate-200 text-[12px] font-mono text-brand-navy focus:border-brand-accent outline-none" />
-                                  <select value={editFactorForm.energy_factor_uom}
-                                    onChange={e => setEditFactorForm(p => ({ ...p, energy_factor_uom: e.target.value }))}
-                                    className="w-20 px-1 py-1 rounded border border-slate-200 text-[11px] text-brand-navy focus:border-brand-accent outline-none bg-white">
-                                    {energyUOMs.map(u => <option key={u.symbol} value={u.symbol}>{u.symbol}</option>)}
-                                  </select>
+                                    className="flex-1 min-w-0 px-2 py-1 rounded border border-border text-[12px] font-mono text-foreground focus:border-primary outline-none" />
+                                  <Select value={editFactorForm.energy_factor_uom} onValueChange={(value) => setEditFactorForm(p => ({ ...p, energy_factor_uom: value }))}>
+                                    <SelectTrigger className="w-24 h-8 px-2 text-[11px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {energyUOMs.map((u) => <SelectItem key={u.symbol} value={u.symbol}>{u.symbol}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                               </div>
                               <div className="flex flex-col gap-1">
-                                <span className="text-slate-400 text-[11px]">Emission Factor</span>
+                                <span className="text-muted-foreground text-[11px]">Emission Factor</span>
                                 <div className="flex gap-1">
                                   <input type="number" step="any" value={editFactorForm.emission_factor}
                                     onChange={e => setEditFactorForm(p => ({ ...p, emission_factor: e.target.value }))}
-                                    className="flex-1 min-w-0 px-2 py-1 rounded border border-slate-200 text-[12px] font-mono text-brand-navy focus:border-brand-accent outline-none" />
-                                  <select value={editFactorForm.emission_factor_uom}
-                                    onChange={e => setEditFactorForm(p => ({ ...p, emission_factor_uom: e.target.value }))}
-                                    className="w-20 px-1 py-1 rounded border border-slate-200 text-[11px] text-brand-navy focus:border-brand-accent outline-none bg-white">
-                                    {emissionUOMs.map(u => <option key={u.symbol} value={u.symbol}>{u.symbol}</option>)}
-                                  </select>
+                                    className="flex-1 min-w-0 px-2 py-1 rounded border border-border text-[12px] font-mono text-foreground focus:border-primary outline-none" />
+                                  <Select value={editFactorForm.emission_factor_uom} onValueChange={(value) => setEditFactorForm(p => ({ ...p, emission_factor_uom: value }))}>
+                                    <SelectTrigger className="w-24 h-8 px-2 text-[11px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {emissionUOMs.map((u) => <SelectItem key={u.symbol} value={u.symbol}>{u.symbol}</SelectItem>)}
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                               </div>
                             </div>
                           ) : (
                             <div className="grid grid-cols-2 gap-2 text-[12px] flex-1">
                               <div>
-                                <span className="text-slate-400">Energy:</span>
-                                <span className="font-bold text-brand-navy ml-1">
+                                <span className="text-muted-foreground">Energy:</span>
+                                <span className="font-bold text-foreground ml-1">
                                   {f.energy_factor} {f.energy_factor_uom}{factorKPI?.unit ? ` / ${factorKPI.unit}` : ""}
                                 </span>
                               </div>
                               <div>
-                                <span className="text-slate-400">Emission:</span>
-                                <span className="font-bold text-brand-navy ml-1">
+                                <span className="text-muted-foreground">Emission:</span>
+                                <span className="font-bold text-foreground ml-1">
                                   {f.emission_factor} {f.emission_factor_uom}{factorKPI?.unit ? ` / ${factorKPI.unit}` : ""}
                                 </span>
                               </div>
@@ -1128,13 +1145,13 @@ export default function KPISetupPage() {
                           )}
                           <div className="flex items-center gap-1 ml-2 flex-shrink-0">
                             {isActive && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-accent text-white">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-white">
                                 Active
                               </span>
                             )}
                             {isAdmin && !isEditing && (
                               <button onClick={() => startEditFactor(f)} title="Edit factor"
-                                className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                                className="p-1 rounded hover:bg-sunken text-muted-foreground hover:text-muted-foreground transition-colors">
                                 <Pencil size={12} />
                               </button>
                             )}
@@ -1143,45 +1160,48 @@ export default function KPISetupPage() {
                         {isEditing && (
                           <div className="flex gap-2 mb-2">
                             <button onClick={handleSaveFactorEdit} disabled={actionLoading}
-                              className="px-3 py-1 text-[11px] font-semibold rounded-md bg-brand-accent text-white hover:bg-brand-accent/90 transition-colors disabled:opacity-50">
+                              className="px-3 py-1 text-[11px] font-semibold rounded-md bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50">
                               {actionLoading ? "Saving..." : "Save"}
                             </button>
                             <button onClick={() => setEditFactorId(null)}
-                              className="px-3 py-1 text-[11px] font-semibold rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                              className="px-3 py-1 text-[11px] font-semibold rounded-md border border-border text-muted-foreground hover:bg-sunken transition-colors">
                               Cancel
                             </button>
                           </div>
                         )}
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-[11px] text-muted-foreground">
                           {formatDate(f.valid_from)}{f.valid_to ? ` → ${formatDate(f.valid_to)}` : " → Present"}
-                          {f.source && <span className="ml-2 text-slate-300">· {f.source}</span>}
+                          {f.source && <span className="ml-2 text-muted-foreground/40">· {f.source}</span>}
                         </div>
                       </div>
                     );
                   })}
                 </div>
               )}
-            </div>
-          </div>
-        )}
+            </SheetBody>
+            {isAdmin && (
+              <SheetFooter>
+                <button onClick={() => setAddFactorOpen(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primaryDk transition-colors">
+                  <Plus size={14} /> Add Factor
+                </button>
+              </SheetFooter>
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* ── Custom Add KPI Modal ── */}
-      {createOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setCreateOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col z-10">
-            <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-[17px] font-bold text-brand-navy">Add KPI</h3>
-                <p className="text-[12px] text-slate-500 mt-0.5">Define a new ESG KPI for your company</p>
-              </div>
-              <button onClick={() => setCreateOpen(false)} className="text-slate-400 hover:text-slate-600 p-1"><X size={17} /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4">
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent className="max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Add KPI</SheetTitle>
+            <p className="text-[12px] text-muted-foreground">Define a new ESG KPI for your company</p>
+          </SheetHeader>
+          <SheetBody className="space-y-5">
+            <FormSection title="KPI Definition" description="Basic identity, grouping, and input behavior">
               {/* Module */}
               <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Module <span className="text-red-400">*</span></label>
+                <label className="block text-[12px] font-semibold text-foreground mb-1.5">Module <span className="text-destructive">*</span></label>
                 <div className="flex flex-wrap gap-2">
                   {modules.map((m) => {
                     const Icon = getModuleIcon(m.icon_name);
@@ -1189,7 +1209,7 @@ export default function KPISetupPage() {
                     return (
                       <button key={m.module_id} type="button"
                         onClick={() => { setKpiField("module_id", m.module_id); setKpiField("energy_type", undefined); setKpiField("scope_number", undefined); }}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all ${sel ? "text-white border-transparent" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all ${sel ? "text-white border-transparent" : "bg-card text-muted-foreground border-border hover:border-border"}`}
                         style={sel ? { background: m.color, borderColor: m.color } : {}}
                       >
                         <Icon size={13} style={{ color: sel ? "#fff" : m.color }} /> {m.module_name}
@@ -1198,31 +1218,31 @@ export default function KPISetupPage() {
                   })}
                 </div>
               </div>
-              {/* Indicator */}
-              <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Indicator</label>
-                <select value={kpiForm.indicator_id || ""} onChange={(e) => setKpiField("indicator_id", e.target.value ? Number(e.target.value) : undefined)}
-                  className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none bg-white focus:border-brand-accent transition-colors">
-                  <option value="">Select Indicator (optional)...</option>
-                  {indicators
-                    .filter((c) => !kpiForm.module_id || c.module_id === kpiForm.module_id)
-                    .map((c) => <option key={c.indicator_id} value={c.indicator_id}>{c.indicator_name}</option>)}
-                </select>
-              </div>
-              {/* KPI Name */}
-              <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">KPI Name <span className="text-red-400">*</span></label>
-                <input type="text" value={kpiForm.kpi_name || ""} onChange={(e) => setKpiField("kpi_name", e.target.value)}
-                  className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none focus:border-brand-accent transition-colors" />
-              </div>
+              <FormRow cols={2}>
+                <WorkspaceField label="Indicator">
+                  <Select value={String(kpiForm.indicator_id || "__none__")} onValueChange={(value) => setKpiField("indicator_id", value === "__none__" ? undefined : Number(value))}>
+                    <SelectTrigger><SelectValue placeholder="Select Indicator (optional)..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select Indicator (optional)...</SelectItem>
+                      {indicators
+                        .filter((c) => !kpiForm.module_id || c.module_id === kpiForm.module_id)
+                        .map((c) => <SelectItem key={c.indicator_id} value={String(c.indicator_id)}>{c.indicator_name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </WorkspaceField>
+                <WorkspaceField label="KPI Name" required>
+                  <input type="text" value={kpiForm.kpi_name || ""} onChange={(e) => setKpiField("kpi_name", e.target.value)}
+                    className="field-input" />
+                </WorkspaceField>
+              </FormRow>
               {/* Input Type */}
               <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Input Type</label>
+                <label className="block text-[12px] font-semibold text-foreground mb-1.5">Input Type</label>
                 <div className="flex gap-2">
                   {[{ v: "numeric", l: "Numeric" }, { v: "boolean", l: "Yes / No" }, { v: "text", l: "Text" }].map(({ v, l }) => (
                     <button key={v} type="button"
                       onClick={() => setKpiField("input_type", v)}
-                      className={`flex-1 py-2 rounded-lg border text-[12px] font-semibold transition-all ${(kpiForm.input_type ?? "numeric") === v ? "bg-brand-navy text-white border-brand-navy" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}>
+                      className={`flex-1 py-2 rounded-lg border text-[12px] font-semibold transition-all ${(kpiForm.input_type ?? "numeric") === v ? "bg-primary text-white border-primary" : "bg-card text-muted-foreground border-border hover:border-border"}`}>
                       {l}
                     </button>
                   ))}
@@ -1230,24 +1250,23 @@ export default function KPISetupPage() {
               </div>
               {/* Unit — only required for numeric */}
               {(kpiForm.input_type ?? "numeric") === "numeric" && (
-                <div>
-                  <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Unit <span className="text-red-400">*</span></label>
-                  <select value={kpiForm.unit || ""} onChange={(e) => setKpiField("unit", e.target.value)}
-                    className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none focus:border-brand-accent transition-colors bg-white text-brand-navy">
-                    <option value="">— Select unit —</option>
-                    {kpiUnitOptions.map((u) => (
-                      <option key={u.uom_id} value={u.symbol}>{u.symbol} — {u.display_name}</option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-slate-400 mt-1">Unit in which this KPI is measured</p>
-                </div>
+                <WorkspaceField label="Unit" required hint="Unit in which this KPI is measured">
+                  <Select value={kpiForm.unit || "__none__"} onValueChange={(value) => setKpiField("unit", value === "__none__" ? "" : value)}>
+                    <SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Select unit —</SelectItem>
+                      {kpiUnitOptions.map((u) => (
+                        <SelectItem key={u.uom_id} value={u.symbol}>{u.symbol} — {u.display_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </WorkspaceField>
               )}
               {/* Description */}
-              <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Description</label>
+              <WorkspaceField label="Description">
                 <textarea value={kpiForm.description || ""} onChange={(e) => setKpiField("description", e.target.value)}
-                  rows={2} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] outline-none focus:border-brand-accent resize-none transition-colors" />
-              </div>
+                  rows={2} className="field-input h-auto min-h-[72px] resize-none" />
+              </WorkspaceField>
               {/* GHG Scope — for Energy (combustion → emissions) and Emissions modules; numeric only */}
               {(kpiForm.input_type ?? "numeric") === "numeric" && (() => {
                 const selMod = modules.find(m => m.module_id === kpiForm.module_id);
@@ -1256,45 +1275,49 @@ export default function KPISetupPage() {
                 if (!isEnergy && !isEmissions) return null;
                 return (
                   <div>
-                    <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">
+                    <label className="block text-[12px] font-semibold text-foreground mb-1.5">
                       GHG Scope
                       {isEnergy && (
-                        <span className="ml-2 text-[10px] font-normal text-slate-400">Combustion of this fuel will contribute to this scope's emissions total</span>
+                        <span className="ml-2 text-[10px] font-normal text-muted-foreground">Combustion of this fuel will contribute to this scope's emissions total</span>
                       )}
                     </label>
-                    <select value={kpiForm.scope_number || ""} onChange={(e) => setKpiField("scope_number", e.target.value ? Number(e.target.value) : undefined)}
-                      className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none bg-white focus:border-brand-accent transition-colors">
-                      <option value="">Select scope...</option>
-                      <option value={1}>Scope 1 — Direct (e.g. diesel, coal combustion)</option>
-                      <option value={2}>Scope 2 — Indirect (e.g. grid electricity)</option>
-                      <option value={3}>Scope 3 — Value Chain</option>
-                    </select>
+                    <Select value={String(kpiForm.scope_number || "__none__")} onValueChange={(value) => setKpiField("scope_number", value === "__none__" ? undefined : Number(value))}>
+                      <SelectTrigger><SelectValue placeholder="Select scope..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Select scope...</SelectItem>
+                        <SelectItem value="1">Scope 1 — Direct (e.g. diesel, coal combustion)</SelectItem>
+                        <SelectItem value="2">Scope 2 — Indirect (e.g. grid electricity)</SelectItem>
+                        <SelectItem value="3">Scope 3 — Value Chain</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 );
               })()}
               {/* Energy Type — only for Energy module + numeric KPIs */}
               {(kpiForm.input_type ?? "numeric") === "numeric" && modules.find(m => m.module_id === kpiForm.module_id)?.key === "energy" && (
                 <div>
-                  <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Energy Type</label>
-                  <select value={kpiForm.energy_type || ""} onChange={(e) => setKpiField("energy_type", e.target.value || undefined)}
-                    className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none bg-white focus:border-brand-accent transition-colors">
-                    <option value="">Select type...</option>
-                    <option value="RENEWABLE">Renewable</option>
-                    <option value="NON_RENEWABLE">Non-Renewable</option>
-                    <option value="NOT_APPLICABLE">Not Applicable</option>
-                  </select>
+                  <label className="block text-[12px] font-semibold text-foreground mb-1.5">Energy Type</label>
+                  <Select value={kpiForm.energy_type || "__none__"} onValueChange={(value) => setKpiField("energy_type", value === "__none__" ? undefined : value)}>
+                    <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select type...</SelectItem>
+                      <SelectItem value="RENEWABLE">Renewable</SelectItem>
+                      <SelectItem value="NON_RENEWABLE">Non-Renewable</SelectItem>
+                      <SelectItem value="NOT_APPLICABLE">Not Applicable</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
-            </div>
-            <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100">
-              <button onClick={() => setCreateOpen(false)} className="px-4 py-2.5 rounded-lg border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
-              <button onClick={handleCreate} disabled={actionLoading} className="px-5 py-2.5 rounded-lg bg-brand-accent text-[13px] font-semibold text-white hover:bg-brand-accentDk transition-colors disabled:opacity-60">
-                {actionLoading ? "Saving..." : "Add KPI"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </FormSection>
+          </SheetBody>
+          <SheetFooter>
+            <button onClick={() => setCreateOpen(false)} className="px-4 py-2.5 rounded-lg border border-border text-[13px] font-semibold text-muted-foreground hover:bg-sunken transition-colors">Cancel</button>
+            <button onClick={handleCreate} disabled={actionLoading} className="px-5 py-2.5 rounded-lg bg-primary text-[13px] font-semibold text-white hover:bg-primaryDk transition-colors disabled:opacity-60">
+              {actionLoading ? "Saving..." : "Add KPI"}
+            </button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Dialogs */}
       <FormDialog open={addFactorOpen} onClose={() => setAddFactorOpen(false)} onSubmit={handleAddFactor} title={`Add Factor — ${factorKPI?.kpi_name || ""}`} description="Set energy and emission conversion rates" fields={factorFields} submitLabel="Add Factor" loading={actionLoading} />
@@ -1310,58 +1333,54 @@ export default function KPISetupPage() {
       />
 
       {/* ── Edit KPI Modal ── */}
-      {editKPI && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setEditKPI(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col z-10">
-            <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100">
-              <div>
-                <h3 className="text-[17px] font-bold text-brand-navy">Edit KPI</h3>
-                <p className="text-[12px] text-slate-500 mt-0.5">{editKPI.kpi_name}</p>
-              </div>
-              <button onClick={() => setEditKPI(null)} className="text-slate-400 hover:text-slate-600 p-1"><X size={17} /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4">
+      <Sheet open={!!editKPI} onOpenChange={(open) => { if (!open) setEditKPI(null); }}>
+        <SheetContent className="max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Edit KPI</SheetTitle>
+            <p className="text-[12px] text-muted-foreground">{editKPI?.kpi_name}</p>
+          </SheetHeader>
+          <SheetBody className="space-y-5">
+            <FormSection title="KPI Details" description="Update grouping, unit, and calculation metadata">
               {/* Module — read-only in edit (changing module would mismatch indicator_id) */}
               <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Module</label>
+                <label className="block text-[12px] font-semibold text-foreground mb-1.5">Module</label>
                 {(() => {
                   const mod = modules.find((m) => m.module_id === kpiForm.module_id);
                   const Icon = mod ? getModuleIcon(mod.icon_name) : null;
                   return mod ? (
-                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 w-fit text-[12px] font-semibold text-slate-600">
+                    <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-sunken w-fit text-[12px] font-semibold text-muted-foreground">
                       {Icon && <Icon size={13} style={{ color: mod.color }} />}
                       {mod.module_name}
-                      <span className="ml-1 text-[10px] text-slate-400 font-normal">(cannot be changed)</span>
+                      <span className="ml-1 text-[10px] text-muted-foreground font-normal">(cannot be changed)</span>
                     </div>
                   ) : null;
                 })()}
               </div>
               {/* Indicator */}
-              <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Indicator</label>
-                <select value={kpiForm.indicator_id || ""} onChange={(e) => setKpiField("indicator_id", e.target.value)}
-                  className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none bg-white focus:border-brand-accent transition-colors">
-                  <option value="">No Indicator (unassigned)</option>
-                  {indicators
-                    .filter((c) => !kpiForm.module_id || c.module_id === kpiForm.module_id)
-                    .map((c) => <option key={c.indicator_id} value={c.indicator_id}>{c.indicator_name}</option>)}
-                </select>
-              </div>
+              <WorkspaceField label="Indicator">
+                <Select value={String(kpiForm.indicator_id || "__none__")} onValueChange={(value) => setKpiField("indicator_id", value === "__none__" ? "" : value)}>
+                  <SelectTrigger><SelectValue placeholder="No Indicator (unassigned)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No Indicator (unassigned)</SelectItem>
+                    {indicators
+                      .filter((c) => !kpiForm.module_id || c.module_id === kpiForm.module_id)
+                      .map((c) => <SelectItem key={c.indicator_id} value={String(c.indicator_id)}>{c.indicator_name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </WorkspaceField>
               {/* KPI Name */}
-              <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">KPI Name <span className="text-red-400">*</span></label>
+              <WorkspaceField label="KPI Name" required>
                 <input type="text" value={kpiForm.kpi_name || ""} onChange={(e) => setKpiField("kpi_name", e.target.value)}
-                  className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none focus:border-brand-accent transition-colors" />
-              </div>
+                  className="field-input" />
+              </WorkspaceField>
               {/* Input Type */}
               <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Input Type</label>
+                <label className="block text-[12px] font-semibold text-foreground mb-1.5">Input Type</label>
                 <div className="flex gap-2">
                   {[{ v: "numeric", l: "Numeric" }, { v: "boolean", l: "Yes / No" }, { v: "text", l: "Text" }].map(({ v, l }) => (
                     <button key={v} type="button"
                       onClick={() => setKpiField("input_type", v)}
-                      className={`flex-1 py-2 rounded-lg border text-[12px] font-semibold transition-all ${(kpiForm.input_type ?? "numeric") === v ? "bg-brand-navy text-white border-brand-navy" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}>
+                      className={`flex-1 py-2 rounded-lg border text-[12px] font-semibold transition-all ${(kpiForm.input_type ?? "numeric") === v ? "bg-primary text-white border-primary" : "bg-card text-muted-foreground border-border hover:border-border"}`}>
                       {l}
                     </button>
                   ))}
@@ -1369,23 +1388,23 @@ export default function KPISetupPage() {
               </div>
               {/* Unit — only for numeric */}
               {(kpiForm.input_type ?? "numeric") === "numeric" && (
-                <div>
-                  <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Unit <span className="text-red-400">*</span></label>
-                  <select value={kpiForm.unit || ""} onChange={(e) => setKpiField("unit", e.target.value)}
-                    className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none focus:border-brand-accent transition-colors bg-white text-brand-navy">
-                    <option value="">— Select unit —</option>
-                    {kpiUnitOptions.map((u) => (
-                      <option key={u.uom_id} value={u.symbol}>{u.symbol} — {u.display_name}</option>
-                    ))}
-                  </select>
-                </div>
+                <WorkspaceField label="Unit" required>
+                  <Select value={kpiForm.unit || "__none__"} onValueChange={(value) => setKpiField("unit", value === "__none__" ? "" : value)}>
+                    <SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— Select unit —</SelectItem>
+                      {kpiUnitOptions.map((u) => (
+                        <SelectItem key={u.uom_id} value={u.symbol}>{u.symbol} — {u.display_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </WorkspaceField>
               )}
               {/* Description */}
-              <div>
-                <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Description</label>
+              <WorkspaceField label="Description">
                 <textarea value={kpiForm.description || ""} onChange={(e) => setKpiField("description", e.target.value)}
-                  rows={2} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] outline-none focus:border-brand-accent resize-none transition-colors" />
-              </div>
+                  rows={2} className="field-input h-auto min-h-[72px] resize-none" />
+              </WorkspaceField>
               {/* GHG Scope — for Energy and Emissions modules; numeric only */}
               {(kpiForm.input_type ?? "numeric") === "numeric" && (() => {
                 const selMod = modules.find(m => m.module_id === kpiForm.module_id);
@@ -1394,44 +1413,48 @@ export default function KPISetupPage() {
                 if (!isEnergy && !isEmissions) return null;
                 return (
                   <div>
-                    <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">
+                    <label className="block text-[12px] font-semibold text-foreground mb-1.5">
                       GHG Scope
-                      {isEnergy && <span className="ml-2 text-[10px] font-normal text-slate-400">Combustion of this fuel contributes to this scope's emissions</span>}
+                      {isEnergy && <span className="ml-2 text-[10px] font-normal text-muted-foreground">Combustion of this fuel contributes to this scope's emissions</span>}
                     </label>
-                    <select value={kpiForm.scope_number || ""} onChange={(e) => setKpiField("scope_number", e.target.value)}
-                      className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none bg-white focus:border-brand-accent transition-colors">
-                      <option value="">No scope</option>
-                      <option value={1}>Scope 1 — Direct (e.g. diesel, coal combustion)</option>
-                      <option value={2}>Scope 2 — Indirect (e.g. grid electricity)</option>
-                      <option value={3}>Scope 3 — Value Chain</option>
-                    </select>
+                    <Select value={String(kpiForm.scope_number || "__none__")} onValueChange={(value) => setKpiField("scope_number", value === "__none__" ? "" : value)}>
+                      <SelectTrigger><SelectValue placeholder="No scope" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">No scope</SelectItem>
+                        <SelectItem value="1">Scope 1 — Direct (e.g. diesel, coal combustion)</SelectItem>
+                        <SelectItem value="2">Scope 2 — Indirect (e.g. grid electricity)</SelectItem>
+                        <SelectItem value="3">Scope 3 — Value Chain</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 );
               })()}
               {/* Energy Type — only for Energy module + numeric KPIs */}
               {(kpiForm.input_type ?? "numeric") === "numeric" && modules.find(m => m.module_id === kpiForm.module_id)?.key === "energy" && (
                 <div>
-                  <label className="block text-[12px] font-semibold text-brand-navy mb-1.5">Energy Type</label>
-                  <select value={kpiForm.energy_type || ""} onChange={(e) => setKpiField("energy_type", e.target.value)}
-                    className="w-full py-[9px] px-3 rounded-lg border border-slate-200 text-[13px] outline-none bg-white focus:border-brand-accent transition-colors">
-                    <option value="">Select type...</option>
-                    <option value="RENEWABLE">Renewable</option>
-                    <option value="NON_RENEWABLE">Non-Renewable</option>
-                    <option value="NOT_APPLICABLE">Not Applicable</option>
-                  </select>
+                  <label className="block text-[12px] font-semibold text-foreground mb-1.5">Energy Type</label>
+                  <Select value={kpiForm.energy_type || "__none__"} onValueChange={(value) => setKpiField("energy_type", value === "__none__" ? "" : value)}>
+                    <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select type...</SelectItem>
+                      <SelectItem value="RENEWABLE">Renewable</SelectItem>
+                      <SelectItem value="NON_RENEWABLE">Non-Renewable</SelectItem>
+                      <SelectItem value="NOT_APPLICABLE">Not Applicable</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
-            </div>
-            <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100">
-              <button onClick={() => setEditKPI(null)} className="px-4 py-2.5 rounded-lg border border-slate-200 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Cancel</button>
-              <button onClick={handleEdit} disabled={actionLoading} className="px-5 py-2.5 rounded-lg bg-brand-accent text-[13px] font-semibold text-white hover:bg-brand-accentDk transition-colors disabled:opacity-60">
-                {actionLoading ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </FormSection>
+          </SheetBody>
+          <SheetFooter>
+            <button onClick={() => setEditKPI(null)} className="px-4 py-2.5 rounded-lg border border-border text-[13px] font-semibold text-muted-foreground hover:bg-sunken transition-colors">Cancel</button>
+            <button onClick={handleEdit} disabled={actionLoading} className="px-5 py-2.5 rounded-lg bg-primary text-[13px] font-semibold text-white hover:bg-primaryDk transition-colors disabled:opacity-60">
+              {actionLoading ? "Saving..." : "Save Changes"}
+            </button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
       </> /* end KPI section */}
-    </div>
+    </PageShell>
   );
 }
