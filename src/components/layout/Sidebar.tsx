@@ -1,6 +1,7 @@
 import { Fragment, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
+import { getResolvedTheme, useAppearanceStore } from "@/store/appearance";
 import { tenantApi, platformApi } from "@/api/client";
 import { APP_TAGLINE, PLATFORM_NAV, TENANT_NAV } from "@/lib/constants";
 import { SidebarFooter } from "@/components/layout/AppStatusBar";
@@ -33,6 +34,9 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
+  const { theme, palette } = useAppearanceStore();
+  const sidebarInverted =
+    getResolvedTheme(theme) === "dark" || palette === "teal";
 
   const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => {
@@ -93,7 +97,7 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
           "flex items-center border-b border-sidebar-border flex-shrink-0",
           collapsed ? "flex-col gap-2 px-2 py-3" : "px-3.5 py-3 gap-2"
         )}>
-          <BrandLockup collapsed={collapsed} inverted tagline={collapsed ? undefined : APP_TAGLINE} className="flex-1" />
+          <BrandLockup collapsed={collapsed} inverted={sidebarInverted} tagline={collapsed ? undefined : APP_TAGLINE} className="flex-1" />
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="p-1.5 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors flex-shrink-0"

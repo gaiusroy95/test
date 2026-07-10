@@ -175,7 +175,7 @@ export default function TenantDashboard() {
           aria-hidden
           style={{
             background:
-              "linear-gradient(135deg, hsl(168 45% 7%) 0%, hsl(168 50% 12%) 48%, hsl(172 40% 16%) 100%)",
+              "linear-gradient(135deg, hsl(var(--hero-from)) 0%, hsl(var(--hero-via)) 48%, hsl(var(--hero-to)) 100%)",
           }}
         />
         <div
@@ -183,22 +183,22 @@ export default function TenantDashboard() {
           aria-hidden
           style={{
             backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(94,234,212,0.45) 1px, transparent 0)",
+              "radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.55) 1px, transparent 0)",
             backgroundSize: "22px 22px",
           }}
         />
-        <div className="absolute -right-16 -top-20 w-72 h-72 rounded-full bg-teal-400/20 blur-3xl pointer-events-none" aria-hidden />
-        <div className="absolute right-24 -bottom-24 w-56 h-56 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" aria-hidden />
+        <div className="absolute -right-16 -top-20 w-72 h-72 rounded-full bg-primary/25 blur-3xl pointer-events-none" aria-hidden />
+        <div className="absolute right-24 -bottom-24 w-56 h-56 rounded-full bg-primary/10 blur-3xl pointer-events-none" aria-hidden />
 
         <div className="relative px-5 py-5 sm:px-6 sm:py-6 flex flex-col sm:flex-row sm:items-end gap-4">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-200/80 mb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70 mb-2">
               Operations · {selectedFyLabel}
             </p>
             <h1 className="text-[28px] sm:text-[32px] font-extrabold tracking-[-0.04em] text-white leading-[1.1]">
               {user?.first_name ? `${greeting}, ${user.first_name}` : greeting}
             </h1>
-            <p className="text-ui text-teal-100/70 mt-1.5 max-w-xl">
+            <p className="text-ui text-white/65 mt-1.5 max-w-xl">
               {user?.company_name || "Your company"} — track submissions, clear reviews, stay audit-ready.
             </p>
           </div>
@@ -225,7 +225,7 @@ export default function TenantDashboard() {
             >
               <Plus size={14} /> Enter data
             </Button>
-            <Button size="sm" onClick={() => navigate("/app/review")} className="h-9 bg-teal-300 text-teal-950 hover:bg-teal-200">
+            <Button size="sm" onClick={() => navigate("/app/review")} className="h-9 bg-white text-foreground hover:bg-white/90">
               <ClipboardCheck size={14} /> Review queue
               {stats.pending > 0 && (
                 <span className="ml-1 font-mono text-[11px] tabular-nums">({stats.pending})</span>

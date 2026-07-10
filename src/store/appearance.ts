@@ -3,12 +3,16 @@ import { persist } from "zustand/middleware";
 
 export type ThemeMode = "light" | "dark" | "system";
 export type DensityMode = "compact" | "comfortable" | "spacious";
+/** Visual color pack — independent of light/dark. */
+export type ColorPalette = "blue" | "slate" | "teal";
 
 export interface AppearanceState {
   theme: ThemeMode;
+  palette: ColorPalette;
   density: DensityMode;
   tablePageSize: number;
   setTheme: (theme: ThemeMode) => void;
+  setPalette: (palette: ColorPalette) => void;
   setDensity: (density: DensityMode) => void;
   setTablePageSize: (size: number) => void;
 }
@@ -31,12 +35,18 @@ export function getResolvedTheme(mode: ThemeMode): "light" | "dark" {
   return resolveTheme(mode);
 }
 
-export function applyAppearance(theme: ThemeMode, density: DensityMode) {
+export function applyAppearance(
+  theme: ThemeMode,
+  density: DensityMode,
+  palette: ColorPalette = "blue",
+) {
   const root = document.documentElement;
   const resolved = resolveTheme(theme);
 
   root.classList.remove("light", "dark");
   root.classList.add(resolved);
+
+  root.dataset.palette = palette;
 
   root.classList.remove("density-compact", "density-comfortable", "density-spacious");
   root.classList.add(`density-${density}`);
@@ -51,22 +61,33 @@ export const useAppearanceStore = create<AppearanceState>()(
   persist(
     (set, get) => ({
       theme: "light",
+      palette: "blue",
       density: "comfortable",
       tablePageSize: 20,
       setTheme: (theme) => {
         set({ theme });
-        applyAppearance(theme, get().density);
+        applyAppearance(theme, get().density, get().palette);
+      },
+      setPalette: (palette) => {
+        set({ palette });
+        applyAppearance(get().theme, get().density, palette);
       },
       setDensity: (density) => {
         set({ density });
-        applyAppearance(get().theme, density);
+        applyAppearance(get().theme, density, get().palette);
       },
       setTablePageSize: (tablePageSize) => set({ tablePageSize }),
     }),
     {
       name: "esmos-appearance",
       onRehydrateStorage: () => (state) => {
-        if (state) applyAppearance(state.theme, state.density);
+        if (state) {
+          applyAppearance(
+            state.theme,
+            state.density,
+            state.palette ?? "blue",
+          );
+        }
       },
     }
   )
@@ -74,13 +95,14 @@ export const useAppearanceStore = create<AppearanceState>()(
 
 /** Call once on app boot (before paint if possible). */
 export function initAppearance() {
-  const { theme, density } = useAppearanceStore.getState();
-  applyAppearance(theme, density);
+  const { theme, density, palette } = useAppearanceStore.getState();
+  applyAppearance(theme, density, palette ?? "blue");
 
-  if (theme === "system") {
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => applyAppearance("system", useAppearanceStore.getState().density);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  const handler = () => {
+    const s = useAppearanceStore.getState();
+    if (s.theme === "system") applyAppearance("system", s.density, s.palette);
+  };
+  mq.addEventListener("change", handler);
+  return () => mq.removeEventListener("change", handler);
 }

@@ -33,7 +33,7 @@ export function BrandMark({ size = "md", className, inverted }: BrandMarkProps) 
         "rounded-md flex items-center justify-center shrink-0 select-none border",
         BOX[size],
         inverted
-          ? "bg-white/10 border-white/15 text-teal-200"
+          ? "bg-white/10 border-white/15 text-white"
           : "bg-primary text-primary-foreground border-primary",
         className
       )}
@@ -69,7 +69,7 @@ export function BrandLockup({ collapsed, inverted, tagline, className }: BrandLo
             <div
               className={cn(
                 "text-[10px] font-semibold tracking-[0.06em] uppercase mt-1 leading-none truncate",
-                inverted ? "text-teal-200/70" : "text-muted-foreground"
+                inverted ? "text-white/65" : "text-muted-foreground"
               )}
             >
               {tagline.length > 28 ? "ESG Oversight" : tagline}
