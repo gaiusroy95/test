@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Package2, Upload, CheckCircle2, ChevronRight, ChevronDown,
-  TrendingUp, TrendingDown, Globe, Leaf, Library, Users,
+  TrendingUp, TrendingDown, Globe, Library, Users,
   Copy, Plus, Pencil, Trash2, FileUp, AlertCircle, X,
 } from "lucide-react";
 import {
@@ -445,8 +445,8 @@ export default function Scope3SetupPage({ embedded = false }: { embedded?: boole
   /* ═══ RENDER ═══════════════════════════════════════════════════════════ */
   const pageActions = tab === "factors" && isAdmin ? (
     <Button
+      size="sm"
       onClick={() => { setEditingFactorSet(null); setFactorSetFormOpen(true); }}
-      className="bg-primary hover:bg-primaryDk text-white flex items-center gap-1.5 text-[13px] h-8 px-3"
     >
       <Plus size={14} /> Create Factor Set
     </Button>
@@ -574,7 +574,6 @@ export default function Scope3SetupPage({ embedded = false }: { embedded?: boole
       title="Scope 3 Setup"
       description="Manage emission factor sets and category assignments."
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Scope 3 Setup" }]}
-      className="max-w-[1600px]"
       actions={pageActions}
       toolbar={pageToolbar}
     >
@@ -616,7 +615,7 @@ function OverviewTab({ stats, chartData, recentBatches, loading, reportingYear, 
             <div className="h-48 flex items-center justify-center text-[13px] text-muted-foreground">Loading…</div>
           ) : chartData.length === 0 ? (
             <div className="h-48 flex flex-col items-center justify-center gap-2 text-[13px] text-muted-foreground">
-              <Leaf size={28} className="text-violet-200" />
+              <Package2 size={28} className="text-muted-foreground/40" />
               No approved data for {reportingYear} yet
             </div>
           ) : (
@@ -976,7 +975,7 @@ function FactorSetFormModal({ open, editing, saving, onClose, onSave }: {
 
   return (
     <Sheet open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
-      <SheetContent className="max-w-[720px]">
+      <SheetContent size="wide">
         <SheetHeader>
           <SheetTitle>{editing ? "Edit Factor Set" : "Create Custom Factor Set"}</SheetTitle>
           <p className="text-[11px] text-muted-foreground mt-0.5">Define your company-specific emission factor dataset</p>
@@ -1080,7 +1079,7 @@ function FactorItemFormModal({ open, editing, saving, categories, activityUoms, 
 
   return (
     <Sheet open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
-      <SheetContent className="max-w-[760px]">
+      <SheetContent size="wide">
         <SheetHeader>
           <SheetTitle>{editing ? "Edit Factor Item" : "Add Factor Item"}</SheetTitle>
           <p className="text-[11px] text-muted-foreground mt-0.5">Define an emission factor for a sector, activity, or spend category</p>
@@ -1314,7 +1313,7 @@ function CSVItemPreviewModal({ rows, categories, importing, onClose, onConfirm }
 
   return (
     <Sheet open onOpenChange={(value) => { if (!value) onClose(); }}>
-      <SheetContent className="max-w-[1100px]">
+      <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>CSV Import Preview</SheetTitle>
           <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -1404,7 +1403,7 @@ function AssignmentsTab({ assignments, isAdmin, onCreateOpen, onEdit, onDelete }
           <p className="text-[13px] text-muted-foreground">Assign GHG categories to locations and users so they can enter Scope 3 data.</p>
         </div>
         {isAdmin && (
-          <Button onClick={onCreateOpen} className="bg-primary hover:bg-primaryDk text-white flex items-center gap-1.5 text-[13px] h-8 px-3">
+          <Button size="sm" onClick={onCreateOpen}>
             <Plus size={14} /> Assign Category
           </Button>
         )}
@@ -1568,7 +1567,7 @@ function AssignmentFormModal({
 
   return (
     <Sheet open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
-      <SheetContent className="max-w-[760px]">
+      <SheetContent size="wide">
         <SheetHeader>
           <SheetTitle>{isEdit ? "Edit Assignment" : "Assign Scope 3 Category"}</SheetTitle>
           <p className="text-[11px] text-muted-foreground mt-0.5">

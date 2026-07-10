@@ -2,9 +2,10 @@ import { Fragment, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
 import { tenantApi, platformApi } from "@/api/client";
-import { APP_NAME, APP_TAGLINE, PLATFORM_NAV, TENANT_NAV } from "@/lib/constants";
+import { APP_TAGLINE, PLATFORM_NAV, TENANT_NAV } from "@/lib/constants";
 import { SidebarFooter } from "@/components/layout/AppStatusBar";
-import { Leaf, PanelLeftClose, PanelLeft, Building2, Shield } from "lucide-react";
+import { BrandLockup } from "@/components/shared/BrandMark";
+import { PanelLeftClose, PanelLeft, Building2, Shield } from "lucide-react";
 import type { UserType, Role } from "@/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -85,39 +86,31 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
         style={{ width: collapsed ? 72 : 264 }}
       >
         {/* Brand accent strip */}
-        <div className="h-[3px] w-full brand-gradient flex-shrink-0" aria-hidden="true" />
+        <div className="h-px w-full bg-border flex-shrink-0" aria-hidden="true" />
 
         {/* Logo header */}
         <div className={cn(
           "flex items-center border-b border-sidebar-border flex-shrink-0",
-          collapsed ? "flex-col gap-2 px-2 py-3" : "px-4 py-3.5 gap-3"
+          collapsed ? "flex-col gap-2 px-2 py-3" : "px-3.5 py-3 gap-2"
         )}>
-          <div className="w-9 h-9 rounded-lg brand-gradient flex items-center justify-center flex-shrink-0 shadow-primary">
-            <Leaf size={18} className="text-white" />
-          </div>
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-extrabold text-sidebar-foreground tracking-tight leading-tight">{APP_NAME}</div>
-              <div className="text-2xs text-muted-foreground font-medium tracking-wide uppercase mt-0.5 leading-tight">{APP_TAGLINE}</div>
-            </div>
-          )}
+          <BrandLockup collapsed={collapsed} inverted tagline={collapsed ? undefined : APP_TAGLINE} className="flex-1" />
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors flex-shrink-0"
+            className="p-1.5 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors flex-shrink-0"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
           </button>
         </div>
 
-        {/* Portal badge */}
+        {/* Portal context */}
         {!collapsed && (
-          <div className="px-4 py-2.5 border-b border-sidebar-border">
+          <div className="px-3.5 py-2 border-b border-sidebar-border">
             <div className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-2xs font-bold uppercase tracking-wider",
+              "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-2xs font-semibold",
               portalType === "platform"
-                ? "bg-warn-tint text-warn"
-                : "bg-accent text-accent-foreground"
+                ? "bg-amber-500/15 text-amber-200"
+                : "bg-sidebar-accent text-sidebar-foreground/80 border border-sidebar-border"
             )}>
               <PortalIcon size={11} />
               {portalType === "platform" ? "Platform Admin" : "Company Portal"}
@@ -145,15 +138,18 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                   key={item.key}
                   onClick={() => navigate(item.path)}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-lg border-none cursor-pointer w-full text-left transition-all duration-150 text-ui",
+                    "relative flex items-center gap-2.5 rounded-md border-none cursor-pointer w-full text-left transition-colors duration-150 text-ui",
                     collapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2",
                     active
-                      ? "bg-primary text-primary-foreground font-semibold shadow-primary"
-                      : "bg-transparent text-muted-foreground font-medium hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                      : "bg-transparent text-sidebar-foreground/55 font-medium hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
                   )}
                 >
+                  {active && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-sidebar-primary" aria-hidden />
+                  )}
                   <div className="relative flex-shrink-0">
-                    <Icon size={17} strokeWidth={active ? 2.25 : 2} />
+                    <Icon size={17} strokeWidth={active ? 2.25 : 2} className={active ? "text-sidebar-primary" : undefined} />
                     {isNotif && unreadCount > 0 && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive ring-2 ring-sidebar" />
                     )}
@@ -168,26 +164,17 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                     <>
                       <span className="flex-1 truncate">{item.label}</span>
                       {isNotif && unreadCount > 0 && (
-                        <span className={cn(
-                          "text-2xs font-bold px-1.5 py-0.5 rounded-full tabular-nums",
-                          active ? "bg-primary-foreground/20 text-white" : "bg-destructive-tint text-destructive"
-                        )}>
+                        <span className="text-2xs font-bold px-1.5 py-0.5 rounded-md tabular-nums bg-destructive/20 text-red-300">
                           {unreadCount}
                         </span>
                       )}
                       {showSupportBadge && (
-                        <span className={cn(
-                          "text-2xs font-bold px-1.5 py-0.5 rounded-full tabular-nums",
-                          active ? "bg-primary-foreground/20 text-white" : "bg-warn-tint text-warn"
-                        )} title="Pending support-access requests">
+                        <span className="text-2xs font-bold px-1.5 py-0.5 rounded-md tabular-nums bg-amber-500/20 text-amber-200" title="Pending support-access requests">
                           {pendingSupportCount}
                         </span>
                       )}
                       {showTicketBadge && (
-                        <span className={cn(
-                          "text-2xs font-bold px-1.5 py-0.5 rounded-full tabular-nums",
-                          active ? "bg-primary-foreground/20 text-white" : "bg-warn-tint text-warn"
-                        )} title="Tickets awaiting platform reply">
+                        <span className="text-2xs font-bold px-1.5 py-0.5 rounded-md tabular-nums bg-amber-500/20 text-amber-200" title="Tickets awaiting platform reply">
                           {platformPendingTickets}
                         </span>
                       )}
@@ -200,7 +187,7 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                 collapsed
                   ? <div key={`sep-${item.key}`} className="my-2 mx-2 border-t border-sidebar-border" />
                   : <div key={`sep-${item.key}`} className="px-3 pt-4 pb-1">
-                      <span className="text-2xs font-bold uppercase tracking-widest text-muted-foreground/70">{(item as any).group}</span>
+                      <span className="text-2xs font-bold uppercase tracking-[0.12em] text-sidebar-foreground/35">{(item as any).group}</span>
                     </div>
               ) : null;
 

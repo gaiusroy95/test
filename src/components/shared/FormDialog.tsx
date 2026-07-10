@@ -86,7 +86,7 @@ export function FormDialog({
                     onValueChange={(v) => handleChange(f.key, v)}
                   >
                     <SelectTrigger id={`field-${f.key}`}>
-                      <SelectValue placeholder={`Select ${f.label}...`} />
+                      <SelectValue placeholder={f.placeholder || `Select ${f.label}`} />
                     </SelectTrigger>
                     <SelectContent>
                       {f.options?.map((o) => (

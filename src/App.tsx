@@ -80,8 +80,7 @@ export default function App() {
           <Route path="/app/library"       element={<Suspense fallback={<PageLoading />}><ESGLibraryPage /></Suspense>} />
           <Route path="/app/reporting"     element={<Suspense fallback={<PageLoading />}><ReportingPage /></Suspense>} />
           <Route path="/app/esg-input"     element={<Suspense fallback={<PageLoading />}><ESGInputPage /></Suspense>} />
-          <Route path="/app/review"        element={<Suspense fallback={<PageLoading />}><ReviewPage /></Suspense>} />
-          <Route path="/app/review/:id"    element={<Suspense fallback={<PageLoading />}><ReviewPage /></Suspense>} />
+          <Route path="/app/review/:id?"   element={<Suspense fallback={<PageLoading />}><ReviewPage /></Suspense>} />
           <Route path="/app/documents"     element={<Suspense fallback={<PageLoading />}><DocumentExplorerPage /></Suspense>} />
           <Route path="/app/reports"       element={<Suspense fallback={<PageLoading />}><ReportsPage /></Suspense>} />
           <Route path="/app/query"         element={<Suspense fallback={<PageLoading />}><QueryPage /></Suspense>} />

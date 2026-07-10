@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { tenantApi } from "@/api/client";
 import { PageShell } from "@/components/shared/PageShell";
 import { PageTabs } from "@/components/shared/PageTabs";
-import { LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
+import { LoadingSkeleton } from "@/components/shared/PageComponents";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -105,15 +105,23 @@ export default function NotificationsPage() {
         />
       }
     >
-      <div className="surface overflow-hidden max-w-[900px]">
+      <div className="rounded-md border border-border bg-card overflow-hidden w-full">
         {loading ? (
-          <div className="p-6"><LoadingSkeleton rows={6} cols={1} /></div>
+          <div className="p-4"><LoadingSkeleton rows={6} cols={1} /></div>
         ) : notifications.length === 0 ? (
-          <EmptyState
-            icon={Bell}
-            title={tab === "unread" ? "All caught up!" : "No notifications"}
-            description={tab === "unread" ? "You have no unread notifications" : "Notifications will appear here when actions occur"}
-          />
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="w-11 h-11 rounded-md bg-sunken border border-border flex items-center justify-center mb-3">
+              <Bell size={20} className="text-muted-foreground" />
+            </div>
+            <p className="text-ui font-semibold text-foreground">
+              {tab === "unread" ? "All caught up" : "No notifications"}
+            </p>
+            <p className="text-label text-muted-foreground mt-1 max-w-sm">
+              {tab === "unread"
+                ? "You have no unread notifications"
+                : "Notifications will appear here when actions occur"}
+            </p>
+          </div>
         ) : (
           <>
             {notifications.map((n) => (
@@ -127,7 +135,7 @@ export default function NotificationsPage() {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className={`text-2xs font-bold px-2 py-0.5 rounded-full ${TYPE_BADGE_VARIANT[n.type] || TYPE_BADGE_VARIANT.REMINDER}`}>
+                    <span className={`text-2xs font-bold px-1.5 py-0.5 rounded-md ${TYPE_BADGE_VARIANT[n.type] || TYPE_BADGE_VARIANT.REMINDER}`}>
                       {n.type}
                     </span>
                     {!n.is_read && <div className="w-2 h-2 rounded-full bg-primary" aria-label="Unread" />}

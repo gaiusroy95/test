@@ -180,7 +180,6 @@ export default function CapabilityCatalogPage() {
         title="Capability Catalog"
         description="Manage modules, features, and which subscription plans include them"
         breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Capability Catalog" }]}
-        className="max-w-[1600px]"
       >
 
       <PageTabs
@@ -291,7 +290,7 @@ export default function CapabilityCatalogPage() {
 
       {/* Publish dialog */}
       <Sheet open={!!publishTarget} onOpenChange={(v) => { if (!v) setPublishTarget(null); }}>
-        <SheetContent className="max-w-[520px]">
+        <SheetContent>
           <SheetHeader>
             <SheetTitle>Publish: {publishTarget?.name}</SheetTitle>
             <p className="text-[12px] text-muted-foreground mt-0.5">

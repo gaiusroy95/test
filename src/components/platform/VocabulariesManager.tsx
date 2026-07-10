@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { platformApi } from "@/api/client";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
+import { Button } from "@/components/ui/button";
 import { Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { getApiError } from "@/lib/utils";
@@ -178,12 +179,9 @@ export default function VocabulariesManager({ isOwner }: { isOwner: boolean }) {
           ))}
         </div>
         {isOwner && (
-          <button
-            onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold"
-          >
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus size={14} /> Add {SUB_TABS.find(t => t.key === sub)?.label.replace(/s$/, "")}
-          </button>
+          </Button>
         )}
       </div>
 

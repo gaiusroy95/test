@@ -13,7 +13,7 @@ import { tenantApi } from "@/api/client";
 import { getApiError } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Breadcrumb } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
 import { FormDialog } from "@/components/shared/FormDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import {
@@ -184,67 +184,63 @@ export default function SupplierScorecardPage() {
   /* ── Render ─────────────────────────────────────────────────────────── */
 
   return (
-    <div className="p-6 max-w-[1600px]">
-      {/* Header */}
-      <Breadcrumb items={[{ label: "Home", href: "/app" }, { label: "Supplier Scorecard" }]} />
-      <div className="flex items-start justify-between mb-1">
-        <div>
-          <h1 className="text-[18px] font-bold text-foreground tracking-tight">Supplier Scorecard</h1>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Scope 3 supplier emissions, spend analysis, and risk classification</p>
+    <PageShell
+      title="Supplier Scorecard"
+      description="Scope 3 supplier emissions, spend analysis, and risk classification"
+      breadcrumb={[{ label: "Home", href: "/app" }, { label: "Supplier Scorecard" }]}
+      actions={
+        isAdmin ? (
+          <Button size="sm" onClick={() => { setEditingSupplier(null); setShowForm(true); }}>
+            <Plus size={14} /> Add Supplier
+          </Button>
+        ) : undefined
+      }
+      toolbar={
+        <div className="flex items-end justify-between border-b border-border">
+          <div className="flex">
+            {([
+              { key: "scorecard" as Tab, label: "Scorecard", icon: TrendingUp },
+              { key: "directory" as Tab, label: "Supplier Directory", icon: Building2 },
+            ]).map((t) => (
+              <button
+                key={t.key}
+                onClick={() => { setTab(t.key); setSelectedSupplier(null); setDetail(null); }}
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors
+                  ${tab === t.key
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground/90 hover:border-border"}`}
+              >
+                <t.icon size={14} /> {t.label}
+              </button>
+            ))}
+          </div>
+          <div className="pb-2 flex items-center gap-2">
+            {tab === "scorecard" && (
+              <select
+                className="border border-border rounded-md px-3 py-1.5 text-[13px] text-foreground"
+                value={reportingYear}
+                onChange={(e) => setReportingYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            )}
+            {tab === "directory" && (
+              <div className="relative">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  className="border border-border rounded-md pl-8 pr-3 py-1.5 text-[13px] text-foreground w-52"
+                  placeholder="Search suppliers..."
+                  value={searchDir}
+                  onChange={(e) => setSearchDir(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {isAdmin && (
-            <Button size="sm" variant="outline" onClick={() => { setEditingSupplier(null); setShowForm(true); }}>
-              <Plus size={14} className="mr-1" /> Add Supplier
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Tabs + Year filter */}
-      <div className="flex items-end justify-between border-b border-border mb-4">
-        <div className="flex">
-          {([
-            { key: "scorecard" as Tab, label: "Scorecard", icon: TrendingUp },
-            { key: "directory" as Tab, label: "Supplier Directory", icon: Building2 },
-          ]).map((t) => (
-            <button
-              key={t.key}
-              onClick={() => { setTab(t.key); setSelectedSupplier(null); setDetail(null); }}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors
-                ${tab === t.key
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground/90 hover:border-border"}`}
-            >
-              <t.icon size={14} /> {t.label}
-            </button>
-          ))}
-        </div>
-        <div className="pb-2 flex items-center gap-2">
-          {tab === "scorecard" && (
-            <select
-              className="border border-border rounded-md px-3 py-1.5 text-[13px] text-foreground"
-              value={reportingYear}
-              onChange={(e) => setReportingYear(Number(e.target.value))}
-            >
-              {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          )}
-          {tab === "directory" && (
-            <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                className="border border-border rounded-md pl-8 pr-3 py-1.5 text-[13px] text-foreground w-52"
-                placeholder="Search suppliers..."
-                value={searchDir}
-                onChange={(e) => setSearchDir(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+      }
+    >
 
       {/* Tab content */}
       {tab === "scorecard" && (
@@ -309,7 +305,7 @@ export default function SupplierScorecardPage() {
         } : {}}
         onSubmit={handleSaveSupplier}
       />
-    </div>
+    </PageShell>
   );
 }
 

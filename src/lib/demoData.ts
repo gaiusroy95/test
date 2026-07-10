@@ -313,6 +313,30 @@ export function getDemoResponse(url: string | undefined, method = "GET") {
   if (normalized.includes("/platform/audit-log")) {
     return { data: makePaginated(demoAuditLog) };
   }
+  if (normalized.includes("/compliance/audit-log")) {
+    return {
+      data: makePaginated([
+        {
+          id: "taudit_1",
+          action: "DATA_EXPORTED",
+          actor_email: "admin@vk.com",
+          target_type: "user",
+          target_id: "754ed5dc-demo",
+          notes: "Personal data export (Download My Data)",
+          actioned_at: "2026-04-14T08:20:00Z",
+        },
+        {
+          id: "taudit_2",
+          action: "CONSENT_RECORDED",
+          actor_email: "admin@vk.com",
+          target_type: "user",
+          target_id: "754ed5dc-demo",
+          metadata: { consent_version: "1.0" },
+          actioned_at: "2026-04-14T08:19:00Z",
+        },
+      ]),
+    };
+  }
   if (normalized.includes("/platform/support-tickets")) {
     return { data: makePaginated(demoSupportTickets) };
   }

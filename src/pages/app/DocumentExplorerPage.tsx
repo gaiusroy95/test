@@ -173,8 +173,6 @@ export default function DocumentExplorerPage() {
       title="Document Explorer"
       description="Browse and download supporting documents across all locations"
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Documents" }]}
-      fullWidth
-      className="max-w-[1500px] mx-auto"
     >
       <div className="space-y-4">
         <FilterBar
@@ -208,13 +206,13 @@ export default function DocumentExplorerPage() {
             minWidth={130}
             options={modules.map((m) => ({ value: String(m.module_id), label: m.module_name }))}
           />
-          <div className="flex flex-col gap-1" style={{ minWidth: 200 }}>
-            <Label className="text-label font-semibold text-muted-foreground">KPI / Indicator</Label>
+          <div className="flex items-center gap-1.5 min-w-0" style={{ minWidth: 200 }}>
+            <Label className="text-[11px] font-semibold text-muted-foreground whitespace-nowrap shrink-0">KPI / Indicator</Label>
             <Select
               value={selKpiOrInd || "__all__"}
               onValueChange={(v) => setSelKpiOrInd(v === "__all__" ? "" : v)}
             >
-              <SelectTrigger className="h-9 text-ui">
+              <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
                 <SelectValue placeholder="All KPIs & Indicators" />
               </SelectTrigger>
               <SelectContent>

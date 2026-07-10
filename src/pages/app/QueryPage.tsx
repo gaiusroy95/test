@@ -1,14 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { tenantApi } from "@/api/client";
 import { PageShell } from "@/components/shared/PageShell";
-import { toast } from "sonner";
 import { Bot, Loader2, Cpu, Sparkles } from "lucide-react";
 import type { ChatMessage as ChatMessageType, QueryResponse } from "@/types";
 import ChatMessage from "@/components/query/ChatMessage";
 import ChatInput from "@/components/query/ChatInput";
 import SuggestionChips from "@/components/query/SuggestionChips";
 import { getApiError } from "@/lib/utils";
-
 
 function uid(): string {
   return Math.random().toString(36).slice(2, 10);
@@ -86,59 +84,66 @@ export default function QueryPage() {
       description="Ask questions about your ESG data in plain English"
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Ask ESMOS" }]}
       fullWidth
-      className="flex flex-col h-[calc(100vh-var(--header-height,3.5rem))] max-w-[1000px] mx-auto !py-0"
+      className="flex flex-col flex-1 min-h-0 !pb-0 pt-3 [&_.page-header]:mb-2"
       actions={
         isLLM ? (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium bg-accent text-accent-foreground border border-accent-foreground/20 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-accent text-accent-foreground border border-border">
             <Sparkles size={12} />
             AI Powered
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium bg-sunken text-muted-foreground border border-border">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-sunken text-muted-foreground border border-border">
             <Cpu size={12} />
             Standard
           </span>
         )
       }
     >
-      <div ref={scrollRef} className="flex-1 overflow-y-auto py-4 space-y-5 min-h-0">
-        {isEmpty && (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isLLM ? "bg-accent dark:bg-violet-950" : "bg-primary/10"}`}>
-              {isLLM ? <Sparkles size={22} className="text-accent-foreground" /> : <Bot size={22} className="text-primary" />}
-            </div>
-            <div>
-              <h3 className="text-[15px] font-bold text-foreground">What would you like to know?</h3>
-              <p className="text-[12px] text-muted-foreground mt-1 max-w-md">
-                Ask about totals, rankings, trends, comparisons, or breakdowns of your ESG data.
-                Only approved data is included in results.
-              </p>
-            </div>
-            <SuggestionChips suggestions={initialSuggestions} onSelect={handleSend} disabled={loading} />
-          </div>
-        )}
-
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} onSuggestionClick={handleSend} loading={loading} />
-        ))}
-
-        {loading && (
-          <div className="flex gap-3" role="status" aria-live="polite" aria-busy="true">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isLLM ? "bg-accent" : "bg-sunken"}`}>
-              {isLLM ? <Sparkles size={15} className="text-accent-foreground" /> : <Bot size={15} className="text-muted-foreground" />}
-            </div>
-            <div className="rounded-2xl rounded-tl-md px-4 py-3 surface-elevated">
-              <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
-                <Loader2 size={14} className="animate-spin" />
-                {isLLM ? "AI is analyzing your question…" : "Analyzing your data..."}
+      <div className="flex-1 flex flex-col min-h-0 border border-border rounded-md bg-card overflow-hidden">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0 px-4 py-4 sm:px-6">
+          <div className="w-full max-w-3xl mx-auto space-y-4">
+            {isEmpty && (
+              <div className="flex flex-col items-start text-left space-y-4 pt-2">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${isLLM ? "bg-accent" : "bg-primary/10"}`}>
+                    {isLLM ? <Sparkles size={18} className="text-accent-foreground" /> : <Bot size={18} className="text-primary" />}
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-bold text-foreground">What would you like to know?</h3>
+                    <p className="text-[12px] text-muted-foreground mt-0.5">
+                      Ask about totals, rankings, trends, comparisons, or breakdowns. Only approved data is included.
+                    </p>
+                  </div>
+                </div>
+                <SuggestionChips suggestions={initialSuggestions} onSelect={handleSend} disabled={loading} />
               </div>
-            </div>
-          </div>
-        )}
-      </div>
+            )}
 
-      <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm">
-        <ChatInput onSend={handleSend} disabled={loading} />
+            {messages.map((msg) => (
+              <ChatMessage key={msg.id} message={msg} onSuggestionClick={handleSend} loading={loading} />
+            ))}
+
+            {loading && (
+              <div className="flex gap-3" role="status" aria-live="polite" aria-busy="true">
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${isLLM ? "bg-accent" : "bg-sunken"}`}>
+                  {isLLM ? <Sparkles size={15} className="text-accent-foreground" /> : <Bot size={15} className="text-muted-foreground" />}
+                </div>
+                <div className="rounded-md px-3 py-2.5 border border-border bg-sunken/40">
+                  <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                    <Loader2 size={14} className="animate-spin" />
+                    {isLLM ? "AI is analyzing your question…" : "Analyzing your data…"}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-shrink-0 border-t border-border bg-card">
+          <div className="w-full max-w-3xl mx-auto">
+            <ChatInput onSend={handleSend} disabled={loading} />
+          </div>
+        </div>
       </div>
     </PageShell>
   );

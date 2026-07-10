@@ -319,8 +319,8 @@ export default function LocationsPage() {
             </button>
           </div>
           {isAdmin && (
-            <Button onClick={openCreate}>
-              <Plus size={16} /> Add Location
+            <Button size="sm" onClick={openCreate}>
+              <Plus size={14} /> Add Location
             </Button>
           )}
         </div>
@@ -333,7 +333,7 @@ export default function LocationsPage() {
         <div className="surface">
           <EmptyState icon={MapPin} title="No locations yet" description="Add your first plant, office, or facility to start tracking ESG data.">
             {isAdmin && (
-              <Button onClick={openCreate}><Plus size={14} /> Add Location</Button>
+              <Button size="sm" onClick={openCreate}><Plus size={14} /> Add Location</Button>
             )}
           </EmptyState>
         </div>
@@ -429,7 +429,7 @@ export default function LocationsPage() {
 
       {/* ── LB Factors Drawer ──────────────────────────────────────────────── */}
       <Sheet open={!!lbLocation} onOpenChange={(v) => { if (!v) closeLbPanel(); }}>
-        <SheetContent className="max-w-4xl">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Gauge size={16} className="text-brand-teal" /> LB Emission Factors
@@ -447,11 +447,12 @@ export default function LocationsPage() {
                 <p className="text-label mt-1">Add LB factors for KPIs that have a scope assigned.</p>
               </div>
             ) : (
+              <div className="overflow-x-auto -mx-1">
               <Table>
                 <TableHeader>
                   <TableRow>
                     {["KPI", "Scope", "LB Factor", "Grid Zone", "Valid From", "Valid To", "Status", ...(isAdmin ? [""] : [])].map((h, i) => (
-                      <TableHead key={i}>{h}</TableHead>
+                      <TableHead key={i} className="whitespace-nowrap">{h}</TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
@@ -461,16 +462,16 @@ export default function LocationsPage() {
                     const isActive = f.valid_from <= today && (!f.valid_to || f.valid_to >= today);
                     return (
                       <TableRow key={f.lb_factor_id}>
-                        <TableCell className="font-semibold text-foreground">{f.kpi_name}</TableCell>
+                        <TableCell className="font-semibold text-foreground whitespace-nowrap">{f.kpi_name}</TableCell>
                         <TableCell>
                           {f.scope_number ? (
                             <Badge variant="warning" className="text-2xs">Scope {f.scope_number}</Badge>
                           ) : "—"}
                         </TableCell>
-                        <TableCell className="font-semibold text-foreground">{f.lb_factor} <span className="text-muted-foreground font-normal">{f.emission_uom}</span></TableCell>
-                        <TableCell className="text-muted-foreground">{f.grid_zone_name || "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{formatDate(f.valid_from)}</TableCell>
-                        <TableCell className="text-muted-foreground">{f.valid_to ? formatDate(f.valid_to) : <span className="text-muted-foreground">Ongoing</span>}</TableCell>
+                        <TableCell className="font-semibold text-foreground whitespace-nowrap">{f.lb_factor} <span className="text-muted-foreground font-normal">{f.emission_uom}</span></TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{f.grid_zone_name || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{formatDate(f.valid_from)}</TableCell>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">{f.valid_to ? formatDate(f.valid_to) : <span className="text-muted-foreground">Ongoing</span>}</TableCell>
                         <TableCell>
                           {isActive
                             ? <Badge variant="success" className="text-2xs">Active</Badge>
@@ -489,6 +490,7 @@ export default function LocationsPage() {
                   })}
                 </TableBody>
               </Table>
+              </div>
             )}
           </SheetBody>
 
@@ -498,7 +500,7 @@ export default function LocationsPage() {
                 <RefreshCw size={13} /> Recalculate
               </Button>
               <Button size="sm" onClick={() => setAddLbOpen(true)}>
-                <Plus size={13} /> Add LB Factor
+                <Plus size={14} /> Add LB Factor
               </Button>
             </SheetFooter>
           )}
@@ -507,7 +509,7 @@ export default function LocationsPage() {
 
       {/* ── Dialogs ─────────────────────────────────────────────────────────── */}
       <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-        <SheetContent className="max-w-2xl">
+        <SheetContent>
           <SheetHeader>
             <SheetTitle>Add Location</SheetTitle>
             <p className="text-[12px] text-muted-foreground">Register a new plant, office, or facility.</p>
@@ -572,7 +574,7 @@ export default function LocationsPage() {
       </Sheet>
 
       <Sheet open={!!editData} onOpenChange={(open) => { if (!open) setEditData(null); }}>
-        <SheetContent className="max-w-2xl">
+        <SheetContent>
           <SheetHeader>
             <SheetTitle>Edit Location</SheetTitle>
             <p className="text-[12px] text-muted-foreground">{editData?.location_name}</p>

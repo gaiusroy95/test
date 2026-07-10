@@ -303,11 +303,10 @@ export default function PlatformScope3Page() {
       description="Manage system library emission factor datasets for Scope 3 calculations."
       breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Scope 3 Factor Management" }]}
       actions={isOwner ? (
-        <Button onClick={openCreateSet} className="bg-primary hover:bg-primaryDk text-white text-[13px] h-8 px-3 flex items-center gap-1.5">
+        <Button size="sm" onClick={openCreateSet}>
           <Plus size={14} /> New Factor Set
         </Button>
       ) : undefined}
-      className="max-w-[1600px]"
     >
       <PageTabs
         tabs={[{ key: "library", label: "System Library", icon: <Library size={14} />, count: displayedSets.length }]}
@@ -573,7 +572,7 @@ function FactorSetFormModal({ form, mode, saving, onChange, onSave, onClose }: {
 }) {
   return (
     <Sheet open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent className="max-w-[720px]">
+      <SheetContent size="wide">
         <SheetHeader>
           <SheetTitle>{mode === "create" ? "New Factor Set" : "Edit Factor Set"}</SheetTitle>
         </SheetHeader>
@@ -632,7 +631,7 @@ function FactorItemFormModal({ form, mode, categories, saving, onChange, onSave,
 
   return (
     <Sheet open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent className="max-w-[720px]">
+      <SheetContent size="wide">
         <SheetHeader>
           <SheetTitle>{mode === "create" ? "Add Factor Item" : "Edit Factor Item"}</SheetTitle>
         </SheetHeader>
@@ -696,7 +695,7 @@ function CSVPreviewModal({ rows, categoryName, importing, onConfirm, onClose }: 
 
   return (
     <Sheet open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent className="max-w-[1000px]">
+      <SheetContent size="xl">
         <SheetHeader>
           <SheetTitle>Preview CSV Import</SheetTitle>
           <p className="text-[11px] text-muted-foreground mt-0.5">Category: {categoryName} · {rows.length} rows · {validCount} valid{errorCount > 0 ? ` · ${errorCount} errors` : ""}</p>

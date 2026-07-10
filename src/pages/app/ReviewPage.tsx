@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Breadcrumb } from "@/components/shared/PageShell";
 import { PageTabs } from "@/components/shared/PageTabs";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { tenantApi } from "@/api/client";
@@ -100,8 +99,9 @@ export default function ReviewPage() {
   const [activeFilter, setActiveFilter] = useState("SUBMITTED");
   const [filterCounts, setFilterCounts] = useState<Record<string, number>>({});
 
-  // Detail panel
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Detail panel — seed from route so deep links don't flash full-width list first
+  const [selectedId, setSelectedId] = useState<string | null>(routeId ?? null);
+  const [selectedMeta, setSelectedMeta] = useState<SubmissionListItem | null>(null);
   const [detail, setDetail] = useState<Submission | null>(null);
   const [detailDocs, setDetailDocs] = useState<any[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -193,22 +193,28 @@ export default function ReviewPage() {
 
   useEffect(() => { fetchSubmissions(); }, [fetchSubmissions]);
 
-  // Deep link: /app/review/:id
+  // Deep link: /app/review/:id — load without toggling closed
   useEffect(() => {
-    if (routeId && routeId !== selectedId) {
-      loadDetail(routeId);
-    }
+    if (!routeId) return;
+    if (selectedId === routeId && detail?.submission_id === routeId) return;
+    void openDetail(routeId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeId]);
 
-  const selectSubmission = (id: string) => {
-    navigate(`/app/review/${id}`, { replace: true });
-    loadDetail(id);
+  const selectSubmission = (sub: SubmissionListItem) => {
+    if (selectedId === sub.submission_id) {
+      clearSelection();
+      return;
+    }
+    setSelectedMeta(sub);
+    navigate(`/app/review/${sub.submission_id}`, { replace: true });
+    void openDetail(sub.submission_id);
   };
 
   const clearSelection = () => {
     navigate("/app/review", { replace: true });
     setSelectedId(null);
+    setSelectedMeta(null);
     setDetail(null);
     setSelectedScope3(null);
   };
@@ -219,15 +225,12 @@ export default function ReviewPage() {
       return;
     }
     setSelectedId(null);
+    setSelectedMeta(null);
     setDetail(null);
     setSelectedScope3(batch);
   };
 
-  const loadDetail = async (id: string) => {
-    if (selectedId === id) {
-      clearSelection();
-      return;
-    }
+  const openDetail = async (id: string) => {
     setSelectedScope3(null); // clear Scope 3 selection
     setSelectedId(id);
     setDetailLoading(true);
@@ -352,20 +355,30 @@ export default function ReviewPage() {
     : {};
 
   const detailStatusCfg = detail ? STATUS_CONFIG[detail.status as keyof typeof STATUS_CONFIG] : null;
-  const selectedSubmission = submissions.find(s => s.submission_id === selectedId);
+  const selectedSubmission =
+    selectedMeta?.submission_id === selectedId
+      ? selectedMeta
+      : submissions.find(s => s.submission_id === selectedId) ?? selectedMeta;
+  const hasDetailOpen = !!(selectedId || selectedScope3);
 
   return (
-    <div className="flex h-full bg-sunken overflow-hidden">
+    <div className="flex h-full min-h-0 w-full bg-sunken overflow-hidden">
 
       {/* ── LEFT PANEL: Submissions list ── */}
-      <div className={`flex flex-col bg-card border-r border-border transition-all duration-200 ${selectedId || selectedScope3 ? "w-[400px] flex-shrink-0" : "flex-1"}`}>
+      <div
+        className={`flex flex-col bg-card border-r border-border min-h-0 min-w-0 ${
+          hasDetailOpen
+            ? "w-[min(380px,38%)] flex-shrink-0"
+            : "flex-1 max-w-3xl"
+        }`}
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-border">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "Review & Approvals" }]} className="mb-1" />
-              <h1 className="text-xl font-extrabold text-foreground tracking-tight">Review & Approvals</h1>
-              <p className="text-label text-muted-foreground mt-0.5">{total + scope3Batches.length} submission{(total + scope3Batches.length) !== 1 ? "s" : ""}</p>
+        <div className="px-4 py-2.5 border-b border-border flex-shrink-0">
+          <div className="min-w-0 mb-2">
+            <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap">
+              <h1 className="page-title">Review & Approvals</h1>
+              <span className="text-muted-foreground/40 text-label hidden sm:inline" aria-hidden="true">·</span>
+              <p className="text-label text-muted-foreground">{total + scope3Batches.length} submission{(total + scope3Batches.length) !== 1 ? "s" : ""}</p>
             </div>
           </div>
           <PageTabs
@@ -406,7 +419,7 @@ export default function ReviewPage() {
             return (
               <button
                 key={sub.submission_id}
-                onClick={() => selectSubmission(sub.submission_id)}
+                onClick={() => selectSubmission(sub)}
                 className={`w-full text-left px-5 py-3 border-b border-[hsl(var(--border-hairline))] hover:bg-sunken transition-colors
                   ${isSelected ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
               >
@@ -449,7 +462,7 @@ export default function ReviewPage() {
           {scope3Batches.length > 0 && (
             <>
               <div className="px-5 py-2 bg-sunken border-b border-[hsl(var(--border-hairline))] flex items-center gap-2">
-                <Package2 size={12} className="text-violet-500" />
+                <Package2 size={12} className="text-primary" />
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Scope 3 Batches</span>
               </div>
               {scope3Batches.map((b) => {
@@ -462,11 +475,11 @@ export default function ReviewPage() {
                     key={b.batch_id}
                     onClick={() => loadScope3Detail(b)}
                     className={`w-full text-left px-5 py-3 border-b border-[hsl(var(--border-hairline))] hover:bg-sunken transition-colors
-                      ${isSelected ? "bg-accent/60 border-l-2 border-l-violet-500" : ""}`}
+                      ${isSelected ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2 min-w-0">
-                        <Package2 size={13} className="text-violet-500 flex-shrink-0" />
+                        <Package2 size={13} className="text-primary flex-shrink-0" />
                         <span className="text-[13px] font-bold text-foreground truncate">{b.ghg_category_name}</span>
                       </div>
                       <StatusPill status={b.status} />
@@ -513,49 +526,57 @@ export default function ReviewPage() {
 
       {/* ── RIGHT PANEL: Submission detail + remarks side panel ── */}
       {selectedId && !selectedScope3 && (
-        <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden border-l border-border">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-card">
           {detailLoading ? (
             <div className="flex-1 flex items-center justify-center text-[13px] text-muted-foreground animate-pulse">
               Loading submission…
             </div>
           ) : detail ? (
             <>
-              {/* Detail header */}
-              <div className="bg-card border-b border-border px-6 py-4 flex-shrink-0">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <h2 className="text-[16px] font-bold text-foreground">
+              {/* Detail header — compact, no dead space */}
+              <div className="bg-card border-b border-border px-4 py-2.5 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-[15px] font-bold text-foreground truncate">
                         {selectedSubmission?.location_name || "Submission"}
                       </h2>
                       {detailStatusCfg && <StatusPill status={detail.status} />}
                     </div>
-                    <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={12} className="text-muted-foreground" />
-                        {selectedSubmission?.month_name} · {selectedSubmission?.year_label}
-                      </span>
-                      <span className="text-muted-foreground/40">|</span>
+                    <div className="flex items-center gap-2 text-[12px] text-muted-foreground mt-0.5 flex-wrap">
+                      {(selectedSubmission?.month_name || selectedSubmission?.year_label) && (
+                        <span className="flex items-center gap-1">
+                          <Calendar size={12} className="text-muted-foreground" />
+                          {selectedSubmission?.month_name} · {selectedSubmission?.year_label}
+                        </span>
+                      )}
+                      <span className="text-muted-foreground/40">·</span>
                       <span>{detail.kpi_values.length} value{detail.kpi_values.length !== 1 ? "s" : ""} filled</span>
+                      {detail.status === "APPROVED" && detail.reviewed_at && (
+                        <>
+                          <span className="text-muted-foreground/40">·</span>
+                          <span className="text-ok font-medium">Approved {formatDate(detail.reviewed_at)}</span>
+                        </>
+                      )}
+                      {detail.status === "REJECTED" && detail.reviewed_at && (
+                        <>
+                          <span className="text-muted-foreground/40">·</span>
+                          <span className="text-destructive font-medium">Rejected {formatDate(detail.reviewed_at)}</span>
+                        </>
+                      )}
                     </div>
                     {detail.status === "REJECTED" && detail.reviewer_notes && (
-                      <div className="mt-2 flex items-start gap-2 bg-destructive-tint border border-destructive/30 rounded-lg px-3 py-2">
+                      <div className="mt-1.5 flex items-start gap-2 bg-destructive-tint border border-destructive/30 rounded-md px-2.5 py-1.5">
                         <AlertCircle size={13} className="text-destructive flex-shrink-0 mt-0.5" />
                         <span className="text-[12px] text-destructive">{detail.reviewer_notes}</span>
                       </div>
                     )}
-                    {detail.status === "APPROVED" && (
-                      <div className="mt-2 flex items-center gap-2 bg-ok-tint border border-ok/30 rounded-lg px-3 py-2">
-                        <CheckCircle2 size={13} className="text-emerald-500" />
-                        <span className="text-[12px] text-ok font-semibold">Approved{detail.reviewed_at ? ` on ${formatDate(detail.reviewed_at)}` : ""}</span>
-                      </div>
-                    )}
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-1 flex-shrink-0 self-start">
                     <button
                       onClick={() => setShowRemarksPanel((v) => !v)}
-                      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${showRemarksPanel ? "bg-primary text-white" : "border border-border text-muted-foreground hover:bg-sunken"}`}
+                      className={`relative flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[12px] font-semibold transition-colors ${showRemarksPanel ? "bg-primary text-white" : "border border-border text-muted-foreground hover:bg-sunken"}`}
                       title="Auditor Remarks"
                     >
                       <MessageSquare size={13} />
@@ -568,7 +589,8 @@ export default function ReviewPage() {
                     </button>
                     <button
                       onClick={() => { clearSelection(); setShowRemarksPanel(false); }}
-                      className="p-1.5 rounded-lg hover:bg-sunken text-muted-foreground"
+                      className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground"
+                      title="Close detail"
                     >
                       <XIcon size={16} />
                     </button>
@@ -576,10 +598,10 @@ export default function ReviewPage() {
                 </div>
 
                 {/* Module tabs for detail view */}
-                <div className="flex gap-1 mt-3 overflow-x-auto">
+                <div className="flex gap-1 mt-2 overflow-x-auto">
                   <button
                     onClick={() => setActiveDetailModule(null)}
-                    className={`px-3 py-1 rounded-md text-[12px] font-semibold whitespace-nowrap transition-all ${activeDetailModule === null ? "bg-primary text-white" : "text-muted-foreground hover:bg-sunken"}`}
+                    className={`px-2.5 py-0.5 rounded-md text-[12px] font-semibold whitespace-nowrap transition-all ${activeDetailModule === null ? "bg-primary text-white" : "text-muted-foreground hover:bg-sunken"}`}
                   >
                     All
                   </button>
@@ -592,7 +614,7 @@ export default function ReviewPage() {
                       <button
                         key={m.module_id}
                         onClick={() => setActiveDetailModule(m.module_id === activeDetailModule ? null : m.module_id)}
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-semibold whitespace-nowrap transition-all ${activeDetailModule === m.module_id ? "text-white" : "text-muted-foreground hover:bg-sunken"}`}
+                        className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[12px] font-semibold whitespace-nowrap transition-all ${activeDetailModule === m.module_id ? "text-white" : "text-muted-foreground hover:bg-sunken"}`}
                         style={activeDetailModule === m.module_id ? { background: m.color } : {}}
                       >
                         <Icon size={12} /> {m.module_name}
@@ -604,7 +626,7 @@ export default function ReviewPage() {
               </div>
 
               {/* Scrollable detail content */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4 pb-32">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-8">
                 {(() => {
                   const visibleModules = modules.filter(m => activeDetailModule === null || m.module_id === activeDetailModule);
                   const hasAnyData = visibleModules.some(mod => {
@@ -638,7 +660,7 @@ export default function ReviewPage() {
                   if (filledModKpis.length === 0 && directInds.length === 0) return null;
 
                   return (
-                    <div key={mod.module_id} className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+                    <div key={mod.module_id} className="bg-card rounded-md border border-border overflow-hidden">
                       {/* Module header */}
                       <div className="flex items-center gap-3 px-5 py-3 border-b border-[hsl(var(--border-hairline))]" style={{ background: mod.bg_color }}>
                         <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: mod.color + "22" }}>
@@ -827,7 +849,7 @@ export default function ReviewPage() {
 
                 {/* Submission-level documents */}
                 {detailDocs.length > 0 && (
-                  <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
+                  <div className="bg-card rounded-md border border-border overflow-hidden">
                     <div className="flex items-center gap-2 px-5 py-3 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
                       <Paperclip size={14} className="text-muted-foreground" />
                       <span className="text-[13px] font-bold text-foreground">Supporting Documents</span>
@@ -856,18 +878,11 @@ export default function ReviewPage() {
                   </div>
                 )}
 
-                {/* Already reviewed info */}
-                {(detail.status === "APPROVED" || detail.status === "REJECTED") && (
-                  <div className={`rounded-xl border p-4 text-[12px] ${detail.status === "APPROVED" ? "bg-ok-tint border-ok/30" : "bg-destructive-tint border-destructive/30"}`}>
-                    <p className={`font-semibold mb-1 ${detail.status === "APPROVED" ? "text-ok" : "text-destructive"}`}>
-                      {detail.status === "APPROVED" ? "Approved" : "Rejected"}
-                      {detail.reviewed_at && ` on ${formatDate(detail.reviewed_at)}`}
-                    </p>
-                    {detail.reviewer_notes && (
-                      <p className={detail.status === "APPROVED" ? "text-ok" : "text-destructive"}>
-                        {detail.reviewer_notes}
-                      </p>
-                    )}
+                {/* Reviewer notes for approved (rejected notes shown in header) */}
+                {detail.status === "APPROVED" && detail.reviewer_notes && (
+                  <div className="rounded-md border border-ok/30 bg-ok-tint p-3 text-[12px]">
+                    <p className="font-semibold text-ok mb-0.5">Reviewer notes</p>
+                    <p className="text-ok">{detail.reviewer_notes}</p>
                   </div>
                 )}
               </div>

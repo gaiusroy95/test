@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Send } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   onSend: (text: string) => void;
@@ -19,25 +20,27 @@ export default function ChatInput({ onSend, disabled }: Props) {
   };
 
   return (
-    <div className="flex items-center gap-2 p-3 border-t border-border bg-card">
+    <div className="flex items-center gap-2 px-4 py-2.5 sm:px-6">
       <input
         ref={inputRef}
         type="text"
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
-        placeholder="Ask about your ESG data..."
+        placeholder="Ask about your ESG data…"
         maxLength={500}
         disabled={disabled}
-        className="flex-1 h-10 px-4 rounded-lg border border-border bg-sunken text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50 transition-colors"
+        className="flex-1 h-9 px-3 rounded-md border border-border bg-background text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50 transition-colors"
       />
-      <button
+      <Button
+        size="sm"
         onClick={handleSubmit}
         disabled={disabled || !text.trim()}
-        className="w-10 h-10 rounded-lg bg-primary text-white flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 transition-colors flex-shrink-0"
+        className="h-9 w-9 p-0 shrink-0"
+        aria-label="Send"
       >
-        <Send size={16} />
-      </button>
+        <Send size={15} />
+      </Button>
     </div>
   );
 }

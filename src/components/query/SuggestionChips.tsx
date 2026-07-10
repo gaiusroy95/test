@@ -8,13 +8,14 @@ export default function SuggestionChips({ suggestions, onSelect, disabled }: Pro
   if (!suggestions.length) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 mt-2">
+    <div className="flex flex-wrap gap-1.5 w-full">
       {suggestions.map((s, i) => (
         <button
           key={i}
+          type="button"
           onClick={() => onSelect(s)}
           disabled={disabled}
-          className="px-3 py-1.5 rounded-full text-[12px] font-medium border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 hover:border-primary/50 disabled:opacity-40 transition-colors"
+          className="px-2.5 py-1.5 rounded-md text-[12px] font-medium border border-border text-foreground bg-card hover:bg-sunken hover:border-primary/40 hover:text-primary disabled:opacity-40 transition-colors text-left"
         >
           {s}
         </button>

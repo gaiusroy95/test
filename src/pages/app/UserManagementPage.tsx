@@ -291,7 +291,7 @@ export default function UserManagementPage() {
           </Select>
         }
         actions={isAdmin ? (
-          <Button onClick={openCreate} size="sm">
+          <Button size="sm" onClick={openCreate}>
             <Plus size={14} /> Add User
           </Button>
         ) : undefined}
@@ -301,7 +301,7 @@ export default function UserManagementPage() {
           title: "No users found",
           description: search || roleFilter ? "Try adjusting your filters" : "Add your first team member",
           children: isAdmin && !search && !roleFilter ? (
-            <Button onClick={openCreate}><Plus size={14} /> Add User</Button>
+            <Button size="sm" onClick={openCreate}><Plus size={14} /> Add User</Button>
           ) : undefined,
         } : undefined}
         pagination={{ page, pageSize, total, onPageChange: setPage }}
@@ -392,7 +392,7 @@ export default function UserManagementPage() {
 
       {/* ── Create User — wide panel ── */}
       <Sheet open={createOpen} onOpenChange={(v) => { if (!v) setCreateOpen(false); }}>
-        <SheetContent className="max-w-2xl w-full">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>Add User</SheetTitle>
           </SheetHeader>
@@ -447,7 +447,7 @@ export default function UserManagementPage() {
 
       {/* ── Edit User — wide panel ── */}
       <Sheet open={!!editUser} onOpenChange={(v) => { if (!v) setEditUser(null); }}>
-        <SheetContent className="max-w-2xl w-full">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>Edit User</SheetTitle>
           </SheetHeader>

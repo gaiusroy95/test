@@ -14,36 +14,36 @@ export default function ChatMessage({ message, onSuggestionClick, loading }: Pro
   const isUser = message.role === "user";
 
   return (
-    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
+    <div className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""}`}>
       {/* Avatar */}
       <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+        className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${
           isUser
             ? "bg-primary text-white"
-            : "bg-sunken text-muted-foreground"
+            : "bg-sunken text-muted-foreground border border-border"
         }`}
       >
-        {isUser ? <User size={15} /> : <Bot size={15} />}
+        {isUser ? <User size={14} /> : <Bot size={14} />}
       </div>
 
       {/* Bubble */}
-      <div className={`max-w-[85%] ${isUser ? "items-end" : "items-start"}`}>
+      <div className={`max-w-[min(100%,42rem)] min-w-0 ${isUser ? "items-end" : "items-start"}`}>
         <div
-          className={`rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed ${
+          className={`rounded-md px-3 py-2 text-[13px] leading-relaxed ${
             isUser
-              ? "bg-primary text-white rounded-tr-md"
-              : "bg-card border border-border text-foreground rounded-tl-md shadow-sm"
+              ? "bg-primary text-white"
+              : "bg-card border border-border text-foreground"
           }`}
         >
           {/* Engine badge (system messages only) */}
           {!isUser && message.engine_used && (
-            <div className="flex items-center gap-1 mb-2">
+            <div className="flex items-center gap-1 mb-1.5">
               {message.engine_used === "LLM" ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-accent text-accent-foreground">
                   <Sparkles size={9} /> AI Powered
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sunken text-muted-foreground">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-sunken text-muted-foreground">
                   <Cpu size={9} /> Standard
                 </span>
               )}
@@ -62,11 +62,13 @@ export default function ChatMessage({ message, onSuggestionClick, loading }: Pro
 
         {/* Suggestion chips (only for system messages) */}
         {!isUser && message.suggestions && message.suggestions.length > 0 && (
-          <SuggestionChips
-            suggestions={message.suggestions}
-            onSelect={onSuggestionClick}
-            disabled={loading}
-          />
+          <div className="mt-2">
+            <SuggestionChips
+              suggestions={message.suggestions}
+              onSelect={onSuggestionClick}
+              disabled={loading}
+            />
+          </div>
         )}
 
         {/* Timestamp */}

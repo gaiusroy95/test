@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 import { tenantApi } from "@/api/client";
 import { useModulesStore } from "@/store/modules";
 import { useVocabulariesStore } from "@/store/vocabularies";
-import { Breadcrumb, PageHeader, StatCard, LoadingSkeleton } from "@/components/shared/PageComponents";
+import { StatCard, LoadingSkeleton } from "@/components/shared/PageComponents";
 import { PageShell } from "@/components/shared/PageShell";
 import { PageTabs } from "@/components/shared/PageTabs";
 import { FilterBar, FilterSelect } from "@/components/shared/FilterBar";
@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { Database, Zap, Wind, Droplets, Trash2, FileText, FileSpreadsheet, Package2, FileDown } from "lucide-react";
 import { getApiError } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import type { ESGInput, KPI, ReportingYear, Location, Indicator, DerivedMetric, WasteDisposalBreakdown, AppModule } from "@/types";
 import { evaluateFormula } from "@/lib/formulaEvaluator";
 
@@ -705,74 +706,84 @@ export default function ReportsPage() {
       description="Approved data only"
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Reports & Analytics" }]}
       fullWidth
+      className="pt-3 pb-4 [&_.page-header]:mb-2"
       toolbar={
-        <PageTabs
-          tabs={[
-            { key: "analytics", label: "Analytics", icon: <Database size={14} /> },
-            { key: "annexure", label: "Report", icon: <FileText size={14} /> },
-          ]}
-          value={tab}
-          onChange={(k) => setTab(k as ReportTab)}
-        />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-3 flex-wrap border-b border-border">
+            <PageTabs
+              tabs={[
+                { key: "analytics", label: "Analytics", icon: <Database size={14} /> },
+                { key: "annexure", label: "Report", icon: <FileText size={14} /> },
+              ]}
+              value={tab}
+              onChange={(k) => setTab(k as ReportTab)}
+              className="border-b-0"
+            />
+          </div>
+          <FilterBar
+            showClear={hasFilters}
+            onClear={() => { setSelectedFY(""); setSelectedMonth(""); if (!isLocationUser) setSelectedLocation(""); }}
+            className="pb-0.5"
+          >
+            <FilterSelect
+              label="FY"
+              value={selectedFY}
+              onChange={setSelectedFY}
+              placeholder="All FY"
+              options={reportingYears.map((r) => ({
+                value: String(r.year_id),
+                label: r.financial_year?.fy_label || `FY ${r.year_id}`,
+              }))}
+              minWidth={150}
+            />
+            {!isLocationUser && (
+              <FilterSelect
+                label="Location"
+                value={selectedLocation}
+                onChange={setSelectedLocation}
+                placeholder="All Locations"
+                options={locations.map((l) => ({ value: l.location_id, label: l.location_name }))}
+                minWidth={160}
+              />
+            )}
+            {tab === "analytics" && (
+              <FilterSelect
+                label="Month"
+                value={selectedMonth}
+                onChange={setSelectedMonth}
+                placeholder="All Months"
+                options={MONTH_NAMES.map((name, i) => ({ value: String(i + 1), label: name }))}
+                minWidth={130}
+              />
+            )}
+          </FilterBar>
+        </div>
       }
       actions={
         <div className="flex items-center gap-2">
           {tab === "annexure" && (
-            <button onClick={exportXLSX} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-[12px] font-medium text-muted-foreground hover:bg-sunken transition-colors">
+            <Button variant="outline" size="sm" onClick={exportXLSX}>
               <FileSpreadsheet size={13} className="text-ok" /> Export Excel
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            size="sm"
             onClick={downloadBrsr}
             disabled={!selectedFY || brsrLoading}
             title={selectedFY ? "Download BRSR workbook" : "Select a Financial Year to enable"}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primaryDk text-white text-[12px] font-semibold transition-colors disabled:bg-border disabled:cursor-not-allowed"
           >
             <FileDown size={13} /> {brsrLoading ? "Generating…" : "Generate BRSR"}
-          </button>
+          </Button>
         </div>
       }
     >
-      <FilterBar showClear={hasFilters} onClear={() => { setSelectedFY(""); setSelectedMonth(""); if (!isLocationUser) setSelectedLocation(""); }} className="mb-4">
-        <FilterSelect
-          label="Financial Year"
-          value={selectedFY}
-          onChange={setSelectedFY}
-          placeholder="All FY"
-          options={reportingYears.map((r) => ({
-            value: String(r.year_id),
-            label: r.financial_year?.fy_label || `FY ${r.year_id}`,
-          }))}
-        />
-        {!isLocationUser && (
-          <FilterSelect
-            label="Location"
-            value={selectedLocation}
-            onChange={setSelectedLocation}
-            placeholder="All Locations"
-            options={locations.map((l) => ({ value: l.location_id, label: l.location_name }))}
-            minWidth={170}
-          />
-        )}
-        {tab === "analytics" && (
-          <FilterSelect
-            label="Month"
-            value={selectedMonth}
-            onChange={setSelectedMonth}
-            placeholder="All Months"
-            options={MONTH_NAMES.map((name, i) => ({ value: String(i + 1), label: name }))}
-            minWidth={120}
-          />
-        )}
-      </FilterBar>
-
       {/* ══════ ANALYTICS TAB ══════ */}
       {tab === "analytics" && (
         <>
           {filtered.length === 0 && (
-            <p className="text-[12px] text-amber-500 mb-3">No entries found for the selected filters</p>
+            <p className="text-[12px] text-amber-500 mb-2">No entries found for the selected filters</p>
           )}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-3">
             <StatCard icon={Zap} label={energyStatLabel} value={energyStatValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} accent={CHART_COLORS[4]} />
             <StatCard icon={Wind} label="Total Emissions (tCO₂e)" value={totalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent={CHART_COLORS[7]} />
             <StatCard icon={Droplets} label="Total Water (kL)" value={waterTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} accent={CHART_COLORS[4]} />
@@ -780,7 +791,7 @@ export default function ReportsPage() {
             <StatCard icon={Package2} label="Scope 3 Emissions (tCO₂e)" value={scope3TotalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent={CHART_COLORS[6]} />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
             <ChartCard title={hasEmissionData ? "Monthly Emissions (tCO₂e)" : "Monthly Energy Consumption (Qty)"}>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={monthlyEmissions}>

@@ -404,7 +404,6 @@ export default function CompanyManagement() {
       title="Company Management"
       description="Onboard and manage tenant companies"
       breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "Company Management" }]}
-      className="max-w-[1600px]"
     >
       <DataTable
         search={{ value: search, onChange: setSearch, placeholder: "Search name or code…" }}
@@ -426,11 +425,11 @@ export default function CompanyManagement() {
             <button
               onClick={handleExport}
               disabled={companies.length === 0}
-              className="flex items-center gap-2 px-3.5 h-9 rounded-lg border border-border bg-card text-[13px] font-medium text-muted-foreground hover:bg-sunken hover:border-border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-card text-xs font-semibold text-muted-foreground hover:bg-sunken hover:border-border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <FileSpreadsheet size={15} className="text-ok" /> Export Excel
+              <FileSpreadsheet size={14} className="text-ok" /> Export Excel
             </button>
-            <Button onClick={openCreateCompany} className="h-8 text-[12px] px-3">
+            <Button size="sm" onClick={openCreateCompany}>
               <Plus size={14} /> New Company
             </Button>
           </>
@@ -440,7 +439,7 @@ export default function CompanyManagement() {
           icon: Building2,
           title: "No companies found",
           description: search || statusFilter ? "Try adjusting your filters" : "Get started by onboarding your first company",
-          children: !search && !statusFilter ? <Button onClick={openCreateCompany}><Plus size={14} /> New Company</Button> : undefined,
+          children: !search && !statusFilter ? <Button size="sm" onClick={openCreateCompany}><Plus size={14} /> New Company</Button> : undefined,
         } : undefined}
         pagination={{ page, pageSize, total, onPageChange: setPage }}
         skeletonCols={7}
@@ -563,7 +562,7 @@ export default function CompanyManagement() {
 
       {/* ── Company Detail Drawer ── */}
       <Sheet open={!!detailCompany} onOpenChange={(v) => { if (!v) setDetailCompany(null); }}>
-        <SheetContent className="max-w-[640px]">
+        <SheetContent size="wide">
           {detailCompany && (() => {
             const plan = resolvePlan(detailCompany);
             return (
@@ -666,7 +665,7 @@ export default function CompanyManagement() {
 
       {/* ── Create Company Drawer ── */}
       <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-        <SheetContent className="max-w-2xl">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>New Company</SheetTitle>
             <p className="text-[12px] text-muted-foreground">Onboard a new tenant company.</p>
@@ -742,7 +741,7 @@ export default function CompanyManagement() {
 
       {/* ── Create Company Admin Drawer ── */}
       <Sheet open={adminOpen} onOpenChange={(open) => { if (!open) { setAdminOpen(false); setSelectedCompany(null); } }}>
-        <SheetContent className="max-w-xl">
+        <SheetContent>
           <SheetHeader>
             <SheetTitle>Create Admin — {selectedCompany?.company_name || ""}</SheetTitle>
             <p className="text-[12px] text-muted-foreground">Creates the initial Company Admin account for this tenant.</p>

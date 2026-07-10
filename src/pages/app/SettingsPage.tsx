@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import { useSearchParams } from "react-router-dom";
 import { tenantApi } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
@@ -13,6 +13,7 @@ import { getApiError, formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SupportAccessInbox } from "@/components/tenant/SupportAccessInbox";
 import { AppearanceSettings } from "@/components/settings/AppearanceSettings";
+import { CURRENT_POLICY_VERSION } from "@/components/shared/ConsentDialog";
 
 const MONTH_OPTIONS = [
   { value: "1", label: "January" }, { value: "2", label: "February" },
@@ -66,6 +67,37 @@ const ACTION_VARIANT: Record<string, "success" | "warning" | "destructive" | "se
 
 function actionLabel(action: string) {
   return action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Human-readable detail line for audit rows (consent, exports, etc.). */
+function auditDetail(row: Record<string, any>): string {
+  if (row.notes && String(row.notes).trim()) return String(row.notes).trim();
+  if (row.reason && String(row.reason).trim()) return String(row.reason).trim();
+
+  const meta = (row.metadata && typeof row.metadata === "object") ? row.metadata as Record<string, unknown> : {};
+  const version =
+    row.consent_version ??
+    meta.consent_version ??
+    meta.version ??
+    meta.policy_version ??
+    null;
+
+  if (row.action === "CONSENT_RECORDED") {
+    const v = version != null ? String(version) : CURRENT_POLICY_VERSION;
+    return `Accepted Privacy & Data Usage policy v${v}`;
+  }
+
+  if (meta.notes && String(meta.notes).trim()) return String(meta.notes).trim();
+  if (version != null) return `Policy version ${version}`;
+
+  return "";
+}
+
+function consentVersion(row: Record<string, any>): string {
+  const meta = (row.metadata && typeof row.metadata === "object") ? row.metadata as Record<string, unknown> : {};
+  return String(
+    row.consent_version ?? meta.consent_version ?? meta.version ?? meta.policy_version ?? CURRENT_POLICY_VERSION
+  );
 }
 
 type Tab = "config" | "appearance" | "support" | "compliance";
@@ -133,6 +165,7 @@ export default function SettingsPage() {
   const [auditTotal, setAuditTotal] = useState(0);
   const [auditPage, setAuditPage]   = useState(1);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
   const auditPageSize = 50;
 
   const loadAuditLog = useCallback(async (p: number) => {
@@ -181,7 +214,6 @@ export default function SettingsPage() {
         title="Settings"
         description="Company configuration and compliance audit trail"
         breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Settings" }]}
-        className="max-w-[1000px]"
       >
         <LoadingSkeleton rows={6} cols={1} />
       </PageShell>
@@ -194,12 +226,11 @@ export default function SettingsPage() {
       description="Company configuration and compliance audit trail"
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Settings" }]}
       toolbar={tabBar}
-      className="max-w-[1000px]"
     >
 
       {/* ── Config tab ─────────────────────────────────────────────────────── */}
       {tab === "config" && (
-        <div className="max-w-[720px] space-y-5">
+        <div className="space-y-4 w-full">
           <Section title="Company Identity">
             <Field label="Display Name" description="Name shown in reports and exports">
               <input value={values.company_display_name} onChange={set("company_display_name")}
@@ -232,11 +263,10 @@ export default function SettingsPage() {
             </Field>
           </Section>
 
-          <div className="mt-7 flex items-center gap-3">
-            <button onClick={handleSave} disabled={!isDirty || saving}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primaryDk disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-              <Save size={15} /> {saving ? "Saving…" : "Save Changes"}
-            </button>
+          <div className="flex items-center gap-3">
+            <Button size="sm" onClick={handleSave} disabled={!isDirty || saving}>
+              <Save size={14} /> {saving ? "Saving…" : "Save Changes"}
+            </Button>
             {isDirty && <span className="text-[12px] text-amber-500 font-medium">Unsaved changes</span>}
           </div>
         </div>
@@ -275,38 +305,90 @@ export default function SettingsPage() {
                       <TableHead>Action</TableHead>
                       <TableHead>Actor</TableHead>
                       <TableHead>Target</TableHead>
-                      <TableHead>Notes</TableHead>
+                      <TableHead>Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {auditLog.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">
-                          {row.actioned_at ? formatDateTime(row.actioned_at) : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={ACTION_VARIANT[row.action] ?? "secondary"} className="text-[10px] whitespace-nowrap">
-                            {actionLabel(row.action)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-[12px] text-muted-foreground">
-                          {row.actor_email ?? <span className="text-muted-foreground/40 italic">System</span>}
-                        </TableCell>
-                        <TableCell className="text-[12px] text-muted-foreground">
-                          {row.target_type && (
-                            <span className="capitalize">{row.target_type}</span>
+                    {auditLog.map((row) => {
+                      const detail = auditDetail(row);
+                      const isConsent = row.action === "CONSENT_RECORDED";
+                      const expanded = expandedAuditId === row.id;
+                      return (
+                        <Fragment key={row.id}>
+                          <TableRow
+                            className={isConsent ? "cursor-pointer" : undefined}
+                            onClick={isConsent ? () => setExpandedAuditId(expanded ? null : row.id) : undefined}
+                          >
+                            <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">
+                              {row.actioned_at ? formatDateTime(row.actioned_at) : "—"}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={ACTION_VARIANT[row.action] ?? "secondary"} className="text-[10px] whitespace-nowrap">
+                                {actionLabel(row.action)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-[12px] text-muted-foreground">
+                              {row.actor_email ?? <span className="text-muted-foreground/40 italic">System</span>}
+                            </TableCell>
+                            <TableCell className="text-[12px] text-muted-foreground">
+                              {row.target_type && (
+                                <span className="capitalize">{row.target_type}</span>
+                              )}
+                              {row.target_id && (
+                                <span className="ml-1 font-mono text-[10px] text-muted-foreground">
+                                  {row.target_id.length > 8 ? `${row.target_id.slice(0, 8)}…` : row.target_id}
+                                </span>
+                              )}
+                              {!row.target_type && !row.target_id && "—"}
+                            </TableCell>
+                            <TableCell className="text-[12px] text-muted-foreground max-w-[420px]">
+                              {detail ? (
+                                <span className="inline-flex items-center gap-1.5">
+                                  <span className="whitespace-normal">{detail}</span>
+                                  {isConsent && (
+                                    <ChevronRight
+                                      size={14}
+                                      className={`text-muted-foreground shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`}
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </TableCell>
+                          </TableRow>
+                          {isConsent && expanded && (
+                            <TableRow>
+                              <TableCell colSpan={5} className="bg-sunken/50 px-5 py-4">
+                                <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                                  Consent recorded · Policy v{consentVersion(row)}
+                                </div>
+                                <div className="space-y-2 text-[13px] text-muted-foreground leading-relaxed max-w-[720px]">
+                                  <p>
+                                    <strong className="text-foreground">What we collect:</strong> Name, email, role,
+                                    and ESG data entered on behalf of the organisation.
+                                  </p>
+                                  <p>
+                                    <strong className="text-foreground">How we use it:</strong> Solely to operate ESMOS
+                                    for the company&apos;s ESG/BRSR reporting. Data is never sold or shared with third parties.
+                                  </p>
+                                  <p>
+                                    <strong className="text-foreground">Rights:</strong> Request a copy of personal data
+                                    or ask a Company Admin to erase the account.
+                                  </p>
+                                  <p className="text-[12px]">
+                                    Actor <span className="font-medium text-foreground">{row.actor_email || "user"}</span>{" "}
+                                    confirmed &ldquo;I understand and agree&rdquo; for policy version{" "}
+                                    <span className="font-mono text-foreground">{consentVersion(row)}</span>.
+                                  </p>
+                                </div>
+                              </TableCell>
+                            </TableRow>
                           )}
-                          {row.target_id && (
-                            <span className="ml-1 font-mono text-[10px] text-muted-foreground">
-                              {row.target_id.length > 8 ? `${row.target_id.slice(0, 8)}…` : row.target_id}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-[12px] text-muted-foreground max-w-[240px] truncate">
-                          {row.notes ?? "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                        </Fragment>
+                      );
+                    })}
                   </TableBody>
                 </Table>
 
@@ -352,12 +434,12 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Field({ label, description, children }: { label: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="px-5 py-4 grid grid-cols-[1fr_1.4fr] gap-8 items-start">
+    <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-[minmax(200px,280px)_1fr] gap-3 sm:gap-8 items-start">
       <div>
         <div className="text-[13px] font-semibold text-foreground">{label}</div>
         <div className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">{description}</div>
       </div>
-      <div>{children}</div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

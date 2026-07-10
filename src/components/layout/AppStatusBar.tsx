@@ -61,21 +61,21 @@ export function SidebarFooter({ collapsed }: { collapsed: boolean }) {
   return (
     <div
       className={cn(
-        "flex-shrink-0 border-t border-sidebar-border bg-sunken/50",
+        "flex-shrink-0 border-t border-sidebar-border",
         collapsed ? "px-2 py-2" : "px-4 py-2.5"
       )}
       aria-label="Sidebar footer"
     >
       {collapsed ? (
-        <div className="text-center text-[9px] font-mono text-muted-foreground tabular-nums" title={`${APP_NAME} v${APP_VERSION}`}>
+        <div className="text-center text-[9px] font-mono text-sidebar-foreground/40 tabular-nums" title={`${APP_NAME} v${APP_VERSION}`}>
           v{APP_VERSION.split(".")[0]}
         </div>
       ) : (
         <div className="flex items-center justify-between gap-2 min-w-0">
-          <span className="text-2xs font-semibold text-muted-foreground tracking-wide truncate">
+          <span className="text-2xs font-semibold text-sidebar-foreground/45 tracking-wide truncate">
             {APP_NAME}
           </span>
-          <span className="text-2xs font-mono text-muted-foreground/70 tabular-nums shrink-0">
+          <span className="text-2xs font-mono text-sidebar-foreground/35 tabular-nums shrink-0">
             v{APP_VERSION}
           </span>
         </div>

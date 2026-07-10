@@ -6,9 +6,9 @@ import { LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents"
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Plus, Calendar, Lock, Unlock, ChevronRight, LockKeyhole, UnlockKeyhole } from "lucide-react";
+import { Plus, Calendar, Lock, Unlock, LockKeyhole } from "lucide-react";
 import type { ReportingYear, PeriodStatus, FinancialYear } from "@/types";
 import { getApiError } from "@/lib/utils";
 
@@ -129,139 +129,121 @@ export default function ReportingPage() {
   const lockedCount = periods.filter((p) => p.is_locked).length;
   const unlockedCount = periods.filter((p) => !p.is_locked).length;
 
+  const fyToolbar = !loading && reportingYears.length > 0 ? (
+    <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex gap-1 bg-sunken rounded-lg p-1 w-fit flex-wrap">
+        {reportingYears.map((ry) => {
+          const active = selectedYear?.year_id === ry.year_id;
+          const label = ry.financial_year?.fy_label || `FY ${ry.year_id}`;
+          return (
+            <button
+              key={ry.id}
+              type="button"
+              onClick={() => selectYear(ry)}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
+                active ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground/90"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      {selectedYear && (
+        <span className="text-label text-muted-foreground">
+          Starts {selectedYear.financial_year?.start_month_name || `month ${selectedYear.fy_start_month || 4}`}
+        </span>
+      )}
+    </div>
+  ) : undefined;
+
   return (
     <PageShell
       title="Reporting Years"
       description="Assign financial years and manage monthly period locks"
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Reporting Years" }]}
       actions={
-        <div className="flex items-center gap-2">
-          {!loading && reportingYears.length > 1 && selectedYear && (
-            <div className="flex items-center gap-2">
-              <span className="text-label font-semibold text-muted-foreground">Jump to FY</span>
-              <Select
-                value={String(selectedYear.year_id)}
-                onValueChange={(v) => {
-                  const ry = reportingYears.find((r) => r.year_id === Number(v));
-                  if (ry) selectYear(ry);
-                }}
-              >
-                <SelectTrigger className="h-8 w-[140px] text-ui">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {reportingYears.map((r) => (
-                    <SelectItem key={r.year_id} value={String(r.year_id)}>
-                      {r.financial_year?.fy_label || `FY ${r.year_id}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          {isAdmin && (
-            <button onClick={() => setAssignOpen(true)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-primary text-[12px] font-semibold text-white hover:bg-primaryDk transition-colors">
-              <Plus size={14} /> Assign FY
-            </button>
-          )}
-        </div>
+        isAdmin ? (
+          <Button size="sm" onClick={() => setAssignOpen(true)}>
+            <Plus size={14} /> Assign FY
+          </Button>
+        ) : undefined
       }
+      toolbar={fyToolbar}
     >
       {loading ? <LoadingSkeleton rows={3} cols={3} /> : reportingYears.length === 0 ? (
         <div className="bg-card rounded-xl border border-border">
           <EmptyState icon={Calendar} title="No financial years assigned" description="Assign a financial year to start tracking ESG data by period.">
-            {isAdmin && <button onClick={() => setAssignOpen(true)} className="mt-2 px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-semibold"><Plus size={14} className="inline mr-1" /> Assign FY</button>}
+            {isAdmin && (
+              <Button size="sm" onClick={() => setAssignOpen(true)} className="mt-2">
+                <Plus size={14} /> Assign FY
+              </Button>
+            )}
           </EmptyState>
         </div>
-      ) : (
-        <>
-          {/* FY Cards */}
-          <div className="flex flex-wrap gap-3 mb-7">
-            {reportingYears.map((ry) => (
-              <button
-                key={ry.id}
-                onClick={() => selectYear(ry)}
-                className={`px-5 py-3.5 rounded-xl border-2 text-left transition-all ${
-                  selectedYear?.year_id === ry.year_id
-                    ? "border-primary bg-info-tint/50 shadow-sm"
-                    : "border-border bg-card hover:border-border"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className={selectedYear?.year_id === ry.year_id ? "text-primary" : "text-muted-foreground"} />
-                  <span className="text-[15px] font-bold text-foreground">{ry.financial_year?.fy_label || `FY ${ry.year_id}`}</span>
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-1">
-                  Start month: {ry.financial_year?.start_month_name || `Month ${ry.fy_start_month || 4}`}
-                </div>
-              </button>
-            ))}
+      ) : selectedYear && (
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap min-w-0">
+              <h3 className="text-sm font-bold text-foreground">
+                {selectedYear.financial_year?.fy_label || "Selected FY"}
+              </h3>
+              <span className="text-muted-foreground/40 text-label" aria-hidden="true">·</span>
+              <p className="text-label text-muted-foreground">
+                {lockedCount} locked · {unlockedCount} open
+              </p>
+            </div>
+            {isAdmin && unlockedCount > 0 && (
+              <Button size="sm" variant="outline" onClick={handleBulkLock} disabled={actionLoading} className="ml-auto shrink-0">
+                <LockKeyhole size={14} /> Lock All
+              </Button>
+            )}
           </div>
 
-          {/* Period Status Grid */}
-          {selectedYear && (
-            <div className="bg-card rounded-xl border border-border p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <h3 className="text-[16px] font-bold text-foreground">
-                    {selectedYear.financial_year?.fy_label || "Selected FY"} — Period Status
-                  </h3>
-                  <p className="text-[12px] text-muted-foreground mt-0.5">
-                    {lockedCount} locked · {unlockedCount} open
-                  </p>
-                </div>
-                {isAdmin && unlockedCount > 0 && (
-                  <button onClick={handleBulkLock} disabled={actionLoading} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-[13px] font-semibold text-muted-foreground hover:bg-sunken disabled:opacity-60">
-                    <LockKeyhole size={15} /> Lock All
-                  </button>
-                )}
-              </div>
-
-              {periodsLoading ? <LoadingSkeleton rows={3} cols={4} /> : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {periods.sort((a, b) => a.month_id - b.month_id).map((p) => {
-                    const monthName = p.month?.month_name || `Month ${p.month_id}`;
-                    return (
-                      <div
-                        key={p.id || p.month_id}
-                        className={`rounded-xl border-2 p-4 text-center transition-all ${
-                          p.is_locked
-                            ? "border-border bg-sunken"
-                            : "border-green-200 bg-green-50/50"
+          {periodsLoading ? <LoadingSkeleton rows={3} cols={4} /> : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+              {periods.sort((a, b) => a.month_id - b.month_id).map((p) => {
+                const monthName = p.month?.month_name || `Month ${p.month_id}`;
+                return (
+                  <div
+                    key={p.id || p.month_id}
+                    className={`rounded-md border p-2.5 text-center transition-colors ${
+                      p.is_locked
+                        ? "border-border bg-sunken"
+                        : "border-ok/30 bg-ok-tint/40"
+                    }`}
+                  >
+                    <div className={`w-7 h-7 rounded-md mx-auto mb-1.5 flex items-center justify-center ${
+                      p.is_locked ? "bg-border/60" : "bg-ok-tint"
+                    }`}>
+                      {p.is_locked
+                        ? <Lock size={14} className="text-muted-foreground" />
+                        : <Unlock size={14} className="text-ok" />}
+                    </div>
+                    <div className="text-xs font-bold text-foreground">{monthName}</div>
+                    <div className={`text-[11px] font-semibold mb-2 ${p.is_locked ? "text-muted-foreground" : "text-ok"}`}>
+                      {p.is_locked ? "Locked" : "Open"}
+                    </div>
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={`w-full h-7 text-[11px] ${
+                          p.is_locked ? "" : "border-warn/40 text-warn hover:bg-warn-tint hover:text-warn"
                         }`}
+                        onClick={() => setConfirmLock({ period: p, action: p.is_locked ? "unlock" : "lock" })}
                       >
-                        <div className={`w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center ${
-                          p.is_locked ? "bg-border" : "bg-ok-tint"
-                        }`}>
-                          {p.is_locked ? <Lock size={18} className="text-muted-foreground" /> : <Unlock size={18} className="text-green-600" />}
-                        </div>
-                        <div className="text-[13px] font-bold text-foreground mb-0.5">{monthName}</div>
-                        <div className={`text-[11px] font-semibold mb-3 ${p.is_locked ? "text-muted-foreground" : "text-green-600"}`}>
-                          {p.is_locked ? "Locked" : "Open"}
-                        </div>
-                        {isAdmin && (
-                          <button
-                            onClick={() => setConfirmLock({ period: p, action: p.is_locked ? "unlock" : "lock" })}
-                            className={`w-full py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
-                              p.is_locked
-                                ? "border border-border text-muted-foreground hover:bg-card"
-                                : "border border-warn/30 text-warn hover:bg-warn-tint"
-                            }`}
-                          >
-                            {p.is_locked ? "Unlock" : "Lock Period"}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                        {p.is_locked ? "Unlock" : "Lock"}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
-        </>
+        </div>
       )}
 
-      {/* Dialogs */}
       <FormDialog open={assignOpen} onClose={() => setAssignOpen(false)} onSubmit={handleAssign} title="Assign Financial Year" description="This will create 12 monthly period records" fields={assignFields} submitLabel="Assign" loading={actionLoading} />
       <ConfirmDialog
         open={!!confirmLock}

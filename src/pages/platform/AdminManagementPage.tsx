@@ -146,7 +146,7 @@ export default function AdminManagementPage() {
       </DataTable>
 
       <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-        <SheetContent className="max-w-[680px]">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>Add Platform Admin</SheetTitle>
             <p className="text-[12px] text-muted-foreground mt-0.5">

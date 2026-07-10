@@ -4,7 +4,6 @@ import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { UserMenu, usePendingTicketCount } from "./UserMenu";
 import { AppStatusBar } from "./AppStatusBar";
-import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { ConsentDialog } from "@/components/shared/ConsentDialog";
 import { SupportSessionBanner } from "@/components/shared/SupportSessionBanner";
 import { useModulesStore } from "@/store/modules";
@@ -12,8 +11,14 @@ import { useFeaturesStore } from "@/store/features";
 import { useVocabulariesStore } from "@/store/vocabularies";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
+import { AppTopBarContext } from "./AppTopBarContext";
 
 const LG_BREAKPOINT = 1024;
+
+/** Stable key for page-enter animation; keep master-detail routes on one mount. */
+function animationPageKey(pathname: string): string {
+  return pathname.replace(/\/review\/[^/]+\/?$/, "/review");
+}
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() =>
@@ -106,7 +111,7 @@ function AppShell({ portalType, children }: AppShellProps) {
 
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center gap-3 h-14 px-5 glass-header flex-shrink-0 z-10">
+        <header className="flex items-center gap-3 h-12 px-5 bg-card/95 backdrop-blur-sm border-b border-border flex-shrink-0 z-10">
           {isMobile && (
             <Button
               variant="ghost"
@@ -118,12 +123,11 @@ function AppShell({ portalType, children }: AppShellProps) {
               <Menu size={18} />
             </Button>
           )}
-          <div className="flex-1 min-w-0" />
-          <ThemeToggle />
+          <AppTopBarContext portalType={portalType} />
           <UserMenu portalType={portalType} pendingTicketCount={pendingTicketCount} />
         </header>
 
-        <main id="main-content" className="flex-1 overflow-y-auto workspace-canvas min-h-0">
+        <main id="main-content" className="flex-1 overflow-y-auto workspace-canvas min-h-0 flex flex-col">
           {children}
         </main>
 
@@ -139,7 +143,7 @@ export function PlatformLayout() {
     <div className="flex h-screen overflow-hidden bg-background flex-col">
       <div className="flex flex-1 overflow-hidden min-h-0">
         <AppShell portalType="platform">
-          <div key={pathname} className="animate-page-in h-full">
+          <div key={animationPageKey(pathname)} className="animate-page-in h-full min-h-0 flex flex-col">
             <Outlet />
           </div>
         </AppShell>
@@ -172,8 +176,8 @@ export function TenantLayout() {
         {!isSupportTab && <ConsentDialog />}
         <AppShell portalType="tenant">
           <div
-            key={pathname}
-            className={`animate-page-in h-full ${isSupportTab ? "support-readonly" : ""}`}
+            key={animationPageKey(pathname)}
+            className={`animate-page-in h-full min-h-0 flex flex-col ${isSupportTab ? "support-readonly" : ""}`}
             aria-readonly={isSupportTab || undefined}
           >
             <Outlet />

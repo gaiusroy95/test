@@ -25,52 +25,52 @@ export function AppearanceSettings() {
   };
 
   return (
-    <div className="max-w-[720px] space-y-5">
+    <div className="space-y-4 w-full">
       <section className="surface-elevated overflow-hidden">
-        <div className="px-5 py-3 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
+        <div className="px-4 py-2.5 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Theme</h3>
           <p className="text-[12px] text-muted-foreground mt-0.5">Choose how ESMOS looks on your screen</p>
         </div>
-        <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
           {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
               type="button"
               onClick={() => setTheme(value)}
-              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+              className={`flex flex-col items-center gap-2 p-4 rounded-md border transition-colors ${
                 theme === value
                   ? "border-primary bg-primary/5 text-primary"
                   : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Icon size={22} />
-              <span className="text-[13px] font-semibold">{label}</span>
+              <Icon size={20} />
+              <span className="text-xs font-semibold">{label}</span>
             </button>
           ))}
         </div>
       </section>
 
       <section className="surface-elevated overflow-hidden">
-        <div className="px-5 py-3 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
+        <div className="px-4 py-2.5 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Interface Density</h3>
           <p className="text-[12px] text-muted-foreground mt-0.5">Controls row height and padding across tables, forms, and navigation</p>
         </div>
-        <div className="p-5 space-y-2">
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
           {DENSITY_OPTIONS.map(({ value, label, desc, icon: Icon }) => (
             <button
               key={value}
               type="button"
               onClick={() => setDensity(value)}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
+              className={`flex items-start gap-3 p-3 rounded-md border transition-colors text-left ${
                 density === value
                   ? "border-primary bg-primary/5"
                   : "border-border hover:bg-sunken"
               }`}
             >
-              <Icon size={18} className={density === value ? "text-primary" : "text-muted-foreground"} />
+              <Icon size={18} className={`mt-0.5 shrink-0 ${density === value ? "text-primary" : "text-muted-foreground"}`} />
               <div>
-                <div className="text-[13px] font-semibold text-foreground">{label}</div>
-                <div className="text-[12px] text-muted-foreground">{desc}</div>
+                <div className="text-xs font-semibold text-foreground">{label}</div>
+                <div className="text-[12px] text-muted-foreground mt-0.5">{desc}</div>
               </div>
             </button>
           ))}
@@ -78,12 +78,12 @@ export function AppearanceSettings() {
       </section>
 
       <section className="surface-elevated overflow-hidden">
-        <div className="px-5 py-3 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
+        <div className="px-4 py-2.5 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Table Preferences</h3>
         </div>
-        <div className="px-5 py-4 flex items-center justify-between gap-4">
+        <div className="px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <div className="text-[13px] font-semibold text-foreground">Default rows per page</div>
+            <div className="text-xs font-semibold text-foreground">Default rows per page</div>
             <div className="text-[12px] text-muted-foreground">Applied to list pages across the portal</div>
           </div>
           <div className="flex gap-1">
@@ -92,7 +92,7 @@ export function AppearanceSettings() {
                 key={n}
                 type="button"
                 onClick={() => setTablePageSize(n)}
-                className={`px-3 py-1.5 rounded-md text-[12px] font-semibold border transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors ${
                   tablePageSize === n
                     ? "bg-primary text-white border-primary"
                     : "border-border text-muted-foreground hover:bg-sunken"
@@ -105,7 +105,7 @@ export function AppearanceSettings() {
         </div>
       </section>
 
-      <Button onClick={handleSave} className="bg-primary hover:bg-primaryDk text-white">
+      <Button size="sm" onClick={handleSave}>
         Save Preferences
       </Button>
     </div>

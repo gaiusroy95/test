@@ -5,7 +5,8 @@ import { useAuthStore } from "@/store/auth";
 import { authApi } from "@/api/client";
 import { DEMO_PLATFORM_USER } from "@/lib/demoData";
 import { APP_NAME, APP_TAGLINE, MODULE_ICON_MAP } from "@/lib/constants";
-import { Leaf, LogIn, Eye, EyeOff, AlertCircle, Info, ShieldCheck } from "lucide-react";
+import { BrandLockup } from "@/components/shared/BrandMark";
+import { LogIn, Eye, EyeOff, AlertCircle, Info, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -99,40 +100,30 @@ export default function LoginPage() {
         style={{
           background: `
             linear-gradient(105deg,
-              rgba(6,14,28,0.88) 0%,
-              rgba(10,20,40,0.82) 40%,
-              rgba(8,18,34,0.78) 100%
+              rgba(6,21,18,0.92) 0%,
+              rgba(11,31,26,0.86) 45%,
+              rgba(8,24,20,0.82) 100%
             )
           `,
         }}
       />
-      {/* Fallback gradient if image not found */}
+      {/* Fallback solid if image not found */}
       <div
         className="absolute inset-0 -z-10"
         style={{
-          background: `
-            radial-gradient(ellipse 80% 60% at 10% 45%, rgba(14,165,233,0.18) 0%, transparent 60%),
-            radial-gradient(ellipse 70% 60% at 75% 65%, rgba(20,184,166,0.14) 0%, transparent 55%),
-            radial-gradient(ellipse 50% 45% at 50% 5%,  rgba(14,165,233,0.10) 0%, transparent 50%),
-            linear-gradient(140deg, #05101e 0%, #091828 40%, #0c1d30 70%, #081520 100%)
-          `,
+          background: "linear-gradient(145deg, #061512 0%, #0B1F1A 45%, #0F2922 100%)",
         }}
       />
 
-      {/* Animated subtle grid */}
+      {/* Quiet grid */}
       <div
         className="absolute inset-0 opacity-[0.04] pointer-events-none"
         style={{
-          backgroundImage: `linear-gradient(rgba(148,163,184,1) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(148,163,184,1) 1px, transparent 1px)`,
-          backgroundSize: "64px 64px",
-          animation: "gridMove 25s linear infinite",
+          backgroundImage: `linear-gradient(rgba(94,234,212,0.5) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(94,234,212,0.5) 1px, transparent 1px)`,
+          backgroundSize: "48px 48px",
         }}
       />
-
-      {/* Glow orbs */}
-      <div className="absolute top-[-10%] left-[-5%] w-[45vw] h-[45vw] rounded-full bg-sky-500/8 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-5%] left-[20%] w-[35vw] h-[35vw] rounded-full bg-teal-500/8 blur-[100px] pointer-events-none" />
 
 
       {/* ═══════════════════════════════════════════ */}
@@ -146,43 +137,31 @@ export default function LoginPage() {
         `}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-brand-teal to-brand-accent flex items-center justify-center shadow-lg shadow-brand-accent/25 ring-1 ring-white/10">
-            <Leaf size={22} className="text-white" />
-          </div>
-          <div>
-            <div className="text-[21px] font-bold text-white tracking-tight">{APP_NAME}</div>
-            <div className="text-[9.5px] text-slate-400 tracking-[2.5px] uppercase mt-0.5">{APP_TAGLINE}</div>
-          </div>
-        </div>
+        <BrandLockup inverted tagline="ESG Oversight" />
 
         {/* Hero copy */}
-        <div className="max-w-[500px]">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.08] mb-7">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-teal animate-pulse" />
-            <span className="text-[11px] text-slate-300 font-medium tracking-wide">Built for Indian ESG & BRSR reporting</span>
+        <div className="max-w-[480px]">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-teal-400/10 border border-teal-400/20 mb-6">
+            <span className="text-[11px] text-teal-200 font-semibold tracking-wide">Indian ESG · BRSR-ready</span>
           </div>
 
-          <h2 className="text-[50px] font-bold text-white leading-[1.08] tracking-tight mb-5">
-            ESG Reporting,<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-accent via-sky-300 to-brand-teal">
-              Reimagined.
-            </span>
+          <h2 className="text-[42px] font-extrabold text-white leading-[1.08] tracking-[-0.04em] mb-4">
+            Oversight that<br />
+            <span className="text-teal-300">stands up to audit</span>
           </h2>
 
-          <p className="text-[15px] text-slate-400 leading-relaxed mb-12 max-w-[400px]">
-            Track energy, emissions, water and waste across every site — BRSR-compliant, audit-trail enabled, built for scale.
+          <p className="text-[15px] text-slate-400 leading-relaxed mb-10 max-w-[400px]">
+            Capture energy, emissions, water and waste across every site — with review workflows and a complete audit trail.
           </p>
 
-          {/* Module capability pills */}
-          <div className="flex flex-wrap gap-2.5">
+          {/* Module capability chips */}
+          <div className="flex flex-wrap gap-2">
             {LOGIN_MODULES.map((m) => {
               const Icon = MODULE_ICON_MAP[m.icon_name];
               return (
                 <div
                   key={m.key}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/[0.08]"
-                  style={{ background: m.bg }}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/10 bg-white/[0.04]"
                 >
                   {Icon && <Icon size={13} style={{ color: m.color }} />}
                   <span className="text-[12px] font-semibold text-slate-200">{m.label}</span>
@@ -226,21 +205,13 @@ export default function LoginPage() {
             }}
           >
             {/* Card top accent bar */}
-            <div
-              className="h-[3px] w-full"
-              style={{ background: "linear-gradient(90deg, #0ea5e9, #14b8a6, #0ea5e9)" }}
-            />
+            {/* Quiet top accent */}
+            <div className="h-0.5 w-full bg-teal-400" />
 
             <div className="px-8 py-9">
               {/* Mobile logo */}
-              <div className="flex items-center gap-3 mb-8 lg:hidden">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-teal to-brand-accent flex items-center justify-center">
-                  <Leaf size={18} className="text-white" />
-                </div>
-                <div>
-                  <div className="text-[17px] font-bold text-white">{APP_NAME}</div>
-                  <div className="text-[9px] text-slate-400 tracking-[2px] uppercase">{APP_TAGLINE}</div>
-                </div>
+              <div className="mb-8 lg:hidden">
+                <BrandLockup inverted tagline={APP_TAGLINE} />
               </div>
 
               {/* Heading */}
@@ -286,7 +257,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setForgotOpen(true)}
-                      className="text-[11.5px] text-brand-accent font-semibold hover:text-brand-teal transition-colors"
+                      className="text-[11.5px] text-teal-300 font-semibold hover:text-teal-200 transition-colors"
                     >
                       Forgot password?
                     </button>

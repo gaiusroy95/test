@@ -7,6 +7,7 @@ import { PageShell } from "@/components/shared/PageShell";
 import { LoadingSkeleton, EmptyState } from "@/components/shared/PageComponents";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Plus, FolderTree, Lock, Pencil, ChevronDown, ChevronRight, BarChart3 } from "lucide-react";
 import type { Indicator, KPI } from "@/types";
@@ -116,8 +117,8 @@ export default function IndicatorsPage() {
     { key: "description",           label: "Help Text",        type: "textarea", placeholder: "Explanation shown to the user when filling this indicator" },
     { key: "input_type",            label: "Input Type",       type: "select",   defaultValue: "numeric", options: INPUT_TYPE_OPTIONS },
     { key: "unit",                  label: "Unit of Measure",  placeholder: "e.g., kWh, m³, MT (leave blank for boolean/text)" },
-    { key: "show_when_indicator_id", label: "Show Only When (Optional)", type: "select", options: showWhenOptions },
-    { key: "show_when_equals",      label: "…Equals This Value", placeholder: "Y or N for Yes/No; exact text for text" },
+    { key: "show_when_indicator_id", label: "Depends on", type: "select", options: showWhenOptions, placeholder: "Always show", helpText: "Optional. Show this indicator only when another answer matches." },
+    { key: "show_when_equals",      label: "Equals", placeholder: "e.g. Y or N", helpText: "Value that must match on the selected indicator." },
     { key: "display_order",         label: "Display Order",    type: "number",   defaultValue: 1, placeholder: "1" },
   ];
 
@@ -126,13 +127,13 @@ export default function IndicatorsPage() {
     { key: "description",    label: "Help Text",      type: "textarea", placeholder: "Explanation shown to the user" },
     { key: "input_type",     label: "Input Type",     type: "select",   options: INPUT_TYPE_OPTIONS },
     { key: "unit",           label: "Unit of Measure", placeholder: "e.g., kWh, m³, MT" },
-    { key: "show_when_indicator_id", label: "Show Only When (Optional)", type: "select", options: [
+    { key: "show_when_indicator_id", label: "Depends on", type: "select", options: [
       { value: "__none__", label: "Always show" },
       ...indicators
         .filter((i) => (i.input_type === "boolean" || i.input_type === "text") && i.indicator_id !== editIndicator.indicator_id)
         .map((i) => ({ value: i.indicator_id, label: i.indicator_name })),
-    ] },
-    { key: "show_when_equals", label: "…Equals This Value", placeholder: "Y or N for Yes/No; exact text for text" },
+    ], placeholder: "Always show", helpText: "Optional. Show this indicator only when another answer matches." },
+    { key: "show_when_equals", label: "Equals", placeholder: "e.g. Y or N", helpText: "Value that must match on the selected indicator." },
     { key: "display_order",  label: "Display Order",  type: "number" },
   ] : []) as FormField[];
 
@@ -196,12 +197,11 @@ export default function IndicatorsPage() {
       title="Indicators"
       description="System indicators are read-only. Custom indicators can be added by admins."
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Indicators" }]}
-      className="max-w-[1200px]"
       toolbar={moduleTabs}
       actions={isAdmin ? (
-        <button onClick={() => setCreateOpen(true)} className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-primary text-[12px] font-semibold text-white hover:bg-primaryDk transition-colors">
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Plus size={14} /> Add Custom Indicator
-        </button>
+        </Button>
       ) : undefined}
     >
 

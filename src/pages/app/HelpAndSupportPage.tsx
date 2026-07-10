@@ -124,21 +124,13 @@ export default function HelpAndSupportPage() {
       title="Help & Support"
       description="Open a ticket with the ESMOS support team. Conversations are recorded for your audit log."
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Help & Support" }]}
-      className="max-w-[1400px]"
       actions={
         <>
-          <Button
-            onClick={refreshList}
-            variant="outline"
-            className="text-[13px] h-8 px-3 inline-flex items-center gap-1.5"
-          >
+          <Button size="sm" variant="outline" onClick={refreshList}>
             <RefreshCw size={14} /> Refresh
           </Button>
           {!isReadOnly && (
-            <Button
-              onClick={() => { setSelectedId(null); setComposeOpen(true); }}
-              className="bg-primary hover:bg-primaryDk text-white text-[13px] h-8 px-3 inline-flex items-center gap-1.5"
-            >
+            <Button size="sm" onClick={() => { setSelectedId(null); setComposeOpen(true); }}>
               <Plus size={14} /> New Ticket
             </Button>
           )}

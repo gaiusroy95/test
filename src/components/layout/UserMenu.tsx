@@ -90,10 +90,10 @@ export function UserMenu({ portalType, pendingTicketCount = 0 }: UserMenuProps) 
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-accent border border-transparent hover:border-border/60 transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-sunken border border-transparent hover:border-border/60 transition-all outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label={`Account menu: ${displayName}`}
           >
-            <div className="w-8 h-8 rounded-lg brand-gradient flex items-center justify-center text-white text-label font-bold flex-shrink-0 shadow-primary">
+            <div className="w-8 h-8 rounded-lg bg-muted text-foreground flex items-center justify-center text-label font-bold flex-shrink-0">
               {initials}
             </div>
             <div className="hidden md:block text-left min-w-0 max-w-[160px]">

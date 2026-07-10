@@ -14,6 +14,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetBody, SheetFooter } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import type { Module, Indicator, FinancialYear, SubscriptionPlan, UOM, KPI, ConversionFactor } from "@/types";
 import { formatDate, getApiError } from "@/lib/utils";
 import { getModuleIcon, MODULE_COLOR_PRESETS } from "@/lib/constants";
@@ -647,7 +648,6 @@ export default function SystemConfigPage() {
       title="System Configuration"
       description="Manage platform-wide ESG modules, indicators, catalog KPIs and factors, financial years, and plans."
       breadcrumb={[{ label: "Platform Admin", href: "/platform" }, { label: "System Configuration" }]}
-      className="max-w-[1600px]"
     >
       <PageTabs tabs={tabs} value={tab} onChange={(key) => setTab(key as Tab)} className="mb-4" />
 
@@ -658,7 +658,7 @@ export default function SystemConfigPage() {
             <div className="bg-card rounded-xl border border-border overflow-hidden">
               {isOwner && (
                 <div className="px-5 py-3 border-b border-[hsl(var(--border-hairline))] flex justify-end">
-                  <button onClick={openModuleCreate} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-white text-[12px] font-semibold"><Plus size={14} /> Add Module</button>
+                  <Button size="sm" onClick={openModuleCreate}><Plus size={14} /> Add Module</Button>
                 </div>
               )}
               <table className="w-full text-[13px]">
@@ -721,7 +721,7 @@ export default function SystemConfigPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {isOwner && <button onClick={() => openCreate("indicators")} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold"><Plus size={14} /> Add Indicator</button>}
+                {isOwner && <Button size="sm" onClick={() => openCreate("indicators")}><Plus size={14} /> Add Indicator</Button>}
               </div>
               <div className="bg-card rounded-xl border border-border overflow-hidden">
                 <table className="w-full text-[13px]">
@@ -772,7 +772,7 @@ export default function SystemConfigPage() {
           {tab === "fys" && (
             <div>
               {isOwner && (
-                <div className="mb-4"><button onClick={() => openCreate("fys")} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold"><Plus size={14} /> Add Financial Year</button></div>
+                <div className="mb-4"><Button size="sm" onClick={() => openCreate("fys")}><Plus size={14} /> Add Financial Year</Button></div>
               )}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {fys.map((fy) => (
@@ -797,7 +797,7 @@ export default function SystemConfigPage() {
           {tab === "plans" && (
             <div>
               {isOwner && (
-                <div className="mb-4"><button onClick={() => openCreate("plans")} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold"><Plus size={14} /> Add Plan</button></div>
+                <div className="mb-4"><Button size="sm" onClick={() => openCreate("plans")}><Plus size={14} /> Add Plan</Button></div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {plans.map((p) => (
@@ -837,7 +837,7 @@ export default function SystemConfigPage() {
           {/* Plan Capabilities Dialog */}
           {capPlan && (
             <Sheet open={!!capPlan} onOpenChange={(open) => { if (!open) setCapPlan(null); }}>
-              <SheetContent className="max-w-[720px]">
+              <SheetContent size="wide">
                 <SheetHeader>
                   <SheetTitle>Manage Capabilities</SheetTitle>
                   <p className="text-[12px] text-muted-foreground mt-0.5">
@@ -1031,9 +1031,9 @@ export default function SystemConfigPage() {
                   </SelectContent>
                 </Select>
                 {isOwner && (
-                  <button onClick={handleOpenAddCatalog} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold">
+                  <Button size="sm" onClick={handleOpenAddCatalog}>
                     <Plus size={14} /> Add Catalog KPI
-                  </button>
+                  </Button>
                 )}
                 <span className="text-[11px] text-muted-foreground ml-auto">{filteredCatalogKPIs.length} KPI{filteredCatalogKPIs.length !== 1 ? "s" : ""}</span>
               </div>
@@ -1109,9 +1109,9 @@ export default function SystemConfigPage() {
                   </SelectContent>
                 </Select>
                 {isOwner && (
-                  <button onClick={() => openCreate("uoms")} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold">
+                  <Button size="sm" onClick={() => openCreate("uoms")}>
                     <Plus size={14} /> Add UOM
-                  </button>
+                  </Button>
                 )}
               </div>
               <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -1161,7 +1161,7 @@ export default function SystemConfigPage() {
       )}
 
       <Sheet open={createType === "indicators"} onOpenChange={(open) => { if (!open) setCreateType(null); }}>
-        <SheetContent className="max-w-[720px]">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>Add System Indicator</SheetTitle>
           </SheetHeader>
@@ -1199,7 +1199,7 @@ export default function SystemConfigPage() {
                 </WorkspaceField>
               </FormRow>
               <FormRow cols={2} className="mt-4">
-                <WorkspaceField label="Show Only When">
+                <WorkspaceField label="Depends on" hint="Optional. Show this indicator only when another answer matches.">
                   <Select value={String(indicatorCreateForm.show_when_indicator_id ?? NONE_VALUE)} onValueChange={(value) => setIndicatorCreateForm((prev) => ({ ...prev, show_when_indicator_id: value }))}>
                     <SelectTrigger><SelectValue placeholder="Always show" /></SelectTrigger>
                     <SelectContent>
@@ -1210,8 +1210,8 @@ export default function SystemConfigPage() {
                     </SelectContent>
                   </Select>
                 </WorkspaceField>
-                <WorkspaceField label="Equals This Value">
-                  <input value={indicatorCreateForm.show_when_equals ?? ""} onChange={(e) => setIndicatorCreateForm((prev) => ({ ...prev, show_when_equals: e.target.value }))} placeholder="Y / N or exact text" className="field-input" />
+                <WorkspaceField label="Equals" hint="Value that must match on the selected indicator.">
+                  <input value={indicatorCreateForm.show_when_equals ?? ""} onChange={(e) => setIndicatorCreateForm((prev) => ({ ...prev, show_when_equals: e.target.value }))} placeholder="e.g. Y or N" className="field-input" />
                 </WorkspaceField>
               </FormRow>
               <WorkspaceField label="Display Order" className="mt-4">
@@ -1227,7 +1227,7 @@ export default function SystemConfigPage() {
       </Sheet>
 
       <Sheet open={createType === "fys"} onOpenChange={(open) => { if (!open) setCreateType(null); }}>
-        <SheetContent className="max-w-[560px]">
+        <SheetContent>
           <SheetHeader>
             <SheetTitle>Add Financial Year</SheetTitle>
           </SheetHeader>
@@ -1254,7 +1254,7 @@ export default function SystemConfigPage() {
       </Sheet>
 
       <Sheet open={createType === "plans"} onOpenChange={(open) => { if (!open) setCreateType(null); }}>
-        <SheetContent className="max-w-[620px]">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>Add Plan</SheetTitle>
           </SheetHeader>
@@ -1284,7 +1284,7 @@ export default function SystemConfigPage() {
       </Sheet>
 
       <Sheet open={createType === "uoms"} onOpenChange={(open) => { if (!open) setCreateType(null); }}>
-        <SheetContent className="max-w-[560px]">
+        <SheetContent>
           <SheetHeader>
             <SheetTitle>Add Unit of Measure</SheetTitle>
           </SheetHeader>
@@ -1328,7 +1328,7 @@ export default function SystemConfigPage() {
       {/* ── Add / Edit Module — custom dialog with icon picker + color swatches ── */}
       {moduleDialogOpen && (
         <Sheet open={moduleDialogOpen} onOpenChange={setModuleDialogOpen}>
-          <SheetContent className="max-w-[720px]">
+          <SheetContent size="wide">
             <SheetHeader>
               <SheetTitle>{moduleDialogTarget ? "Edit Module" : "Add Module"}</SheetTitle>
               <p className="text-[12px] text-muted-foreground mt-0.5">
@@ -1429,7 +1429,7 @@ export default function SystemConfigPage() {
 
       {/* Edit Indicator */}
       <Sheet open={!!editIndicatorData} onOpenChange={(open) => { if (!open) setEditIndicatorData(null); }}>
-        <SheetContent className="max-w-[720px]">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>Edit Indicator</SheetTitle>
             {editIndicatorData?.has_data && (
@@ -1496,7 +1496,7 @@ export default function SystemConfigPage() {
             </FormSection>
             <FormSection title="Conditional Visibility" description="Only show this indicator when another answer matches">
               <FormRow cols={2}>
-                <WorkspaceField label="Show Only When">
+                <WorkspaceField label="Depends on" hint="Optional. Show this indicator only when another answer matches.">
                   <Select
                     value={String(indicatorEditForm.show_when_indicator_id ?? NONE_VALUE)}
                     onValueChange={(value) => setIndicatorEditForm((prev) => ({ ...prev, show_when_indicator_id: value }))}
@@ -1512,11 +1512,11 @@ export default function SystemConfigPage() {
                     </SelectContent>
                   </Select>
                 </WorkspaceField>
-                <WorkspaceField label="Equals This Value">
+                <WorkspaceField label="Equals" hint="Value that must match on the selected indicator.">
                   <input
                     value={indicatorEditForm.show_when_equals ?? ""}
                     onChange={(e) => setIndicatorEditForm((prev) => ({ ...prev, show_when_equals: e.target.value }))}
-                    placeholder="Y / N or exact text"
+                    placeholder="e.g. Y or N"
                     className="field-input"
                   />
                 </WorkspaceField>
@@ -1545,7 +1545,7 @@ export default function SystemConfigPage() {
 
       {/* Edit Financial Year */}
       <Sheet open={!!editFYData} onOpenChange={(open) => { if (!open) setEditFYData(null); }}>
-        <SheetContent className="max-w-[560px]">
+        <SheetContent>
           <SheetHeader>
             <SheetTitle>Edit Financial Year</SheetTitle>
             <p className="text-[12px] text-muted-foreground mt-0.5">
@@ -1587,7 +1587,7 @@ export default function SystemConfigPage() {
 
       {/* Edit Catalog KPI */}
       <Sheet open={!!editCatalogKPIData} onOpenChange={(open) => { if (!open) setEditCatalogKPIData(null); }}>
-        <SheetContent className="max-w-[760px]">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>Edit Catalog KPI</SheetTitle>
             <p className="text-[12px] text-muted-foreground mt-0.5">
@@ -1722,7 +1722,7 @@ export default function SystemConfigPage() {
       {/* ── Add Catalog KPI custom dialog ── */}
       {addCatalogOpen && (
         <Sheet open={addCatalogOpen} onOpenChange={setAddCatalogOpen}>
-          <SheetContent className="max-w-[760px]">
+          <SheetContent size="wide">
             <SheetHeader>
               <SheetTitle>Add Catalog KPI</SheetTitle>
               <p className="text-[12px] text-muted-foreground mt-0.5">Add a new KPI to the platform master catalog.</p>
@@ -1879,7 +1879,7 @@ export default function SystemConfigPage() {
       {/* Factor drawer */}
       {factorDrawerKPI && (
         <Sheet open={!!factorDrawerKPI} onOpenChange={(open) => { if (!open) setFactorDrawerKPI(null); }}>
-          <SheetContent className="max-w-[520px]">
+          <SheetContent>
             <SheetHeader>
               <div>
                 <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Catalog Conversion Factors</div>
@@ -1888,9 +1888,9 @@ export default function SystemConfigPage() {
               </div>
             </SheetHeader>
             <div className="px-5 py-3 border-b border-[hsl(var(--border-hairline))] flex justify-end">
-              <button onClick={() => setAddFactorOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-[12px] font-semibold">
+              <Button size="sm" onClick={() => setAddFactorOpen(true)}>
                 <Plus size={14} /> Add Factor
-              </button>
+              </Button>
             </div>
             <SheetBody className="space-y-3">
               {factorDrawerLoading && <div className="text-[12px] text-muted-foreground">Loading…</div>}
@@ -1925,7 +1925,7 @@ export default function SystemConfigPage() {
 
       {/* Add Catalog Factor */}
       <Sheet open={addFactorOpen} onOpenChange={setAddFactorOpen}>
-        <SheetContent className="max-w-[680px]">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>Add Factor — {factorDrawerKPI?.kpi_name ?? ""}</SheetTitle>
           </SheetHeader>
@@ -2020,7 +2020,7 @@ export default function SystemConfigPage() {
 
       {/* Edit Catalog Factor */}
       <Sheet open={!!editCatalogFactorData} onOpenChange={(open) => { if (!open) setEditCatalogFactorData(null); }}>
-        <SheetContent className="max-w-[680px]">
+        <SheetContent size="wide">
           <SheetHeader>
             <SheetTitle>Edit Catalog Factor</SheetTitle>
             <p className="text-[12px] text-muted-foreground mt-0.5">
@@ -2109,7 +2109,7 @@ export default function SystemConfigPage() {
 
       {/* Edit UOM */}
       <Sheet open={!!editUOMData} onOpenChange={(open) => { if (!open) setEditUOMData(null); }}>
-        <SheetContent className="max-w-[560px]">
+        <SheetContent>
           <SheetHeader>
             <SheetTitle>Edit UOM — {editUOMData?.symbol || ""}</SheetTitle>
             <p className="text-[12px] text-muted-foreground mt-0.5">

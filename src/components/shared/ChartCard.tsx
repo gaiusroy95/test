@@ -23,9 +23,9 @@ export function ChartCard({
 }: ChartCardProps) {
   return (
     <div className={cn("surface-elevated overflow-hidden", className)}>
-      <div className="px-4 py-3 border-b border-[hsl(var(--border-hairline))]">
-        <h3 className="text-sm font-bold text-foreground">{title}</h3>
-        {description && <p className="text-label text-muted-foreground mt-0.5">{description}</p>}
+      <div className="px-4 py-2.5 border-b border-[hsl(var(--border-hairline))]">
+        <h3 className="section-title">{title}</h3>
+        {description && <p className="section-desc mt-0.5">{description}</p>}
       </div>
       <div className="p-4" style={{ minHeight: height }}>
         {empty ? (

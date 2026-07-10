@@ -128,11 +128,10 @@ export default function TargetsPage() {
       title="Targets & Goals"
       description="Set reduction / improvement targets and track progress against APPROVED data"
       breadcrumb={[{ label: "Home", href: "/app" }, { label: "Targets" }]}
-      className="max-w-[1600px]"
       toolbar={tabBar}
       actions={isAdmin && tab === "manage" ? (
-        <Button size="sm" variant="outline" onClick={() => { setEditing(null); setShowForm(true); }}>
-          <Plus size={14} className="mr-1" /> Add Target
+        <Button size="sm" onClick={() => { setEditing(null); setShowForm(true); }}>
+          <Plus size={14} /> Add Target
         </Button>
       ) : undefined}
     >

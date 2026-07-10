@@ -14,6 +14,7 @@ import { getModuleIcon } from "@/lib/constants";
 import { getApiError } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Check, Download, Loader2, BookOpen, FlaskConical, Info } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -436,36 +437,20 @@ export default function ESGLibraryPage() {
         )}
       </div>
 
-      {/* ── Sticky Pull Bar (Glassmorphism) ── */}
+      {/* ── Sticky selection bar ── */}
       {selected.size > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom-6 duration-300">
-          <div className="flex items-center gap-4 bg-foreground/95 backdrop-blur-xl border border-white/10 text-white rounded-full shadow-[0_8px_30px_rgba(15,23,42,0.3)] px-6 py-3">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[11px] font-bold text-primary">
-                {selected.size}
-              </div>
-              <span className="text-[13.5px] font-medium text-muted-foreground">
-                indicator{selected.size !== 1 ? "s" : ""} selected
-              </span>
-            </div>
-            
-            <div className="w-px h-4 bg-border mx-1" />
-            
-            <button
-              onClick={() => setSelected(new Set())}
-              disabled={pulling}
-              className="text-[12.5px] font-medium text-muted-foreground hover:text-white transition-colors"
-            >
+        <div className="sticky bottom-0 z-20 -mx-5 mt-4 border-t border-border bg-card px-5 py-2.5 flex items-center gap-3 flex-wrap">
+          <span className="text-ui font-semibold text-foreground">
+            {selected.size} selected
+          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} disabled={pulling}>
               Cancel
-            </button>
-            <button
-              onClick={handlePull}
-              disabled={pulling}
-              className="flex items-center gap-2 bg-gradient-to-r from-primary to-teal hover:brightness-110 text-white text-[13px] font-bold px-5 py-2 rounded-full transition-all disabled:opacity-60 shadow-md shadow-primary/20"
-            >
-              {pulling ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            </Button>
+            <Button size="sm" onClick={handlePull} disabled={pulling}>
+              {pulling ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
               {pulling ? "Pulling…" : "Pull Templates"}
-            </button>
+            </Button>
           </div>
         </div>
       )}

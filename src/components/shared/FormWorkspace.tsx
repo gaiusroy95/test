@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Breadcrumb, type BreadcrumbItem } from "@/components/shared/PageShell";
+import type { BreadcrumbItem } from "@/components/shared/PageShell";
 
 /* ── FormWorkspace — SAP/Salesforce-style dense form layout ── */
 
@@ -15,8 +15,9 @@ export function FormWorkspace({ children, className, fullHeight }: FormWorkspace
   return (
     <div
       className={cn(
-        "flex flex-col w-full animate-page-in",
-        fullHeight ? "h-[calc(100vh-var(--header-height,3.5rem))] min-h-0" : "min-h-0",
+        "flex flex-col w-full min-h-0 animate-page-in",
+        /* Fill the layout main pane — do not use 100vh (double-counts app header/status). */
+        fullHeight ? "h-full" : "",
         className
       )}
     >
@@ -29,26 +30,24 @@ export function FormWorkspace({ children, className, fullHeight }: FormWorkspace
 
 interface FormHeaderProps {
   title: ReactNode;
+  /** @deprecated Not rendered in form chrome. */
   description?: string;
+  /** @deprecated Not rendered in form chrome. */
   breadcrumb?: BreadcrumbItem[];
   status?: ReactNode;
   actions?: ReactNode;
   className?: string;
 }
 
-export function FormHeader({ title, description, breadcrumb, status, actions, className }: FormHeaderProps) {
+export function FormHeader({ title, status, actions, className }: FormHeaderProps) {
   return (
-    <header className={cn("flex-shrink-0 px-5 pt-4 pb-3 border-b border-border bg-card/80 backdrop-blur-sm", className)}>
-      {breadcrumb && breadcrumb.length > 0 && <Breadcrumb items={breadcrumb} className="mb-1" />}
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-lg font-bold text-foreground tracking-tight">{title}</h1>
-            {status}
-          </div>
-          {description && <p className="text-label text-muted-foreground mt-0.5">{description}</p>}
+    <header className={cn("flex-shrink-0 px-5 py-2 border-b border-border bg-card", className)}>
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0 shrink-0">
+          <h1 className="page-title">{title}</h1>
+          {status}
         </div>
-        {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
+        {actions && <div className="flex items-center gap-2 ml-auto shrink-0">{actions}</div>}
       </div>
     </header>
   );
@@ -73,7 +72,7 @@ export function FormContextBar({ items, className, children }: FormContextBarPro
     <div
       className={cn(
         "flex-shrink-0 sticky top-0 z-20 flex items-center gap-3 flex-wrap",
-        "px-5 py-2 border-b border-border bg-sunken/80 backdrop-blur-sm",
+        "px-5 py-1.5 border-b border-border bg-sunken/80 backdrop-blur-sm",
         className
       )}
     >
@@ -102,7 +101,7 @@ interface FormBodyProps {
 export function FormBody({ children, className, sidePanel, sidePanelWidth = "320px" }: FormBodyProps) {
   if (!sidePanel) {
     return (
-      <div className={cn("flex-1 overflow-y-auto min-h-0 px-5 py-4", className)}>
+      <div className={cn("flex-1 flex flex-col overflow-y-auto min-h-0 px-5 py-3", className)}>
         {children}
       </div>
     );
@@ -110,7 +109,7 @@ export function FormBody({ children, className, sidePanel, sidePanelWidth = "320
 
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden">
-      <div className={cn("flex-1 overflow-y-auto min-h-0 px-5 py-4", className)}>
+      <div className={cn("flex-1 flex flex-col overflow-y-auto min-h-0 px-5 py-3", className)}>
         {children}
       </div>
       <aside
@@ -143,12 +142,15 @@ export function FormSection({ title, description, children, className, actions }
         </div>
         {actions}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-4 space-y-4">{children}</div>
     </section>
   );
 }
 
-/* ── FormRow — responsive grid ── */
+/* ── FormRow — responsive grid ──
+ * Prefer cols={1} inside narrow sheets/drawers. Viewport breakpoints (md/xl)
+ * do not know the sheet width, so 2-col rows can crush fields in side panels.
+ */
 
 interface FormRowProps {
   children: ReactNode;

@@ -13,11 +13,11 @@ interface FilterBarProps {
 }
 
 /**
- * FilterBar — horizontal row of filter controls with optional Clear action.
+ * FilterBar — dense horizontal row of filter controls with optional Clear action.
  */
 export function FilterBar({ children, onClear, showClear, className }: FilterBarProps) {
   return (
-    <div className={cn("surface-elevated p-3 flex items-end gap-3 flex-wrap", className)}>
+    <div className={cn("flex items-center gap-2 flex-wrap", className)}>
       {children}
       {showClear && onClear && (
         <Button variant="ghost" size="sm" onClick={onClear} className="text-primary h-8 px-2 ml-auto">
@@ -42,10 +42,12 @@ export function FilterSelect({
   label, value, onChange, options, placeholder = "All", className, minWidth = 140,
 }: FilterSelectProps) {
   return (
-    <div className={cn("flex flex-col gap-1", className)} style={{ minWidth }}>
-      <Label className="text-label font-semibold text-muted-foreground">{label}</Label>
+    <div className={cn("flex items-center gap-1.5 min-w-0", className)} style={{ minWidth }}>
+      <Label className="text-[11px] font-semibold text-muted-foreground whitespace-nowrap shrink-0">
+        {label}
+      </Label>
       <Select value={value || "__all__"} onValueChange={(v) => onChange(v === "__all__" ? "" : v)}>
-        <SelectTrigger className="h-9 text-ui">
+        <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>

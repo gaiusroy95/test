@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Plus, MessageSquare, AlertTriangle, AlertCircle, Info,
   CheckCircle2, Clock, Send, Trash2, Pencil, X as XIcon, Calendar, MapPin, ClipboardCheck,
 } from "lucide-react";
 import { tenantApi } from "@/api/client";
-import { getApiError, formatDate, formatDateTime } from "@/lib/utils";
+import { getApiError, formatDateTime } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Breadcrumb } from "@/components/shared/PageComponents";
+import { PageShell } from "@/components/shared/PageShell";
+import { PageTabs } from "@/components/shared/PageTabs";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuthStore } from "@/store/auth";
 import type {
   AuditorRemark, RemarkSeverity, RemarkStatus, RemarkSummary, SubmissionListItem,
@@ -29,6 +31,13 @@ const STATUS_CFG: Record<RemarkStatus, { label: string; color: string; bg: strin
 
 type StatusFilter = "" | RemarkStatus;
 type SeverityFilter = "" | RemarkSeverity;
+
+const STATUS_TABS = [
+  { key: "", label: "All" },
+  { key: "OPEN", label: "Open" },
+  { key: "RESPONDED", label: "Responded" },
+  { key: "CLOSED", label: "Closed" },
+] as const;
 
 export default function AuditorRemarksPage() {
   const user = useAuthStore((s) => s.user);
@@ -112,72 +121,64 @@ export default function AuditorRemarksPage() {
     }
   };
 
+  const clearDetail = () => {
+    setSelectedId(null);
+    setSelected(null);
+  };
+
   return (
-    <div className="page-root">
-      <Breadcrumb items={[{ label: "Company Portal", href: "/app" }, { label: "Auditor Remarks" }]} />
-
-      {/* Row 1: title + action */}
-      <div className="flex items-start justify-between mb-1">
-        <div>
-          <h1 className="text-[18px] font-bold text-foreground tracking-tight">Auditor Remarks</h1>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {isAuditor
-              ? "Raise observations, findings, and non-conformities on submitted data"
-              : "Observations, findings, and non-conformities raised by the auditor"}
-          </p>
-        </div>
-        {canCreate && (
-          <Button onClick={() => { setEditing(null); setShowCreate(true); }}>
-            <Plus size={15} /> New Remark
+    <PageShell
+      title="Auditor Remarks"
+      description={
+        isAuditor
+          ? "Raise observations, findings, and non-conformities on submitted data"
+          : "Observations, findings, and non-conformities raised by the auditor"
+      }
+      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Auditor Remarks" }]}
+      className="[&_.page-header]:mb-2"
+      actions={
+        canCreate ? (
+          <Button size="sm" onClick={() => { setEditing(null); setShowCreate(true); }}>
+            <Plus size={14} /> New Remark
           </Button>
-        )}
-      </div>
-
-      {/* Row 2: filters */}
-      <div className="flex items-end justify-between border-b border-border mb-4">
-        <div className="flex">
-          <FilterTab
-            active={statusFilter === ""}
-            label="All"
-            count={summary?.total}
-            onClick={() => setStatusFilter("")}
+        ) : undefined
+      }
+      toolbar={
+        <div className="flex items-center justify-between gap-3 border-b border-border">
+          <PageTabs
+            tabs={STATUS_TABS.map((tab) => ({
+              key: tab.key,
+              label: tab.label,
+              count:
+                tab.key === ""
+                  ? summary?.total
+                  : summary?.by_status?.[tab.key as RemarkStatus],
+            }))}
+            value={statusFilter}
+            onChange={(key) => setStatusFilter(key as StatusFilter)}
+            className="border-b-0"
           />
-          <FilterTab
-            active={statusFilter === "OPEN"}
-            label="Open"
-            count={summary?.by_status?.OPEN}
-            onClick={() => setStatusFilter("OPEN")}
-          />
-          <FilterTab
-            active={statusFilter === "RESPONDED"}
-            label="Responded"
-            count={summary?.by_status?.RESPONDED}
-            onClick={() => setStatusFilter("RESPONDED")}
-          />
-          <FilterTab
-            active={statusFilter === "CLOSED"}
-            label="Closed"
-            count={summary?.by_status?.CLOSED}
-            onClick={() => setStatusFilter("CLOSED")}
-          />
-        </div>
-        <div className="pb-2 flex items-center gap-2">
-          <select
-            value={severityFilter}
-            onChange={(e) => setSeverityFilter(e.target.value as SeverityFilter)}
-            className="py-1.5 px-3 text-[13px] border border-border rounded-lg text-foreground outline-none focus:border-primary"
+          <Select
+            value={severityFilter || "all"}
+            onValueChange={(v) => setSeverityFilter(v === "all" ? "" : (v as SeverityFilter))}
           >
-            <option value="">All Severities</option>
-            <option value="OBSERVATION">Observations</option>
-            <option value="FINDING">Findings</option>
-            <option value="NON_CONFORMITY">Non-Conformities</option>
-          </select>
+            <SelectTrigger className="w-[160px] h-8 mb-1.5 shrink-0">
+              <SelectValue placeholder="All Severities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Severities</SelectItem>
+              <SelectItem value="OBSERVATION">Observations</SelectItem>
+              <SelectItem value="FINDING">Findings</SelectItem>
+              <SelectItem value="NON_CONFORMITY">Non-Conformities</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      </div>
+      }
+    >
 
       {/* Summary cards */}
       {summary && (
-        <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-4 gap-2 mb-3">
           <SummaryCard
             label="Total"
             value={summary.total}
@@ -205,16 +206,16 @@ export default function AuditorRemarksPage() {
         </div>
       )}
 
-      {/* Split view */}
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-4">
+      {/* Split view — matching panel chrome on both sides */}
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-stretch">
         {/* List */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="px-4 py-2 border-b border-border bg-sunken/50">
+        <div className="bg-card border border-border rounded-md overflow-hidden flex flex-col min-h-[420px]">
+          <div className="px-4 py-2 border-b border-border bg-sunken/50 flex-shrink-0">
             <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
               {remarks.length} Remark{remarks.length !== 1 ? "s" : ""}
             </span>
           </div>
-          <div className="max-h-[65vh] overflow-y-auto">
+          <div className="flex-1 overflow-y-auto max-h-[60vh]">
             {loading ? (
               <div className="text-center py-12 text-[13px] text-muted-foreground animate-pulse">Loading…</div>
             ) : remarks.length === 0 ? (
@@ -277,26 +278,42 @@ export default function AuditorRemarksPage() {
           </div>
         </div>
 
-        {/* Detail */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {!selectedId ? (
-            <div className="flex flex-col items-center justify-center h-[65vh] text-muted-foreground">
-              <ClipboardCheck size={32} className="mb-3 text-muted-foreground/40" />
-              <p className="text-[13px] font-semibold text-muted-foreground">Select a remark</p>
-              <p className="text-[12px] mt-1">Click any item on the left to view details</p>
-            </div>
-          ) : !selected ? (
-            <div className="text-center py-12 text-[13px] text-muted-foreground animate-pulse">Loading…</div>
-          ) : (
-            <RemarkDetail
-              remark={selected}
-              isAuditor={isAuditor}
-              onEdit={() => { setEditing(selected); setShowCreate(true); }}
-              onDelete={() => handleDelete(selected.remark_id)}
-              onClose={() => handleCloseRemark(selected.remark_id)}
-              onCloseDetail={() => { setSelectedId(null); setSelected(null); }}
-            />
-          )}
+        {/* Detail — same header chrome as list */}
+        <div className="bg-card border border-border rounded-md overflow-hidden flex flex-col min-h-[420px]">
+          <div className="px-4 py-2 border-b border-border bg-sunken/50 flex-shrink-0 flex items-center justify-between gap-2">
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              Detail
+            </span>
+            {selectedId && (
+              <button
+                onClick={clearDetail}
+                title="Close"
+                className="p-1 rounded-md hover:bg-card text-muted-foreground"
+              >
+                <XIcon size={14} />
+              </button>
+            )}
+          </div>
+          <div className="flex-1 overflow-hidden min-h-0">
+            {!selectedId ? (
+              <div className="flex flex-col items-center justify-center h-full min-h-[360px] text-muted-foreground">
+                <ClipboardCheck size={32} className="mb-3 text-muted-foreground/40" />
+                <p className="text-[13px] font-semibold text-muted-foreground">Select a remark</p>
+                <p className="text-[12px] mt-1">Click any item on the left to view details</p>
+              </div>
+            ) : !selected ? (
+              <div className="text-center py-12 text-[13px] text-muted-foreground animate-pulse">Loading…</div>
+            ) : (
+              <RemarkDetail
+                remark={selected}
+                isAuditor={isAuditor}
+                onEdit={() => { setEditing(selected); setShowCreate(true); }}
+                onDelete={() => handleDelete(selected.remark_id)}
+                onClose={() => handleCloseRemark(selected.remark_id)}
+                onCloseDetail={clearDetail}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -314,24 +331,7 @@ export default function AuditorRemarksPage() {
           }}
         />
       )}
-    </div>
-  );
-}
-
-function FilterTab({ active, label, count, onClick }: { active: boolean; label: string; count?: number; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors
-        ${active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground/90 hover:border-border"}`}
-    >
-      {label}
-      {count != null && count > 0 && (
-        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${active ? "bg-primary/10 text-primary" : "bg-sunken text-muted-foreground"}`}>
-          {count}
-        </span>
-      )}
-    </button>
+    </PageShell>
   );
 }
 
@@ -343,13 +343,13 @@ function SummaryCard({ label, value, tone, icon: Icon }: { label: string; value:
     emerald: { bg: "bg-ok-tint", color: "text-ok", border: "border-ok/30" },
   }[tone];
   return (
-    <div className={`rounded-xl border ${toneCfg.border} ${toneCfg.bg} px-4 py-3 flex items-center gap-3`}>
-      <div className={`w-9 h-9 rounded-lg bg-card/70 flex items-center justify-center ${toneCfg.color}`}>
-        <Icon size={16} />
+    <div className={`rounded-md border ${toneCfg.border} ${toneCfg.bg} px-3 py-2 flex items-center gap-2.5`}>
+      <div className={`w-8 h-8 rounded-md bg-card/70 flex items-center justify-center ${toneCfg.color}`}>
+        <Icon size={15} />
       </div>
       <div>
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-        <p className={`text-[20px] font-bold ${toneCfg.color}`}>{value}</p>
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+        <p className={`text-[18px] font-bold leading-tight ${toneCfg.color}`}>{value}</p>
       </div>
     </div>
   );
@@ -357,14 +357,14 @@ function SummaryCard({ label, value, tone, icon: Icon }: { label: string; value:
 
 // ── Remark detail (shared with side panel) ─────────────────────────────────
 function RemarkDetail({
-  remark, isAuditor, onEdit, onDelete, onClose, onCloseDetail,
+  remark, isAuditor, onEdit, onDelete, onClose,
 }: {
   remark: AuditorRemark;
   isAuditor: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onClose: () => void;
-  onCloseDetail: () => void;
+  onCloseDetail?: () => void;
 }) {
   const user = useAuthStore((s) => s.user);
   const isSupport = useIsSupportSession();
@@ -396,8 +396,8 @@ function RemarkDetail({
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[65vh]">
-      <div className="px-5 py-3 border-b border-border flex items-start justify-between gap-3 flex-shrink-0">
+    <div className="flex flex-col h-full max-h-[60vh]">
+      <div className="px-4 py-2.5 border-b border-border flex items-start justify-between gap-3 flex-shrink-0">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${sev.color} ${sev.bg} border ${sev.border}`}>
@@ -427,18 +427,15 @@ function RemarkDetail({
         </div>
         <div className="flex items-center gap-1">
           {canEditOwn && (
-            <button onClick={onEdit} title="Edit" className="p-1.5 rounded-lg hover:bg-sunken text-muted-foreground hover:text-primary">
+            <button onClick={onEdit} title="Edit" className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground hover:text-primary">
               <Pencil size={14} />
             </button>
           )}
           {canEditOwn && (
-            <button onClick={onDelete} title="Delete" className="p-1.5 rounded-lg hover:bg-destructive-tint text-muted-foreground hover:text-destructive">
+            <button onClick={onDelete} title="Delete" className="p-1.5 rounded-md hover:bg-destructive-tint text-muted-foreground hover:text-destructive">
               <Trash2 size={14} />
             </button>
           )}
-          <button onClick={onCloseDetail} title="Close" className="p-1.5 rounded-lg hover:bg-sunken text-muted-foreground">
-            <XIcon size={14} />
-          </button>
         </div>
       </div>
 

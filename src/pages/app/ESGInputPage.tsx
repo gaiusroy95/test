@@ -18,6 +18,9 @@ import { FormWorkspace, FormHeader, FormContextBar, FormBody, FormFooter } from 
 import Scope3InputTab from "@/components/scope3/Scope3InputTab";
 import RichTextEditor from "@/components/shared/RichTextEditor";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 // ── Render type helpers (replace all hardcoded moduleId checks) ─────────
 const isAutoComputed      = (renderType?: string) => renderType === "auto_computed";
@@ -955,25 +958,38 @@ export default function ESGInputPage() {
       >
         <div className="flex items-center gap-2 flex-wrap">
           {isLocationUser && visibleLocations.length === 1 ? null : (
-            <select
-              value={selLocation}
-              onChange={e => setSelLocation(e.target.value)}
-              className="field-input min-w-[160px] h-8 text-ui"
+            <Select
+              value={selLocation || "__none__"}
+              onValueChange={(v) => setSelLocation(v === "__none__" ? "" : v)}
             >
-              <option value="">Select Location</option>
-              {visibleLocations.map((l: Location) => (
-                <option key={l.location_id} value={l.location_id}>{l.location_name}</option>
-              ))}
-            </select>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Location" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Select Location</SelectItem>
+                {visibleLocations.map((l: Location) => (
+                  <SelectItem key={l.location_id} value={l.location_id}>{l.location_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
-          <select
-            value={selYear}
-            onChange={e => { setSelYear(Number(e.target.value) || ""); setSelMonth(""); }}
-            className="field-input w-auto h-8 text-ui"
+          <Select
+            value={selYear ? String(selYear) : "__none__"}
+            onValueChange={(v) => {
+              setSelYear(v === "__none__" ? "" : Number(v));
+              setSelMonth("");
+            }}
           >
-            <option value="">Year</option>
-            {years.map((y: any) => <option key={y.year_id} value={y.year_id}>{y.fy_label}</option>)}
-          </select>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Year</SelectItem>
+              {years.map((y: any) => (
+                <SelectItem key={y.year_id} value={String(y.year_id)}>{y.fy_label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {submission && (
             <span className="text-label text-muted-foreground">
               <span className="font-semibold text-foreground">{filledCount}</span>/{totalKpiCount} filled
@@ -1006,18 +1022,18 @@ export default function ESGInputPage() {
 
       <FormBody className="!px-0">
       {!periodSelected && !loading && (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        <div className="flex flex-col items-center justify-start pt-8 pb-6 text-muted-foreground">
           <div className="text-center">
-            <BarChart3 size={40} className="mx-auto mb-3 text-muted-foreground/40" />
-            <p className="text-[14px] font-semibold text-muted-foreground">Select a period to begin</p>
-            <p className="text-[12px] mt-1">Choose a month from the strip above to load the form</p>
+            <BarChart3 size={32} className="mx-auto mb-2 text-muted-foreground/40" />
+            <p className="text-[13px] font-semibold text-muted-foreground">Select a period to begin</p>
+            <p className="text-[12px] mt-1">Choose a location and month above to load the form</p>
           </div>
         </div>
       )}
 
       {loading && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-[13px] text-muted-foreground animate-pulse">Loading form…</div>
+        <div className="flex flex-col items-center justify-start pt-8 text-[13px] text-muted-foreground animate-pulse">
+          Loading form…
         </div>
       )}
 
@@ -1096,7 +1112,7 @@ export default function ESGInputPage() {
               canEdit={canEdit}
             />
           ) : (
-          <div className="p-5 space-y-4 max-w-[1200px]">
+          <div className="p-4 space-y-3 w-full">
             {visibleModules.map(mod => {
               const Icon = getModuleIcon(mod.icon_name);
               const modIndicators = indicators

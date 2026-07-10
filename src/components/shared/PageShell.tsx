@@ -8,6 +8,7 @@ export interface BreadcrumbItem {
   href?: string;
 }
 
+/** @deprecated Prefer page title only — breadcrumbs are no longer rendered in page chrome. */
 export function Breadcrumb({ items, className }: { items: BreadcrumbItem[]; className?: string }) {
   return (
     <nav className={cn("flex items-center gap-1", className)} aria-label="Breadcrumb">
@@ -40,7 +41,9 @@ export function Breadcrumb({ items, className }: { items: BreadcrumbItem[]; clas
 
 interface PageShellProps {
   title: ReactNode;
+  /** @deprecated Not rendered in page chrome — use empty states / field help instead. */
   description?: string;
+  /** @deprecated Not rendered in page chrome — sidebar provides navigation context. */
   breadcrumb?: BreadcrumbItem[];
   /** Optional icon or control rendered beside the title */
   titleAddon?: ReactNode;
@@ -57,12 +60,10 @@ interface PageShellProps {
 
 /**
  * PageShell — dense enterprise page layout.
- * Breadcrumb (small) + title + inline description on one block; optional toolbar below.
+ * Title + actions (+ optional toolbar). Breadcrumbs/descriptions are ignored for space.
  */
 export function PageShell({
   title,
-  description,
-  breadcrumb,
   titleAddon,
   actions,
   children,
@@ -71,21 +72,21 @@ export function PageShell({
   fullWidth,
   compact,
 }: PageShellProps) {
-  const rootCls = cn(fullWidth ? "px-5 py-4 w-full animate-page-in" : "page-root", className);
+  const rootCls = cn(fullWidth ? "px-5 pt-4 pb-5 w-full animate-page-in" : "page-root", className);
 
   if (compact) {
     return (
       <div className={rootCls}>
         <header className="page-header">
           <div className="dashboard-hero">
-            <div className="pl-3 flex items-center justify-between gap-4 flex-wrap">
-              <h1 className="text-2xl font-extrabold text-foreground tracking-tight">{title}</h1>
+            <div className="pl-3 flex items-center gap-3 flex-wrap">
+              <h1 className="page-title">{title}</h1>
               {actions && (
-                <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">{actions}</div>
+                <div className="flex items-center gap-2 ml-auto shrink-0 flex-wrap">{actions}</div>
               )}
             </div>
           </div>
-          {toolbar && <div className="mt-4">{toolbar}</div>}
+          {toolbar && <div className="mt-2">{toolbar}</div>}
         </header>
         {children}
       </div>
@@ -95,29 +96,16 @@ export function PageShell({
   return (
     <div className={rootCls}>
       <header className="page-header">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="min-w-0 flex-1">
-            {breadcrumb && breadcrumb.length > 0 && (
-              <Breadcrumb items={breadcrumb} className="mb-1" />
-            )}
-            <div className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap min-w-0">
-              <div className="flex items-center gap-1.5 shrink-0">
-                <h1 className="text-xl font-extrabold text-foreground tracking-tight">{title}</h1>
-                {titleAddon}
-              </div>
-              {description && (
-                <>
-                  <span className="text-muted-foreground/40 text-label hidden sm:inline" aria-hidden="true">·</span>
-                  <p className="text-label text-muted-foreground min-w-0">{description}</p>
-                </>
-              )}
-            </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h1 className="page-title">{title}</h1>
+            {titleAddon}
           </div>
           {actions && (
-            <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">{actions}</div>
+            <div className="flex items-center gap-2 ml-auto shrink-0 flex-wrap">{actions}</div>
           )}
         </div>
-        {toolbar && <div className="mt-3">{toolbar}</div>}
+        {toolbar && <div className="mt-2">{toolbar}</div>}
       </header>
       {children}
     </div>
@@ -127,8 +115,6 @@ export function PageShell({
 /** @deprecated Use PageShell — kept for backward compatibility during migration */
 export function PageHeader({
   title,
-  description,
-  breadcrumb,
   children,
 }: {
   title: string;
@@ -138,22 +124,9 @@ export function PageHeader({
 }) {
   return (
     <header className="page-header">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0 flex-1">
-          {breadcrumb && breadcrumb.length > 0 && (
-            <Breadcrumb items={breadcrumb} className="mb-1" />
-          )}
-          <div className="flex items-baseline gap-x-2 gap-y-0.5 flex-wrap min-w-0">
-            <h1 className="text-base font-bold text-foreground tracking-tight">{title}</h1>
-            {description && (
-              <>
-                <span className="text-muted-foreground/40 text-label hidden sm:inline" aria-hidden="true">·</span>
-                <p className="text-label text-muted-foreground">{description}</p>
-              </>
-            )}
-          </div>
-        </div>
-        {children && <div className="flex items-center gap-2 flex-shrink-0">{children}</div>}
+      <div className="flex items-center gap-3 flex-wrap">
+        <h1 className="page-title">{title}</h1>
+        {children && <div className="flex items-center gap-2 ml-auto shrink-0">{children}</div>}
       </div>
     </header>
   );

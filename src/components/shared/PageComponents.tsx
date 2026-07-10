@@ -40,25 +40,16 @@ export function StatCard({
         }
       }}
       className={cn(
-        "group relative overflow-hidden rounded-xl border border-border/70 bg-card p-5 transition-all duration-200",
-        "shadow-surface hover:shadow-elevated",
-        to && "cursor-pointer hover:-translate-y-0.5 hover:border-primary/30"
+        "group relative overflow-hidden rounded-md border border-border bg-card p-3 transition-colors",
+        to && "cursor-pointer hover:bg-sunken/40"
       )}
       onClick={() => to && navigate(to)}
     >
-      {/* Top gradient accent line */}
-      <div
-        className="absolute inset-x-0 top-0 h-[3px] opacity-90"
-        style={{ background: `linear-gradient(90deg, ${accentColor}, ${accentColor}88)` }}
-        aria-hidden="true"
-      />
-
       <div className="flex items-start justify-between gap-3">
         <div
-          className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 duration-200"
-          style={{ background: `linear-gradient(135deg, ${accentColor}22, ${accentColor}10)` }}
+          className="w-9 h-9 rounded-lg flex items-center justify-center bg-sunken"
         >
-          <Icon size={20} style={{ color: accentColor }} aria-hidden="true" />
+          <Icon size={18} style={{ color: accentColor }} aria-hidden="true" />
         </div>
         {change && (
           <span
@@ -76,18 +67,18 @@ export function StatCard({
         )}
         {to && (
           <ArrowUpRight
-            size={16}
-            className="text-muted-foreground/30 group-hover:text-primary transition-colors shrink-0 mt-0.5"
+            size={15}
+            className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0 mt-0.5"
             aria-hidden="true"
           />
         )}
       </div>
 
-      <div className="mt-4">
-        <div className="metric-value text-foreground">{value}</div>
-        <div className="text-sm font-semibold text-foreground/80 mt-1">{label}</div>
+      <div className="mt-2.5">
+        <div className="metric-value">{value}</div>
+        <div className="text-label font-medium text-muted-foreground mt-1.5">{label}</div>
         {subtitle && (
-          <div className="text-label text-muted-foreground mt-0.5 group-hover:text-primary transition-colors">
+          <div className="card-meta mt-0.5">
             {subtitle}
           </div>
         )}
@@ -112,9 +103,9 @@ export function EmptyState({
       <div className="w-14 h-14 rounded-xl bg-accent flex items-center justify-center mb-4 ring-1 ring-primary/10">
         <Icon size={24} className="text-primary" aria-hidden="true" />
       </div>
-      <h3 className="text-base font-bold text-foreground mb-1">{title}</h3>
+      <h3 className="section-title mb-1">{title}</h3>
       {description && (
-        <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">{description}</p>
+        <p className="section-desc max-w-sm leading-relaxed">{description}</p>
       )}
       {children && <div className="mt-5">{children}</div>}
     </div>
