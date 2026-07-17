@@ -186,7 +186,7 @@ export default function SettingsPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   const tabBar = (
-    <div className="flex items-end border-b border-border -mb-px">
+    <div role="tablist" className="config-tabs" aria-label="Settings sections">
       {([
         { key: "config" as Tab,     label: "Company Config",   icon: Settings2 },
         { key: "appearance" as Tab, label: "Appearance",      icon: Palette },
@@ -195,12 +195,11 @@ export default function SettingsPage() {
       ]).map(({ key, label, icon: Icon }) => (
         <button
           key={key}
+          type="button"
+          role="tab"
+          aria-selected={tab === key}
           onClick={() => setTab(key)}
-          className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors ${
-            tab === key
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground/90 hover:border-border"
-          }`}
+          className={`config-tab ${tab === key ? "config-tab-active" : ""}`}
         >
           <Icon size={14} /> {label}
         </button>
@@ -418,28 +417,26 @@ export default function SettingsPage() {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full py-2.5 px-3 rounded-lg border border-border text-[13px] outline-none text-foreground " +
-  "placeholder:text-muted-foreground focus:border-primary transition-colors bg-card";
+  "form-control field-input h-auto min-h-9 py-2.5 px-3 rounded-md border border-border text-[13px] outline-none text-foreground " +
+  "placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors bg-card";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="surface-elevated overflow-hidden">
-      <div className="px-5 py-3 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
+    <section className="form-panel">
+      <div className="form-panel-header">
         <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
       </div>
-      <div className="divide-y divide-border/60">{children}</div>
-    </div>
+      <div className="form-stack">{children}</div>
+    </section>
   );
 }
 
 function Field({ label, description, children }: { label: string; description: string; children: React.ReactNode }) {
   return (
-    <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-[minmax(200px,280px)_1fr] gap-3 sm:gap-8 items-start">
-      <div>
-        <div className="text-[13px] font-semibold text-foreground">{label}</div>
-        <div className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">{description}</div>
-      </div>
-      <div className="min-w-0">{children}</div>
+    <div className="form-field">
+      <div className="field-label">{label}</div>
+      <p className="form-field-desc">{description}</p>
+      {children}
     </div>
   );
 }

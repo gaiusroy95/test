@@ -161,31 +161,31 @@ export function AppearanceSettings() {
         </div>
       </section>
 
-      <section className="surface-elevated overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-[hsl(var(--border-hairline))] bg-sunken/60">
+      <section className="form-panel">
+        <div className="form-panel-header">
           <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Table Preferences</h3>
         </div>
-        <div className="px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <div className="text-xs font-semibold text-foreground">Default rows per page</div>
-            <div className="text-[12px] text-muted-foreground">Applied to list pages across the portal</div>
-          </div>
-          <div className="flex gap-1">
-            {PAGE_SIZE_OPTIONS.map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setTablePageSize(n)}
-                className={cn(
-                  "px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors",
-                  tablePageSize === n
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground hover:bg-sunken",
-                )}
-              >
-                {n}
-              </button>
-            ))}
+        <div className="form-stack">
+          <div className="form-field">
+            <div className="field-label">Default rows per page</div>
+            <p className="form-field-desc">Applied to list pages across the portal</p>
+            <div className="flex gap-1 flex-wrap">
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setTablePageSize(n)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors",
+                    tablePageSize === n
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-border text-muted-foreground hover:bg-sunken",
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>

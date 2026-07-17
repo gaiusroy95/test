@@ -1,46 +1,62 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo, type MouseEvent as ReactMouseEvent } from "react";
 import {
   Plus, MessageSquare, AlertTriangle, AlertCircle, Info,
-  CheckCircle2, Clock, Send, Trash2, Pencil, X as XIcon, Calendar, MapPin, ClipboardCheck,
+  CheckCircle2, Clock, Send, Trash2, Pencil, Calendar, MapPin, ClipboardCheck,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { tenantApi } from "@/api/client";
-import { getApiError, formatDateTime } from "@/lib/utils";
+import { getApiError, formatDateTime, cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/shared/PageShell";
-import { PageTabs } from "@/components/shared/PageTabs";
+import { StatCard } from "@/components/shared/PageComponents";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuthStore } from "@/store/auth";
+import { useModulesStore } from "@/store/modules";
 import type {
   AuditorRemark, RemarkSeverity, RemarkStatus, RemarkSummary, SubmissionListItem,
+  Location, ReportingYear, KPI,
 } from "@/types";
+import {
+  AuditQueuePanel,
+  AuditResizeHandle,
+  ChartMaximizeDialog,
+  InsightsPanel,
+  RecordsTable,
+  StickyWorkspaceTabs,
+  LEFT_PCT_MIN,
+  LEFT_PCT_MAX,
+  type InsightsView,
+  type WorkspaceTab,
+} from "@/components/remarks/AuditorRemarksWorkspace";
 
-const SEVERITY_CFG: Record<RemarkSeverity, { label: string; color: string; bg: string; border: string; icon: typeof Info }> = {
-  OBSERVATION:     { label: "Observation",     color: "text-info",     bg: "bg-info-tint",    border: "border-info/30",    icon: Info },
-  FINDING:         { label: "Finding",         color: "text-warn",   bg: "bg-warn-tint",  border: "border-warn/30",  icon: AlertCircle },
-  NON_CONFORMITY:  { label: "Non-Conformity",  color: "text-destructive",     bg: "bg-destructive-tint",    border: "border-destructive/30",    icon: AlertTriangle },
+const SEVERITY_CFG: Record<RemarkSeverity, { label: string; color: string; bg: string; border: string; rail: string; icon: typeof Info }> = {
+  OBSERVATION:     { label: "Observation",     color: "text-info",        bg: "bg-info-tint",        border: "border-info/30",        rail: "bg-info",        icon: Info },
+  FINDING:         { label: "Finding",         color: "text-warn",        bg: "bg-warn-tint",        border: "border-warn/30",        rail: "bg-warn",        icon: AlertCircle },
+  NON_CONFORMITY:  { label: "Non-Conformity",  color: "text-destructive", bg: "bg-destructive-tint", border: "border-destructive/30", rail: "bg-destructive", icon: AlertTriangle },
 };
 
 const STATUS_CFG: Record<RemarkStatus, { label: string; color: string; bg: string; border: string; icon: typeof Clock }> = {
   OPEN:       { label: "Open",       color: "text-warn",   bg: "bg-warn-tint",    border: "border-warn/30",   icon: Clock },
-  RESPONDED:  { label: "Responded",  color: "text-info",     bg: "bg-info-tint",      border: "border-info/30",     icon: MessageSquare },
-  CLOSED:     { label: "Closed",     color: "text-ok", bg: "bg-ok-tint",  border: "border-ok/30", icon: CheckCircle2 },
+  RESPONDED:  { label: "Responded",  color: "text-info",   bg: "bg-info-tint",    border: "border-info/30",   icon: MessageSquare },
+  CLOSED:     { label: "Closed",     color: "text-ok",     bg: "bg-ok-tint",      border: "border-ok/30",     icon: CheckCircle2 },
 };
 
 type StatusFilter = "" | RemarkStatus;
 type SeverityFilter = "" | RemarkSeverity;
 
-const STATUS_TABS = [
-  { key: "", label: "All" },
-  { key: "OPEN", label: "Open" },
-  { key: "RESPONDED", label: "Responded" },
-  { key: "CLOSED", label: "Closed" },
-] as const;
+const LEFT_PCT_DEFAULT = 38;
+
+const MONTH_ORDER = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
 
 export default function AuditorRemarksPage() {
   const user = useAuthStore((s) => s.user);
+  const modules = useModulesStore((s) => s.modules);
   const isAuditor = user?.role === "AUDITOR";
   const canCreate = isAuditor;
 
@@ -50,6 +66,13 @@ export default function AuditorRemarksPage() {
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>("");
+  const [selLocation, setSelLocation] = useState("");
+  const [selYear, setSelYear] = useState("");
+  const [selModule, setSelModule] = useState("");
+
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [reportingYears, setReportingYears] = useState<ReportingYear[]>([]);
+  const [kpis, setKpis] = useState<KPI[]>([]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<AuditorRemark | null>(null);
@@ -57,7 +80,36 @@ export default function AuditorRemarksPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<AuditorRemark | null>(null);
 
-  const fetchList = async () => {
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("detail");
+  const [insightsView, setInsightsView] = useState<InsightsView>("chart");
+  const [chartMaximized, setChartMaximized] = useState(false);
+
+  const [leftPct, setLeftPct] = useState(LEFT_PCT_DEFAULT);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+
+  useEffect(() => {
+    Promise.allSettled([
+      tenantApi.listLocations({ size: 500 }),
+      tenantApi.listReportingYears(),
+      tenantApi.listKPIs({ size: 500 }),
+    ]).then(([locR, yrR, kpiR]) => {
+      if (locR.status === "fulfilled") {
+        const d = locR.value.data;
+        setLocations(Array.isArray(d) ? d : d?.items || []);
+      }
+      if (yrR.status === "fulfilled") {
+        const d = yrR.value.data;
+        setReportingYears(Array.isArray(d) ? d : d?.items || []);
+      }
+      if (kpiR.status === "fulfilled") {
+        const d = kpiR.value.data;
+        setKpis(Array.isArray(d) ? d : d?.items || []);
+      }
+    });
+  }, []);
+
+  const fetchList = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, unknown> = {};
@@ -74,9 +126,55 @@ export default function AuditorRemarksPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, severityFilter]);
 
-  useEffect(() => { fetchList(); }, [statusFilter, severityFilter]);
+  useEffect(() => { fetchList(); }, [fetchList]);
+
+  const moduleKpiNames = useMemo(() => {
+    if (!selModule) return null;
+    return new Set(kpis.filter((k) => k.module_id === Number(selModule)).map((k) => k.kpi_name));
+  }, [kpis, selModule]);
+
+  const filteredRemarks = useMemo(() => {
+    return remarks.filter((r) => {
+      if (selLocation) {
+        const loc = locations.find((l) => l.location_id === selLocation);
+        if (loc && r.location_name !== loc.location_name) return false;
+      }
+      if (selYear) {
+        const ry = reportingYears.find((y) => String(y.year_id) === selYear);
+        const label = String(ry?.financial_year?.fy_label || selYear);
+        const a = r.fy_label?.match(/\d{4}/)?.[0];
+        const b = label.match(/\d{4}/)?.[0];
+        if (a && b && a !== b) return false;
+        if (r.fy_label && !a && r.fy_label !== label && r.fy_label !== `FY ${label}`) return false;
+      }
+      if (moduleKpiNames && (!r.kpi_name || !moduleKpiNames.has(r.kpi_name))) return false;
+      return true;
+    });
+  }, [remarks, selLocation, selYear, moduleKpiNames, locations, reportingYears]);
+
+  const listForTab = useMemo(() => {
+    if (workspaceTab === "responded") return filteredRemarks.filter((r) => r.status === "RESPONDED");
+    return filteredRemarks;
+  }, [filteredRemarks, workspaceTab]);
+
+  const chartData = useMemo(() => {
+    const byMonth: Record<string, { month: string; Open: number; Findings: number; "Non-Conformities": number; Observations: number }> = {};
+    for (const r of filteredRemarks) {
+      const key = r.month_name || "Unknown";
+      if (!byMonth[key]) byMonth[key] = { month: key, Open: 0, Findings: 0, "Non-Conformities": 0, Observations: 0 };
+      if (r.status === "OPEN") byMonth[key].Open += 1;
+      if (r.severity === "FINDING") byMonth[key].Findings += 1;
+      if (r.severity === "NON_CONFORMITY") byMonth[key]["Non-Conformities"] += 1;
+      if (r.severity === "OBSERVATION") byMonth[key].Observations += 1;
+    }
+    return Object.values(byMonth).sort((a, b) => {
+      const ia = MONTH_ORDER.indexOf(a.month);
+      const ib = MONTH_ORDER.indexOf(b.month);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+  }, [filteredRemarks]);
 
   const loadDetail = async (id: string) => {
     if (selectedId === id) {
@@ -86,6 +184,7 @@ export default function AuditorRemarksPage() {
     }
     setSelectedId(id);
     setSelected(null);
+    setWorkspaceTab("detail");
     try {
       const { data } = await tenantApi.getRemark(id);
       setSelected(data);
@@ -121,10 +220,48 @@ export default function AuditorRemarksPage() {
     }
   };
 
-  const clearDetail = () => {
-    setSelectedId(null);
-    setSelected(null);
+  const onResizeStart = useCallback((e: ReactMouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    const onMove = (ev: MouseEvent) => {
+      if (!draggingRef.current || !workspaceRef.current) return;
+      const rect = workspaceRef.current.getBoundingClientRect();
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+      setLeftPct(Math.min(LEFT_PCT_MAX, Math.max(LEFT_PCT_MIN, pct)));
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
+
+  const exportExcel = () => {
+    const rows = filteredRemarks.map((r) => ({
+      Severity: SEVERITY_CFG[r.severity]?.label || r.severity,
+      Status: STATUS_CFG[r.status]?.label || r.status,
+      Location: r.location_name || "",
+      Period: `${r.month_name || ""} ${r.fy_label || ""}`.trim(),
+      KPI: r.kpi_name || "",
+      Remark: r.remark_text,
+      Auditor: r.auditor_name || "",
+      Responses: r.response_count,
+      Created: r.created_at,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Auditor Remarks");
+    XLSX.writeFile(wb, "auditor-remarks.xlsx");
+    toast.success("Exported to Excel");
   };
+
+  const hasScopeFilters = !!(selLocation || selYear || selModule);
 
   return (
     <PageShell
@@ -144,162 +281,90 @@ export default function AuditorRemarksPage() {
         ) : undefined
       }
       toolbar={
-        <div className="flex items-center justify-between gap-3 border-b border-border">
-          <PageTabs
-            tabs={STATUS_TABS.map((tab) => ({
-              key: tab.key,
-              label: tab.label,
-              count:
-                tab.key === ""
-                  ? summary?.total
-                  : summary?.by_status?.[tab.key as RemarkStatus],
-            }))}
-            value={statusFilter}
-            onChange={(key) => setStatusFilter(key as StatusFilter)}
-            className="border-b-0"
-          />
-          <Select
-            value={severityFilter || "all"}
-            onValueChange={(v) => setSeverityFilter(v === "all" ? "" : (v as SeverityFilter))}
-          >
-            <SelectTrigger className="w-[160px] h-8 mb-1.5 shrink-0">
-              <SelectValue placeholder="All Severities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Severities</SelectItem>
-              <SelectItem value="OBSERVATION">Observations</SelectItem>
-              <SelectItem value="FINDING">Findings</SelectItem>
-              <SelectItem value="NON_CONFORMITY">Non-Conformities</SelectItem>
-            </SelectContent>
-          </Select>
+        <div role="tablist" className="config-tabs" aria-label="Remark status">
+          {([
+            { key: "" as StatusFilter, label: "All", count: summary?.total },
+            { key: "OPEN" as StatusFilter, label: "Open", count: summary?.by_status?.OPEN },
+            { key: "RESPONDED" as StatusFilter, label: "Responded", count: summary?.by_status?.RESPONDED },
+            { key: "CLOSED" as StatusFilter, label: "Closed", count: summary?.by_status?.CLOSED },
+          ]).map((tab) => (
+            <button
+              key={tab.key || "all"}
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={cn("config-tab", statusFilter === tab.key && "config-tab-active")}
+            >
+              {tab.label}
+              {typeof tab.count === "number" && (
+                <span className="text-2xs font-bold px-1.5 py-0.5 rounded-full bg-sunken text-muted-foreground tabular-nums">
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       }
     >
-
-      {/* Summary cards */}
       {summary && (
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          <SummaryCard
-            label="Total"
-            value={summary.total}
-            tone="slate"
-            icon={MessageSquare}
-          />
-          <SummaryCard
-            label="Open"
-            value={summary.open_count}
-            tone="amber"
-            icon={Clock}
-          />
-          <SummaryCard
-            label="Findings"
-            value={summary.by_severity?.FINDING ?? 0}
-            tone="amber"
-            icon={AlertCircle}
-          />
-          <SummaryCard
-            label="Non-Conformities"
-            value={summary.by_severity?.NON_CONFORMITY ?? 0}
-            tone="red"
-            icon={AlertTriangle}
-          />
+        <div className="card-grid mb-3">
+          <StatCard label="Total" value={summary.total} color="muted" icon={MessageSquare} />
+          <StatCard label="Open" value={summary.open_count} color="amber" icon={Clock} />
+          <StatCard label="Findings" value={summary.by_severity?.FINDING ?? 0} color="amber" icon={AlertCircle} />
+          <StatCard label="Non-Conformities" value={summary.by_severity?.NON_CONFORMITY ?? 0} color="amber" icon={AlertTriangle} emphasize={(summary.by_severity?.NON_CONFORMITY ?? 0) > 0} />
         </div>
       )}
 
-      {/* Split view — matching panel chrome on both sides */}
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3 items-stretch">
-        {/* List */}
-        <div className="bg-card border border-border rounded-md overflow-hidden flex flex-col min-h-[420px]">
-          <div className="px-4 py-2 border-b border-border bg-sunken/50 flex-shrink-0">
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-              {remarks.length} Remark{remarks.length !== 1 ? "s" : ""}
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto max-h-[60vh]">
-            {loading ? (
-              <div className="text-center py-12 text-[13px] text-muted-foreground animate-pulse">Loading…</div>
-            ) : remarks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <MessageSquare size={32} className="mb-3 text-muted-foreground/40" />
-                <p className="text-[13px] font-semibold text-muted-foreground">No remarks found</p>
-                <p className="text-[12px] mt-1">
-                  {statusFilter || severityFilter
-                    ? "Try adjusting filters"
-                    : isAuditor
-                      ? "Click 'New Remark' to raise an observation"
-                      : "No remarks have been raised yet"}
-                </p>
-              </div>
-            ) : (
-              remarks.map((r) => {
-                const sev = SEVERITY_CFG[r.severity];
-                const stat = STATUS_CFG[r.status];
-                const SevIcon = sev.icon;
-                const StatIcon = stat.icon;
-                const isSelected = selectedId === r.remark_id;
-                return (
-                  <button
-                    key={r.remark_id}
-                    onClick={() => loadDetail(r.remark_id)}
-                    className={`w-full text-left px-4 py-3 border-b border-[hsl(var(--border-hairline))] hover:bg-sunken transition-colors ${isSelected ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${sev.color} ${sev.bg} border ${sev.border}`}>
-                        <SevIcon size={10} /> {sev.label}
-                      </span>
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${stat.color} ${stat.bg} border ${stat.border}`}>
-                        <StatIcon size={10} /> {stat.label}
-                      </span>
-                    </div>
-                    <p className="text-[12px] text-foreground line-clamp-2 mb-1.5">{r.remark_text}</p>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <MapPin size={10} className="text-muted-foreground" />
-                        {r.location_name || "—"}
-                      </span>
-                      <span className="text-muted-foreground/40">·</span>
-                      <span className="flex items-center gap-1">
-                        <Calendar size={10} className="text-muted-foreground" />
-                        {r.month_name} {r.fy_label}
-                      </span>
-                      {r.response_count > 0 && (
-                        <>
-                          <span className="text-muted-foreground/40">·</span>
-                          <span className="flex items-center gap-1 text-primary font-semibold">
-                            <MessageSquare size={10} /> {r.response_count}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
+      <div
+        ref={workspaceRef}
+        className="flex items-stretch min-h-[520px] h-[min(70vh,720px)] rounded-md border border-border bg-sunken/40 overflow-hidden"
+      >
+        <aside
+          className="flex flex-col min-w-0 min-h-0 bg-card flex-shrink-0"
+          style={{ width: `${leftPct}%` }}
+        >
+          <AuditQueuePanel
+            filteredRemarks={filteredRemarks}
+            loading={loading}
+            selectedId={selectedId}
+            severityFilter={severityFilter || "all"}
+            onSeverityChange={(v) => setSeverityFilter(v === "all" ? "" : (v as SeverityFilter))}
+            selLocation={selLocation}
+            selYear={selYear}
+            selModule={selModule}
+            locations={locations}
+            reportingYears={reportingYears}
+            modules={modules}
+            onLocation={setSelLocation}
+            onYear={setSelYear}
+            onModule={setSelModule}
+            onClearFilters={() => { setSelLocation(""); setSelYear(""); setSelModule(""); }}
+            hasScopeFilters={hasScopeFilters}
+            isAuditor={isAuditor}
+            hasAnyFilters={!!(statusFilter || severityFilter || hasScopeFilters)}
+            onSelectRemark={(id) => { void loadDetail(id); }}
+          />
+        </aside>
 
-        {/* Detail — same header chrome as list */}
-        <div className="bg-card border border-border rounded-md overflow-hidden flex flex-col min-h-[420px]">
-          <div className="px-4 py-2 border-b border-border bg-sunken/50 flex-shrink-0 flex items-center justify-between gap-2">
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
-              Detail
-            </span>
-            {selectedId && (
-              <button
-                onClick={clearDetail}
-                title="Close"
-                className="p-1 rounded-md hover:bg-card text-muted-foreground"
-              >
-                <XIcon size={14} />
-              </button>
-            )}
-          </div>
-          <div className="flex-1 overflow-hidden min-h-0">
-            {!selectedId ? (
-              <div className="flex flex-col items-center justify-center h-full min-h-[360px] text-muted-foreground">
-                <ClipboardCheck size={32} className="mb-3 text-muted-foreground/40" />
-                <p className="text-[13px] font-semibold text-muted-foreground">Select a remark</p>
-                <p className="text-[12px] mt-1">Click any item on the left to view details</p>
+        <AuditResizeHandle
+          leftPct={leftPct}
+          onResizeStart={onResizeStart}
+          onNudge={(delta) => setLeftPct((p) => Math.min(LEFT_PCT_MAX, Math.max(LEFT_PCT_MIN, p + delta)))}
+        />
+
+        <StickyWorkspaceTabs
+          workspaceTab={workspaceTab}
+          onTabChange={setWorkspaceTab}
+          canCreate={canCreate}
+          onAction={() => { setEditing(null); setShowCreate(true); }}
+        >
+          {workspaceTab === "detail" && (
+            !selectedId ? (
+              <div className="flex flex-col items-center justify-center h-full min-h-[360px] text-muted-foreground px-6">
+                <ClipboardCheck size={36} className="mb-3 text-primary/40" />
+                <p className="text-[13px] font-semibold field-label">Select a remark</p>
+                <p className="text-[12px] mt-1 text-center">Click any item on the left to view validation details</p>
               </div>
             ) : !selected ? (
               <div className="text-center py-12 text-[13px] text-muted-foreground animate-pulse">Loading…</div>
@@ -310,12 +375,38 @@ export default function AuditorRemarksPage() {
                 onEdit={() => { setEditing(selected); setShowCreate(true); }}
                 onDelete={() => handleDelete(selected.remark_id)}
                 onClose={() => handleCloseRemark(selected.remark_id)}
-                onCloseDetail={clearDetail}
               />
-            )}
-          </div>
-        </div>
+            )
+          )}
+
+          {workspaceTab === "insights" && (
+            <InsightsPanel
+              chartData={chartData}
+              remarks={filteredRemarks}
+              insightsView={insightsView}
+              onViewChange={setInsightsView}
+              onMaximize={() => setChartMaximized(true)}
+              onExport={exportExcel}
+            />
+          )}
+
+          {(workspaceTab === "responded" || workspaceTab === "all") && (
+            <RecordsTable
+              remarks={listForTab}
+              selectedId={selectedId}
+              onSelect={(id) => { void loadDetail(id); }}
+              onExport={exportExcel}
+            />
+          )}
+        </StickyWorkspaceTabs>
       </div>
+
+      <ChartMaximizeDialog
+        open={chartMaximized}
+        onOpenChange={setChartMaximized}
+        chartData={chartData}
+        onExport={exportExcel}
+      />
 
       {showCreate && (
         <RemarkForm
@@ -326,32 +417,12 @@ export default function AuditorRemarksPage() {
             setEditing(null);
             fetchList();
             if (selectedId) {
-              tenantApi.getRemark(selectedId).then(r => setSelected(r.data)).catch(() => {});
+              tenantApi.getRemark(selectedId).then((r) => setSelected(r.data)).catch(() => {});
             }
           }}
         />
       )}
     </PageShell>
-  );
-}
-
-function SummaryCard({ label, value, tone, icon: Icon }: { label: string; value: number; tone: "slate" | "amber" | "red" | "emerald"; icon: typeof Info }) {
-  const toneCfg = {
-    slate:   { bg: "bg-sunken",   color: "text-muted-foreground",   border: "border-border" },
-    amber:   { bg: "bg-warn-tint",   color: "text-warn",   border: "border-warn/30" },
-    red:     { bg: "bg-destructive-tint",     color: "text-destructive",     border: "border-destructive/30" },
-    emerald: { bg: "bg-ok-tint", color: "text-ok", border: "border-ok/30" },
-  }[tone];
-  return (
-    <div className={`rounded-md border ${toneCfg.border} ${toneCfg.bg} px-3 py-2 flex items-center gap-2.5`}>
-      <div className={`w-8 h-8 rounded-md bg-card/70 flex items-center justify-center ${toneCfg.color}`}>
-        <Icon size={15} />
-      </div>
-      <div>
-        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-        <p className={`text-[18px] font-bold leading-tight ${toneCfg.color}`}>{value}</p>
-      </div>
-    </div>
   );
 }
 

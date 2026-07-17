@@ -12,6 +12,8 @@ import { useVocabulariesStore } from "@/store/vocabularies";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
 import { AppTopBarContext } from "./AppTopBarContext";
+import { NotificationBell } from "./NotificationBell";
+import { IdleSessionGuard } from "./IdleSessionGuard";
 
 const LG_BREAKPOINT = 1024;
 
@@ -77,6 +79,8 @@ function AppShell({ portalType, children }: AppShellProps) {
 
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden w-full">
+      <IdleSessionGuard />
+
       {/* Skip to content */}
       <a href="#main-content" className="skip-to-content">
         Skip to content
@@ -124,6 +128,7 @@ function AppShell({ portalType, children }: AppShellProps) {
             </Button>
           )}
           <AppTopBarContext portalType={portalType} />
+          {portalType === "tenant" && <NotificationBell />}
           <UserMenu portalType={portalType} pendingTicketCount={pendingTicketCount} />
         </header>
 

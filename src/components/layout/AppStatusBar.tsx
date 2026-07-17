@@ -13,8 +13,11 @@ export function AppStatusBar({ portalType }: AppStatusBarProps) {
   const { pathname } = useLocation();
   const user = useAuthStore((s) => s.user);
 
-  const portalLabel = portalType === "platform" ? "Platform Admin" : "Company Portal";
   const companyName = portalType === "tenant" ? user?.company_name : undefined;
+  const contextLabel =
+    portalType === "platform"
+      ? "Platform Admin"
+      : companyName || APP_NAME;
   const pageLabel = getNavPageLabel(pathname, portalType);
   const year = new Date().getFullYear();
 
@@ -25,13 +28,7 @@ export function AppStatusBar({ portalType }: AppStatusBarProps) {
     >
       <div className="flex items-center gap-1.5 min-w-0 flex-1 text-2xs text-muted-foreground">
         <span className="inline-block w-1.5 h-1.5 rounded-full bg-ok shrink-0" aria-hidden="true" />
-        <span className="font-semibold text-foreground/80 shrink-0">{portalLabel}</span>
-        {companyName && (
-          <>
-            <span className="text-border shrink-0" aria-hidden="true">·</span>
-            <span className="truncate">{companyName}</span>
-          </>
-        )}
+        <span className="font-semibold text-foreground/80 truncate">{contextLabel}</span>
       </div>
 
       {pageLabel && (

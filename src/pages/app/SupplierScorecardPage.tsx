@@ -1,19 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Building2, AlertTriangle, Link2, Search, Plus, Pencil,
   TrendingUp, ChevronDown, ChevronRight, Shield, ShieldAlert, ShieldCheck,
-  Package2, X, Gauge, Trash2,
+  Package2, X, Gauge, Trash2, FileSpreadsheet,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line,
-  Legend,
+  Legend, ReferenceLine,
 } from "recharts";
 import { tenantApi } from "@/api/client";
-import { getApiError } from "@/lib/utils";
+import { getApiError, cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/shared/PageShell";
+import { StatCard } from "@/components/shared/PageComponents";
 import { FormDialog } from "@/components/shared/FormDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import {
@@ -45,6 +47,60 @@ const RISK_ICON: Record<string, typeof Shield> = {
 
 type Tab = "scorecard" | "directory";
 type FactorPanelState = { supplier: Supplier } | null;
+type ChartFocus = "all" | "pareto" | "risk";
+
+function exportRows(filename: string, sheet: string, rows: Record<string, unknown>[]) {
+  if (rows.length === 0) {
+    toast.error("No data to export");
+    return;
+  }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheet);
+  XLSX.writeFile(wb, filename);
+  toast.success("Exported to Excel");
+}
+
+function ExcelExportButton({
+  title = "Export Excel",
+  onClick,
+}: {
+  title?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className="p-1.5 rounded-md text-ok hover:bg-ok-tint transition-colors shrink-0"
+    >
+      <FileSpreadsheet size={14} />
+    </button>
+  );
+}
+
+function ChartPanel({
+  title,
+  onExport,
+  children,
+  className,
+}: {
+  title: string;
+  onExport?: () => void;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("summary-panel", className)}>
+      <div className="summary-panel-header">
+        <h3 className="section-title">{title}</h3>
+        {onExport && <ExcelExportButton onClick={onExport} />}
+      </div>
+      <div className="summary-panel-body">{children}</div>
+    </div>
+  );
+}
 
 /* ── Page ──────────────────────────────────────────────────────────────── */
 
@@ -188,6 +244,7 @@ export default function SupplierScorecardPage() {
       title="Supplier Scorecard"
       description="Scope 3 supplier emissions, spend analysis, and risk classification"
       breadcrumb={[{ label: "Home", href: "/app" }, { label: "Supplier Scorecard" }]}
+      className="[&_.page-header]:mb-2"
       actions={
         isAdmin ? (
           <Button size="sm" onClick={() => { setEditingSupplier(null); setShowForm(true); }}>
@@ -195,29 +252,31 @@ export default function SupplierScorecardPage() {
           </Button>
         ) : undefined
       }
-      toolbar={
-        <div className="flex items-end justify-between border-b border-border">
-          <div className="flex">
+    >
+      {/* Sticky quick-jump tabs */}
+      <div className="sticky top-0 z-30 -mx-1 px-1 mb-4 bg-background/95 backdrop-blur-sm border-b border-border pb-2">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div role="tablist" className="config-tabs" aria-label="Supplier views">
             {([
               { key: "scorecard" as Tab, label: "Scorecard", icon: TrendingUp },
               { key: "directory" as Tab, label: "Supplier Directory", icon: Building2 },
             ]).map((t) => (
               <button
                 key={t.key}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.key}
                 onClick={() => { setTab(t.key); setSelectedSupplier(null); setDetail(null); }}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors
-                  ${tab === t.key
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground/90 hover:border-border"}`}
+                className={cn("config-tab", tab === t.key && "config-tab-active")}
               >
                 <t.icon size={14} /> {t.label}
               </button>
             ))}
           </div>
-          <div className="pb-2 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             {tab === "scorecard" && (
               <select
-                className="border border-border rounded-md px-3 py-1.5 text-[13px] text-foreground"
+                className="border border-border rounded-md px-3 py-1.5 text-[13px] text-foreground bg-card h-8"
                 value={reportingYear}
                 onChange={(e) => setReportingYear(Number(e.target.value))}
               >
@@ -230,7 +289,7 @@ export default function SupplierScorecardPage() {
               <div className="relative">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
-                  className="border border-border rounded-md pl-8 pr-3 py-1.5 text-[13px] text-foreground w-52"
+                  className="border border-border rounded-md pl-8 pr-3 py-1.5 text-[13px] text-foreground w-52 h-8 bg-card"
                   placeholder="Search suppliers..."
                   value={searchDir}
                   onChange={(e) => setSearchDir(e.target.value)}
@@ -239,8 +298,7 @@ export default function SupplierScorecardPage() {
             )}
           </div>
         </div>
-      }
-    >
+      </div>
 
       {/* Tab content */}
       {tab === "scorecard" && (
@@ -324,11 +382,13 @@ function ScorecardDashboard({
   onLinkUnlinked: () => void;
   onSelectSupplier: (id: string) => void;
 }) {
+  const [chartFocus, setChartFocus] = useState<ChartFocus>("all");
+
   if (loading) {
     return (
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="card-grid mb-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-lg border border-border bg-card p-4 h-24 animate-pulse" />
+          <div key={i} className="rounded-md border border-border bg-card p-3 h-[96px] animate-pulse" />
         ))}
       </div>
     );
@@ -337,34 +397,81 @@ function ScorecardDashboard({
   if (!summary) return null;
 
   const statCards = [
-    { label: "Total Scope 3 Emissions", value: `${summary.total_emissions.toLocaleString()} tCO\u2082e`, icon: Package2, color: "text-accent-foreground bg-accent" },
-    { label: "Linked Suppliers", value: summary.supplier_count, icon: Building2, color: "text-info bg-info-tint" },
-    { label: "Unlinked Entries", value: summary.unlinked_count, icon: AlertTriangle, color: summary.unlinked_count > 0 ? "text-warn bg-warn-tint" : "text-ok bg-ok-tint" },
-    { label: "Top Supplier Share", value: paretoData.length > 0 ? `${paretoData[0].pct_of_total}%` : "—", icon: TrendingUp, color: "text-accent-foreground bg-accent" },
+    { label: "Total Scope 3 Emissions", value: `${summary.total_emissions.toLocaleString()} tCO\u2082e`, icon: Package2, color: "violet" as const },
+    { label: "Linked Suppliers", value: summary.supplier_count, icon: Building2, color: "sky" as const },
+    { label: "Unlinked Entries", value: summary.unlinked_count, icon: AlertTriangle, color: summary.unlinked_count > 0 ? "amber" as const : "green" as const },
+    { label: "Top Supplier Share", value: paretoData.length > 0 ? `${paretoData[0].pct_of_total}%` : "—", icon: TrendingUp, color: "violet" as const },
   ];
+
+  // Pareto 80% benchmark + emissions average for dashed target lines
+  const emissionsTarget = paretoData.length > 0
+    ? paretoData.reduce((s, r) => s + r.total_emissions, 0) / paretoData.length
+    : 0;
+
+  const exportPareto = () => exportRows(
+    `supplier-pareto-${summary.reporting_year}.xlsx`,
+    "Pareto",
+    paretoData.map((s, i) => ({
+      Rank: i + 1,
+      Supplier: s.supplier_name,
+      "Emissions (tCO2e)": s.total_emissions,
+      "Share %": s.pct_of_total,
+      "Cumulative %": s.cumPct,
+      Risk: s.risk_tier || "",
+    })),
+  );
+
+  const exportRisk = () => {
+    const tiers = ["HIGH", "MEDIUM", "LOW"] as const;
+    const rows = tiers.map((tier) => {
+      const group = summary.top_suppliers.filter((s) => s.risk_tier === tier);
+      return {
+        "Risk Tier": tier,
+        Suppliers: group.length,
+        "Emissions (tCO2e)": group.reduce((a, b) => a + b.total_emissions, 0),
+      };
+    }).filter((r) => r.Suppliers > 0);
+    exportRows(`supplier-risk-${summary.reporting_year}.xlsx`, "Risk", rows);
+  };
+
+  const exportRanking = () => exportRows(
+    `supplier-ranking-${summary.reporting_year}.xlsx`,
+    "Ranking",
+    summary.top_suppliers.map((s, i) => ({
+      Rank: i + 1,
+      Supplier: s.supplier_name,
+      Code: s.supplier_code || "",
+      Sector: s.sector_name || "",
+      Risk: s.risk_tier || "",
+      Critical: s.is_critical ? "Yes" : "No",
+      "Emissions (tCO2e)": s.total_emissions,
+      Spend: s.total_spend,
+      "Share %": s.pct_of_total,
+      Categories: s.category_count,
+    })),
+  );
+
+  const showPareto = chartFocus === "all" || chartFocus === "pareto";
+  const showRisk = chartFocus === "all" || chartFocus === "risk";
 
   return (
     <div>
-      {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        {statCards.map((c, i) => (
-          <div key={i} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-3">
-              <div className={`rounded-lg p-2 ${c.color.split(" ")[1]}`}>
-                <c.icon size={18} className={c.color.split(" ")[0]} />
-              </div>
-              <div>
-                <p className="text-[11px] text-muted-foreground font-medium">{c.label}</p>
-                <p className="text-[18px] font-bold text-foreground">{c.value}</p>
-              </div>
-            </div>
-          </div>
+      {/* Uniform metric card grid */}
+      <div className="card-grid mb-4">
+        {statCards.map((c) => (
+          <StatCard
+            key={c.label}
+            icon={c.icon}
+            label={c.label}
+            value={c.value}
+            color={c.color}
+            className="min-h-[96px]"
+          />
         ))}
       </div>
 
-      {/* Unlinked warning */}
       {summary.unlinked_count > 0 && isAdmin && (
-        <div className="flex items-center gap-3 rounded-lg border border-warn/30 bg-warn-tint px-4 py-3 mb-6">
+        <div className="flex items-center gap-3 rounded-md border border-warn/30 bg-warn-tint px-4 py-3 mb-4">
           <AlertTriangle size={16} className="text-warn flex-shrink-0" />
           <span className="text-[13px] text-amber-800 flex-1">
             {summary.unlinked_count} entries have supplier names but aren't linked to the supplier directory.
@@ -375,45 +482,82 @@ function ScorecardDashboard({
         </div>
       )}
 
-      {/* Charts row */}
       {paretoData.length > 0 ? (
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          {/* Pareto bar chart */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="text-[13px] font-semibold text-foreground mb-3">Top Suppliers by Emissions (Pareto)</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={paretoData} margin={{ top: 5, right: 40, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
-                <YAxis yAxisId="left" tick={{ fontSize: 11 }} label={{ value: "tCO₂e", angle: -90, position: "insideLeft", fontSize: 11 }} />
-                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} domain={[0, 100]} label={{ value: "Cum %", angle: 90, position: "insideRight", fontSize: 11 }} />
-                <Tooltip formatter={(v: number, name: string) => [name === "cumPct" ? `${v}%` : `${v.toLocaleString()} tCO₂e`, name === "cumPct" ? "Cumulative %" : "Emissions"]} />
-                <Bar yAxisId="left" dataKey="total_emissions" radius={[4, 4, 0, 0]}>
-                  {paretoData.map((_, i) => <Cell key={i} fill={PARETO_COLORS[i % PARETO_COLORS.length]} />)}
-                </Bar>
-                <Line yAxisId="right" type="monotone" dataKey="cumPct" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
-              </BarChart>
-            </ResponsiveContainer>
+        <>
+          {/* Focus mode */}
+          <div className="flex items-center justify-end gap-2 mb-3">
+            <label className="text-[12px] font-semibold text-muted-foreground">Show:</label>
+            <select
+              className="h-8 rounded-md border border-border bg-card px-2.5 text-[12px] text-foreground outline-none focus:border-primary"
+              value={chartFocus}
+              onChange={(e) => setChartFocus(e.target.value as ChartFocus)}
+            >
+              <option value="all">All Charts</option>
+              <option value="pareto">Pareto Emissions</option>
+              <option value="risk">Risk Tier</option>
+            </select>
           </div>
 
-          {/* Risk distribution pie */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="text-[13px] font-semibold text-foreground mb-3">Emissions by Risk Tier</h3>
-            <RiskPieChart suppliers={summary.top_suppliers} />
+          <div className={cn("mb-4", chartFocus === "all" ? "card-grid-2" : "grid grid-cols-1")}>
+            {showPareto && (
+              <ChartPanel title="Top Suppliers by Emissions (Pareto)" onExport={exportPareto}>
+                <ResponsiveContainer width="100%" height={chartFocus === "pareto" ? 360 : 280}>
+                  <BarChart data={paretoData} margin={{ top: 8, right: 40, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 11 }} label={{ value: "tCO₂e", angle: -90, position: "insideLeft", fontSize: 11 }} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} domain={[0, 100]} label={{ value: "Cum %", angle: 90, position: "insideRight", fontSize: 11 }} />
+                    <Tooltip formatter={(v: number, name: string) => [name === "cumPct" ? `${v}%` : `${v.toLocaleString()} tCO₂e`, name === "cumPct" ? "Cumulative %" : "Emissions"]} />
+                    {emissionsTarget > 0 && (
+                      <ReferenceLine
+                        yAxisId="left"
+                        y={emissionsTarget}
+                        stroke="hsl(var(--destructive))"
+                        strokeDasharray="6 4"
+                        strokeWidth={1.5}
+                        label={{ value: "Avg target", position: "insideTopRight", fill: "hsl(var(--destructive))", fontSize: 10 }}
+                      />
+                    )}
+                    <ReferenceLine
+                      yAxisId="right"
+                      y={80}
+                      stroke="#f59e0b"
+                      strokeDasharray="6 4"
+                      strokeWidth={1.5}
+                      label={{ value: "80%", position: "insideTopLeft", fill: "#f59e0b", fontSize: 10 }}
+                    />
+                    <Bar yAxisId="left" dataKey="total_emissions" radius={[4, 4, 0, 0]}>
+                      {paretoData.map((_, i) => <Cell key={i} fill={PARETO_COLORS[i % PARETO_COLORS.length]} />)}
+                    </Bar>
+                    <Line yAxisId="right" type="monotone" dataKey="cumPct" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartPanel>
+            )}
+
+            {showRisk && (
+              <ChartPanel title="Emissions by Risk Tier" onExport={exportRisk}>
+                <div className={chartFocus === "risk" ? "min-h-[320px]" : undefined}>
+                  <RiskPieChart suppliers={summary.top_suppliers} />
+                </div>
+              </ChartPanel>
+            )}
           </div>
-        </div>
+        </>
       ) : (
-        <div className="rounded-lg border border-border bg-card p-8 text-center mb-6">
-          <Building2 size={32} className="mx-auto text-muted-foreground/40 mb-2" />
-          <p className="text-[13px] text-muted-foreground">No supplier data for {summary.reporting_year} yet. Add suppliers and link them to Scope 3 entries.</p>
+        <div className="summary-panel mb-4">
+          <div className="summary-panel-body text-center py-8">
+            <Building2 size={32} className="mx-auto text-muted-foreground/40 mb-2" />
+            <p className="text-ui text-muted-foreground">No supplier data for {summary.reporting_year} yet. Add suppliers and link them to Scope 3 entries.</p>
+          </div>
         </div>
       )}
 
-      {/* Supplier table */}
       {summary.top_suppliers.length > 0 && (
-        <div className="rounded-lg border border-border bg-card">
-          <div className="px-4 py-3 border-b border-[hsl(var(--border-hairline))]">
-            <h3 className="text-[13px] font-semibold text-foreground">All Suppliers — Emissions Ranking</h3>
+        <div className="summary-panel">
+          <div className="summary-panel-header">
+            <h3 className="section-title">All Suppliers — Emissions Ranking</h3>
+            <ExcelExportButton onClick={exportRanking} />
           </div>
           <Table>
             <TableHeader>
@@ -446,14 +590,14 @@ function ScorecardDashboard({
                   <TableCell>
                     {s.risk_tier ? <RiskBadge tier={s.risk_tier} /> : <span className="text-muted-foreground">—</span>}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-[13px] text-foreground">{s.total_emissions.toLocaleString()}</TableCell>
-                  <TableCell className="text-right font-mono text-[13px] text-muted-foreground">{s.total_spend > 0 ? `₹${s.total_spend.toLocaleString()}` : "—"}</TableCell>
+                  <TableCell className="text-right font-mono text-[13px] text-foreground tabular-nums">{s.total_emissions.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-mono text-[13px] text-muted-foreground tabular-nums">{s.total_spend > 0 ? `₹${s.total_spend.toLocaleString()}` : "—"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <div className="w-16 h-1.5 bg-sunken rounded-full overflow-hidden">
-                        <div className="h-full bg-accent0 rounded-full" style={{ width: `${Math.min(s.pct_of_total, 100)}%` }} />
+                        <div className="h-full bg-accent rounded-full" style={{ width: `${Math.min(s.pct_of_total, 100)}%` }} />
                       </div>
-                      <span className="text-[12px] text-muted-foreground w-12 text-right">{s.pct_of_total}%</span>
+                      <span className="text-[12px] text-muted-foreground w-12 text-right tabular-nums">{s.pct_of_total}%</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right text-[12px] text-muted-foreground">{s.category_count}</TableCell>
@@ -491,17 +635,39 @@ function SupplierDetailPanel({
     const t = detail.trend.find((tr) => tr.month === i + 1);
     return { month: name, emissions: t?.emissions || 0, spend: t?.spend || 0 };
   });
+  const trendTarget = (() => {
+    const vals = trendData.map((d) => d.emissions).filter((v) => v > 0);
+    if (vals.length === 0) return 0;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  })();
+
+  const exportTrend = () => exportRows(
+    `supplier-trend-${s.supplier_name.replace(/\s+/g, "-")}.xlsx`,
+    "Trend",
+    trendData.map((d) => ({ Month: d.month, "Emissions (tCO2e)": d.emissions, Spend: d.spend })),
+  );
+
+  const exportCategories = () => exportRows(
+    `supplier-categories-${s.supplier_name.replace(/\s+/g, "-")}.xlsx`,
+    "Categories",
+    detail.by_category.map((c) => ({
+      Code: c.category_code,
+      Category: c.category_name,
+      "Emissions (tCO2e)": c.emissions,
+      Spend: c.spend,
+      Entries: c.entry_count,
+    })),
+  );
 
   return (
     <div>
-      {/* Back button + supplier header */}
       <button onClick={onClose} className="flex items-center gap-1 text-[13px] text-muted-foreground hover:text-primary mb-3 transition-colors">
         <ChevronDown size={14} className="rotate-90" /> Back to overview
       </button>
 
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="rounded-lg p-2.5 bg-accent">
+          <div className="rounded-md p-2.5 bg-accent">
             <Building2 size={20} className="text-accent-foreground" />
           </div>
           <div>
@@ -521,39 +687,39 @@ function SupplierDetailPanel({
         </button>
       </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         {[
-          { label: "Total Emissions", value: `${detail.total_emissions.toLocaleString()} tCO₂e`, color: "text-accent-foreground" },
-          { label: "Total Spend", value: detail.total_spend > 0 ? `₹${detail.total_spend.toLocaleString()}` : "—", color: "text-info" },
-          { label: "Data Entries", value: detail.entry_count, color: "text-foreground/90" },
-        ].map((k, i) => (
-          <div key={i} className="rounded-lg border border-border bg-card p-4">
-            <p className="text-[11px] text-muted-foreground font-medium">{k.label}</p>
-            <p className={`text-[18px] font-bold ${k.color}`}>{k.value}</p>
-          </div>
+          { label: "Total Emissions", value: `${detail.total_emissions.toLocaleString()} tCO₂e`, icon: Package2, color: "violet" as const },
+          { label: "Total Spend", value: detail.total_spend > 0 ? `₹${detail.total_spend.toLocaleString()}` : "—", icon: TrendingUp, color: "sky" as const },
+          { label: "Data Entries", value: detail.entry_count, icon: Gauge, color: "muted" as const },
+        ].map((k) => (
+          <StatCard key={k.label} icon={k.icon} label={k.label} value={k.value} color={k.color} className="min-h-[96px]" />
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        {/* Monthly trend */}
-        <div className="rounded-lg border border-border bg-card p-4">
-          <h3 className="text-[13px] font-semibold text-foreground mb-3">Monthly Emissions Trend</h3>
+      <div className="card-grid-2 mb-4">
+        <ChartPanel title="Monthly Emissions Trend" onExport={exportTrend}>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="month" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: number) => [`${v.toLocaleString()} tCO₂e`, "Emissions"]} />
+              {trendTarget > 0 && (
+                <ReferenceLine
+                  y={trendTarget}
+                  stroke="hsl(var(--destructive))"
+                  strokeDasharray="6 4"
+                  strokeWidth={1.5}
+                  label={{ value: "Target", position: "insideTopRight", fill: "hsl(var(--destructive))", fontSize: 10 }}
+                />
+              )}
               <Line type="monotone" dataKey="emissions" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3, fill: "#7c3aed" }} />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </ChartPanel>
 
-        {/* Category breakdown pie */}
-        <div className="rounded-lg border border-border bg-card p-4">
-          <h3 className="text-[13px] font-semibold text-foreground mb-3">Emissions by GHG Category</h3>
+        <ChartPanel title="Emissions by GHG Category" onExport={detail.by_category.length > 0 ? exportCategories : undefined}>
           {detail.by_category.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
@@ -574,14 +740,14 @@ function SupplierDetailPanel({
           ) : (
             <p className="text-[13px] text-muted-foreground text-center py-8">No category data</p>
           )}
-        </div>
+        </ChartPanel>
       </div>
 
-      {/* Category breakdown table */}
       {detail.by_category.length > 0 && (
-        <div className="rounded-lg border border-border bg-card">
-          <div className="px-4 py-3 border-b border-[hsl(var(--border-hairline))]">
-            <h3 className="text-[13px] font-semibold text-foreground">Category Breakdown</h3>
+        <div className="summary-panel">
+          <div className="summary-panel-header">
+            <h3 className="section-title">Category Breakdown</h3>
+            <ExcelExportButton onClick={exportCategories} />
           </div>
           <Table>
             <TableHeader>
@@ -599,8 +765,8 @@ function SupplierDetailPanel({
                     <span className="font-mono text-[11px] text-accent-foreground mr-2">{c.category_code}</span>
                     <span className="text-[13px] text-foreground">{c.category_name}</span>
                   </TableCell>
-                  <TableCell className="text-right font-mono text-[13px]">{c.emissions.toLocaleString()}</TableCell>
-                  <TableCell className="text-right font-mono text-[13px] text-muted-foreground">{c.spend > 0 ? `₹${c.spend.toLocaleString()}` : "—"}</TableCell>
+                  <TableCell className="text-right font-mono text-[13px] tabular-nums">{c.emissions.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-mono text-[13px] text-muted-foreground tabular-nums">{c.spend > 0 ? `₹${c.spend.toLocaleString()}` : "—"}</TableCell>
                   <TableCell className="text-right text-[13px] text-muted-foreground">{c.entry_count}</TableCell>
                 </TableRow>
               ))}
@@ -642,7 +808,27 @@ function DirectoryTab({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className="summary-panel">
+      <div className="summary-panel-header">
+        <h3 className="section-title">Supplier Directory</h3>
+        <ExcelExportButton
+          onClick={() => exportRows(
+            "supplier-directory.xlsx",
+            "Suppliers",
+            suppliers.map((s) => ({
+              Name: s.supplier_name,
+              Code: s.supplier_code || "",
+              GSTIN: s.gstin || "",
+              Sector: s.sector_name || "",
+              Risk: s.risk_tier || "",
+              Critical: s.is_critical ? "Yes" : "No",
+              Contact: s.contact_name || "",
+              Email: s.contact_email || "",
+              Status: s.is_active === false ? "Inactive" : "Active",
+            })),
+          )}
+        />
+      </div>
       <Table>
         <TableHeader>
           <TableRow>

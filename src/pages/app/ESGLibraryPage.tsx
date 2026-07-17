@@ -62,8 +62,16 @@ export default function ESGLibraryPage() {
         tenantApi.browseCatalog(moduleId),
         tenantApi.listPulledCatalog(),
       ]);
-      setIndicators(Array.isArray(catRes.data) ? catRes.data : []);
-      setPulled(pulledRes.data ?? { indicator_ids: [], kpi_ids: [] });
+      setIndicators(
+        (Array.isArray(catRes.data) ? catRes.data : []).map((ind: CatalogIndicatorNode) => ({
+          ...ind,
+          kpis: Array.isArray(ind.kpis) ? ind.kpis : [],
+        })),
+      );
+      setPulled({
+        indicator_ids: Array.isArray(pulledRes.data?.indicator_ids) ? pulledRes.data.indicator_ids : [],
+        kpi_ids: Array.isArray(pulledRes.data?.kpi_ids) ? pulledRes.data.kpi_ids : [],
+      });
     } catch (err: any) {
       toast.error(getApiError(err, "Failed to load catalog"));
       setIndicators([]);
@@ -338,7 +346,7 @@ export default function ESGLibraryPage() {
                     const isPulled    = pulledIndIds.has(ind.indicator_id);
                     const isExpanded  = expanded.has(ind.indicator_id);
                     const isSelected  = selected.has(ind.indicator_id);
-                    const factorTotal = ind.kpis.reduce((s, k) => s + k.factor_count, 0);
+                    const factorTotal = (ind.kpis ?? []).reduce((s, k) => s + (k.factor_count ?? 0), 0);
                     
                     return (
                       <div
@@ -377,7 +385,7 @@ export default function ESGLibraryPage() {
 
                             <div className="flex items-center gap-1.5 pl-7 sm:pl-0 shrink-0">
                               <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-sm bg-sunken text-muted-foreground border border-border">
-                                {ind.kpis.length} KPI{ind.kpis.length !== 1 ? "s" : ""}
+                                {(ind.kpis ?? []).length} KPI{(ind.kpis ?? []).length !== 1 ? "s" : ""}
                               </span>
                               <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-sm bg-sunken text-muted-foreground border border-border">
                                 {factorTotal} Factor{factorTotal !== 1 ? "s" : ""}
@@ -393,7 +401,7 @@ export default function ESGLibraryPage() {
 
                         {isExpanded && (
                           <div className="border-t border-[hsl(var(--border-hairline))] bg-sunken/50 p-2 rounded-b-sm">
-                            {ind.kpis.length === 0 ? (
+                            {(ind.kpis ?? []).length === 0 ? (
                               <p className="text-[12px] text-muted-foreground italic">No KPIs found under this indicator.</p>
                             ) : (
                               <div className="bg-card border border-border rounded-sm overflow-hidden">
@@ -407,8 +415,8 @@ export default function ESGLibraryPage() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {ind.kpis.map((k, idx) => (
-                                      <tr key={k.kpi_id} className={idx !== ind.kpis.length - 1 ? "border-b border-[hsl(var(--border-hairline))]" : ""}>
+                                    {(ind.kpis ?? []).map((k, idx) => (
+                                      <tr key={k.kpi_id} className={idx !== (ind.kpis ?? []).length - 1 ? "border-b border-[hsl(var(--border-hairline))]" : ""}>
                                         <td className="px-3 py-1.5 font-medium text-foreground">{k.kpi_name}</td>
                                         <td className="px-3 py-1.5 text-muted-foreground font-mono text-label">{k.unit || "—"}</td>
                                         <td className="px-3 py-1.5">

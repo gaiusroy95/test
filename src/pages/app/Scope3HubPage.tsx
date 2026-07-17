@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { PageShell } from "@/components/shared/PageShell";
+import { StatCard } from "@/components/shared/PageComponents";
 import { PageTabs } from "@/components/shared/PageTabs";
 import { FormDialog } from "@/components/shared/FormDialog";
 import { FormField as WorkspaceField } from "@/components/shared/FormField";
@@ -595,20 +596,21 @@ function OverviewTab({ stats, chartData, recentBatches, loading, reportingYear, 
   return (
     <>
       {/* KPI cards */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <StatCard label="Total Scope 3" value={stats ? `${stats.total_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={<Globe size={16} className="text-accent-foreground" />} loading={loading} color="violet" />
-        <StatCard label="Upstream" value={stats ? `${stats.upstream_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={<TrendingUp size={16} className="text-warn" />} loading={loading} color="amber" sub="C01–C08" />
-        <StatCard label="Downstream" value={stats ? `${stats.downstream_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={<TrendingDown size={16} className="text-info" />} loading={loading} color="sky" sub="C09–C15" />
-        <StatCard label="Approved Batches" value={stats ? String(stats.approved_batch_count) : "—"} icon={<CheckCircle2 size={16} className="text-green-600" />} loading={loading} color="green" sub={stats ? `${stats.pending_batch_count} pending` : undefined} />
+      <div className="card-grid mb-4">
+        <StatCard label="Total Scope 3" value={stats ? `${stats.total_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={Globe} loading={loading} color="violet" />
+        <StatCard label="Upstream" value={stats ? `${stats.upstream_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={TrendingUp} loading={loading} color="amber" sub="C01–C08" />
+        <StatCard label="Downstream" value={stats ? `${stats.downstream_emissions.toLocaleString("en-IN", { maximumFractionDigits: 2 })} tCO₂e` : "—"} icon={TrendingDown} loading={loading} color="sky" sub="C09–C15" />
+        <StatCard label="Approved Batches" value={stats ? String(stats.approved_batch_count) : "—"} icon={CheckCircle2} loading={loading} color="green" sub={stats ? `${stats.pending_batch_count} pending` : undefined} />
       </div>
 
-      <div className="grid grid-cols-[1fr_380px] gap-4">
+      <div className="card-grid-2">
         {/* Chart */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-semibold text-foreground">Emissions by Category</h2>
-            <span className="text-[11px] text-muted-foreground">APPROVED batches · tCO₂e</span>
+        <div className="summary-panel">
+          <div className="summary-panel-header">
+            <h2 className="section-title">Emissions by Category</h2>
+            <span className="card-meta">APPROVED batches · tCO₂e</span>
           </div>
+          <div className="summary-panel-body">
           {loading ? (
             <div className="h-48 flex items-center justify-center text-[13px] text-muted-foreground">Loading…</div>
           ) : chartData.length === 0 ? (
@@ -633,16 +635,18 @@ function OverviewTab({ stats, chartData, recentBatches, loading, reportingYear, 
               </BarChart>
             </ResponsiveContainer>
           )}
+          </div>
         </div>
 
         {/* Recent batches */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-semibold text-foreground">Recent Batches</h2>
+        <div className="summary-panel">
+          <div className="summary-panel-header">
+            <h2 className="section-title">Recent Batches</h2>
             <button onClick={() => navigate("/app/scope3/data")} className="text-[11px] text-primary hover:underline flex items-center gap-0.5">
               View all <ChevronRight size={12} />
             </button>
           </div>
+          <div className="summary-panel-body">
           {loading ? (
             <div className="text-[13px] text-muted-foreground text-center py-8">Loading…</div>
           ) : recentBatches.length === 0 ? (
@@ -663,6 +667,7 @@ function OverviewTab({ stats, chartData, recentBatches, loading, reportingYear, 
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
     </>
@@ -1265,27 +1270,6 @@ function AssignmentsTab({ assignments, isAdmin, onCreateOpen, onDelete }: {
           </table>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════ */
-/* Shared: StatCard                                                       */
-/* ═══════════════════════════════════════════════════════════════════════ */
-
-function StatCard({ label, value, icon, loading, color, sub }: {
-  label: string; value: string; icon: React.ReactNode; loading: boolean;
-  color: "violet" | "amber" | "sky" | "green"; sub?: string;
-}) {
-  const bgMap = { violet: "bg-accent", amber: "bg-warn-tint", sky: "bg-info-tint", green: "bg-green-50" };
-  return (
-    <div className="bg-card border border-border rounded-lg p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{label}</span>
-        <div className={`w-7 h-7 rounded-md ${bgMap[color]} flex items-center justify-center`}>{icon}</div>
-      </div>
-      {loading ? <div className="h-6 w-24 bg-sunken animate-pulse rounded" /> : <div className="text-[18px] font-bold text-foreground">{value}</div>}
-      {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
     </div>
   );
 }

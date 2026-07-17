@@ -28,7 +28,7 @@ export function FormField({
   const childId = id || (React.isValidElement(children) ? (children.props as { id?: string }).id : undefined);
 
   return (
-    <div className={cn("flex flex-col gap-1.5 min-w-0", className)}>
+    <div className={cn("form-field", className)}>
       {label && (
         <Label htmlFor={childId}>
           {label}
@@ -36,17 +36,19 @@ export function FormField({
         </Label>
       )}
       {hint && !error && (
-        <p id={childId ? `${childId}-hint` : undefined} className="text-label text-muted-foreground -mt-0.5 mb-0.5 leading-relaxed">
+        <p id={childId ? `${childId}-hint` : undefined} className="form-field-desc -mt-0.5">
           {hint}
         </p>
       )}
-      {React.isValidElement(children)
-        ? React.cloneElement(children as React.ReactElement, {
-            id: childId,
-            "aria-invalid": error ? true : undefined,
-            "aria-describedby": error ? `${childId}-error` : hint ? `${childId}-hint` : undefined,
-          })
-        : children}
+      <div className="form-control">
+        {React.isValidElement(children)
+          ? React.cloneElement(children as React.ReactElement, {
+              id: childId,
+              "aria-invalid": error ? true : undefined,
+              "aria-describedby": error ? `${childId}-error` : hint ? `${childId}-hint` : undefined,
+            })
+          : children}
+      </div>
       {error && (
         <p id={childId ? `${childId}-error` : undefined} className="text-label text-destructive font-medium" role="alert">
           {error}

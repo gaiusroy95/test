@@ -840,9 +840,9 @@ export default function SystemConfigPage() {
               <SheetContent size="wide">
                 <SheetHeader>
                   <SheetTitle>Manage Capabilities</SheetTitle>
-                  <p className="text-[12px] text-muted-foreground mt-0.5">
+                    <p className="text-[12px] text-muted-foreground mt-0.5">
                     {capPlan.plan_name} — choose which modules, features, and limits are included.
-                  </p>
+                    </p>
                 </SheetHeader>
 
                 <SheetBody>
@@ -1759,8 +1759,8 @@ export default function SystemConfigPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">Select Indicator (optional)...</SelectItem>
-                    {indicators
-                      .filter((i) => i.is_system && (!catKpiForm.module_id || i.module_id === catKpiForm.module_id))
+                  {indicators
+                    .filter((i) => i.is_system && (!catKpiForm.module_id || i.module_id === catKpiForm.module_id))
                       .map((i) => (
                         <SelectItem key={i.indicator_id} value={String(i.indicator_id)}>{i.indicator_name}</SelectItem>
                       ))}
@@ -1797,9 +1797,9 @@ export default function SystemConfigPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">— Select unit —</SelectItem>
-                      {uoms.filter((u) => u.category !== "emission").map((u) => (
+                    {uoms.filter((u) => u.category !== "emission").map((u) => (
                         <SelectItem key={u.uom_id} value={u.symbol}>{u.symbol} — {u.display_name}</SelectItem>
-                      ))}
+                    ))}
                     </SelectContent>
                   </Select>
                   <p className="text-[11px] text-muted-foreground mt-1">Unit in which this KPI is measured</p>
@@ -2144,7 +2144,7 @@ export default function SystemConfigPage() {
                   onCheckedChange={(value) => setUomEditForm((prev) => ({ ...prev, is_active: value }))}
                 />
                 <span className="text-[13px] text-muted-foreground">{uomEditForm.is_active ? "Active" : "Inactive"}</span>
-              </div>
+    </div>
             </FormSection>
           </SheetBody>
           <SheetFooter>

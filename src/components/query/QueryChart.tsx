@@ -1,3 +1,6 @@
+import * as XLSX from "xlsx";
+import { FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line,
@@ -30,110 +33,146 @@ export default function QueryChart({ chart }: Props) {
 
   const tooltipFormatter = (v: number) => [`${fmtVal(v)}${unitSuffix}`, "Value"] as [string, string];
 
-  if (type === "line") {
-    return (
-      <div className="mt-4 h-48 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={rechartData} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-            <YAxis tickFormatter={tickFmt} tick={{ fontSize: 10 }} width={46} />
-            <Tooltip formatter={tooltipFormatter} />
-            <Line type="monotone" dataKey="value" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3, fill: "#0ea5e9" }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  if (type === "bar") {
-    return (
-      <div className="mt-4 h-48 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rechartData} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-            <YAxis tickFormatter={tickFmt} tick={{ fontSize: 10 }} width={46} />
-            <Tooltip formatter={tooltipFormatter} />
-            <Bar dataKey="value" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  if (type === "bar_h") {
-    return (
-      <div className="mt-4 h-48 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rechartData} layout="vertical" margin={{ top: 4, right: 20, bottom: 4, left: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-            <XAxis type="number" tickFormatter={tickFmt} tick={{ fontSize: 10 }} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
-            <Tooltip formatter={tooltipFormatter} />
-            <Bar dataKey="value" fill="#14b8a6" radius={[0, 3, 3, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  // Pie / donut
-  const RADIAN = Math.PI / 180;
-  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
-    if (percent < 0.05) return null; // skip tiny slices
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-    return (
-      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={600}>
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
+  const exportExcel = () => {
+    if (data.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+    const rows = data.map((d) => ({
+      Label: d.label,
+      Value: d.value,
+      ...(unit ? { Unit: unit } : {}),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Chart Data");
+    XLSX.writeFile(wb, "ask-esmos-chart.xlsx");
+    toast.success("Exported to Excel");
   };
 
-  return (
-    <div className="mt-4 h-52 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={rechartData}
-            dataKey="value"
-            nameKey="name"
-            cx="40%"
-            cy="50%"
-            innerRadius={50}
-            outerRadius={80}
-            paddingAngle={2}
-            labelLine={false}
-            label={renderLabel}
-          >
-            {rechartData.map((_, i) => (
-              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+  const chartBody = (() => {
+    if (type === "line") {
+      return (
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rechartData} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tickFormatter={tickFmt} tick={{ fontSize: 10 }} width={46} />
+              <Tooltip formatter={tooltipFormatter} />
+              <Line type="monotone" dataKey="value" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3, fill: "#0ea5e9" }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      );
+    }
+
+    if (type === "bar") {
+      return (
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rechartData} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tickFormatter={tickFmt} tick={{ fontSize: 10 }} width={46} />
+              <Tooltip formatter={tooltipFormatter} />
+              <Bar dataKey="value" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      );
+    }
+
+    if (type === "bar_h") {
+      return (
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rechartData} layout="vertical" margin={{ top: 4, right: 20, bottom: 4, left: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+              <XAxis type="number" tickFormatter={tickFmt} tick={{ fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
+              <Tooltip formatter={tooltipFormatter} />
+              <Bar dataKey="value" fill="#14b8a6" radius={[0, 3, 3, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      );
+    }
+
+    const RADIAN = Math.PI / 180;
+    const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+      if (percent < 0.05) return null;
+      const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+      return (
+        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight={600}>
+          {`${(percent * 100).toFixed(0)}%`}
+        </text>
+      );
+    };
+
+    return (
+      <div className="h-52 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={rechartData}
+              dataKey="value"
+              nameKey="name"
+              cx="40%"
+              cy="50%"
+              innerRadius={50}
+              outerRadius={80}
+              paddingAngle={2}
+              labelLine={false}
+              label={renderLabel}
+            >
+              {rechartData.map((_, i) => (
+                <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(v: number) => [`${fmtVal(v)}${unitSuffix}`]} />
+            <text x="82%" y="30%" textAnchor="middle" fontSize={10} fill="#64748b" fontWeight={600}>
+              Legend
+            </text>
+            {rechartData.map((d, i) => (
+              <g key={i}>
+                <rect
+                  x="79%"
+                  y={`${35 + i * 14}%`}
+                  width={8}
+                  height={8}
+                  fill={PIE_COLORS[i % PIE_COLORS.length]}
+                  rx={2}
+                />
+                <text x="83%" y={`${36 + i * 14}%`} fontSize={9.5} fill="#475569" dominantBaseline="middle">
+                  {d.name.length > 14 ? d.name.slice(0, 13) + "…" : d.name}
+                </text>
+              </g>
             ))}
-          </Pie>
-          <Tooltip formatter={(v: number) => [`${fmtVal(v)}${unitSuffix}`]} />
-          {/* Legend to the right */}
-          <text x="82%" y="30%" textAnchor="middle" fontSize={10} fill="#64748b" fontWeight={600}>
-            Legend
-          </text>
-          {rechartData.map((d, i) => (
-            <g key={i}>
-              <rect
-                x="79%"
-                y={`${35 + i * 14}%`}
-                width={8}
-                height={8}
-                fill={PIE_COLORS[i % PIE_COLORS.length]}
-                rx={2}
-              />
-              <text x="83%" y={`${36 + i * 14}%`} fontSize={9.5} fill="#475569" dominantBaseline="middle">
-                {d.name.length > 14 ? d.name.slice(0, 13) + "…" : d.name}
-              </text>
-            </g>
-          ))}
-        </PieChart>
-      </ResponsiveContainer>
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  })();
+
+  return (
+    <div className="mt-3 rounded-md border border-border overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-sunken border-b border-border">
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+          Chart
+        </span>
+        <button
+          type="button"
+          title="Export Excel"
+          onClick={exportExcel}
+          className="p-1 rounded-md text-ok hover:bg-ok-tint transition-colors"
+        >
+          <FileSpreadsheet size={14} />
+        </button>
+      </div>
+      <div className="p-2 bg-card">{chartBody}</div>
     </div>
   );
 }

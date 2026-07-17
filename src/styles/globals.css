@@ -262,6 +262,27 @@
     @apply text-label text-muted-foreground;
   }
 
+  /* Strict symmetrical card grids — 4 desktop / 2 tablet / 1 mobile */
+  .card-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3;
+  }
+
+  .card-grid-2 {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-3;
+  }
+
+  .summary-panel {
+    @apply rounded-md border border-border bg-card overflow-hidden;
+  }
+
+  .summary-panel-header {
+    @apply px-4 py-3 border-b border-border flex items-center justify-between gap-2;
+  }
+
+  .summary-panel-body {
+    @apply p-4;
+  }
+
   /* Workspace canvas — soft atmospheric wash (palette-aware) */
   .workspace-canvas {
     background:
@@ -374,7 +395,7 @@
   }
 
   .field-input {
-    @apply w-full h-9 px-3 rounded-md border border-input bg-card text-ui text-foreground
+    @apply w-full max-w-[560px] h-9 px-3 rounded-md border border-input bg-card text-ui text-foreground
            shadow-surface outline-none transition-colors
            placeholder:text-placeholder
            focus:border-primary focus:ring-2 focus:ring-primary/20
@@ -382,7 +403,53 @@
   }
 
   .field-label {
-    @apply text-ui font-semibold text-foreground;
+    @apply text-ui font-semibold;
+    color: #1A1D20;
+  }
+
+  html.dark .field-label {
+    color: hsl(var(--foreground));
+  }
+
+  /* Continuous vertical form flow — single column, constrained controls */
+  .form-panel {
+    @apply rounded-md border border-border bg-card overflow-hidden;
+  }
+
+  .form-panel-header {
+    @apply px-5 py-3 border-b border-[hsl(var(--border-hairline))] bg-sunken/60;
+  }
+
+  .form-stack {
+    @apply flex flex-col gap-5 p-5;
+  }
+
+  .form-field {
+    @apply flex flex-col gap-1.5 min-w-0 max-w-[560px];
+  }
+
+  .form-field-desc {
+    @apply text-[12px] text-muted-foreground leading-relaxed;
+  }
+
+  .form-control {
+    @apply w-full max-w-[560px];
+  }
+
+  /* Elevated sub-nav pills (Settings and similar config pages) */
+  .config-tabs {
+    @apply flex flex-wrap items-center gap-1.5 p-1 rounded-lg bg-sunken w-fit max-w-full;
+  }
+
+  .config-tab {
+    @apply flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-semibold whitespace-nowrap
+           text-muted-foreground transition-colors
+           hover:text-foreground hover:bg-card/70;
+  }
+
+  .config-tab[aria-selected="true"],
+  .config-tab-active {
+    @apply bg-card text-foreground shadow-sm ring-1 ring-border;
   }
 
   .section-title {

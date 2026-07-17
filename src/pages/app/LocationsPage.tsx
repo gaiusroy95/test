@@ -292,6 +292,17 @@ export default function LocationsPage() {
 
   const isSupport = useIsSupportSession();
   const isAdmin = user?.role === "COMPANY_ADMIN" && !isSupport;
+  const hasDisplayValue = (value: unknown) => {
+    if (value === null || value === undefined) return false;
+    const normalized = String(value).trim();
+    return normalized !== "" && normalized !== "-" && normalized !== "—";
+  };
+  const visibleColumns = {
+    city: locations.some((loc) => hasDisplayValue(loc.city)),
+    state: locations.some((loc) => hasDisplayValue(loc.state)),
+    country: locations.some((loc) => hasDisplayValue(loc.country)),
+    hrl: locations.some((loc) => loc.is_high_risk_location === true),
+  };
 
   return (
     <PageShell
@@ -368,10 +379,10 @@ export default function LocationsPage() {
                     <Button variant="ghost" size="icon-sm" onClick={() => openLbPanel(loc)} title="LB Factors" className="text-brand-teal hover:bg-accent">
                       <Gauge size={13} />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(loc)} title="Edit">
+                    <Button variant="ghost" size="icon-sm" onClick={() => openEdit(loc)} title="Edit" className="text-foreground/80 hover:bg-primary/10 hover:text-primary">
                       <Pencil size={13} />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="hover:bg-destructive-tint hover:text-destructive">
+                    <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="text-foreground/80 hover:bg-destructive-tint hover:text-destructive">
                       <Trash2 size={13} />
                     </Button>
                   </div>
@@ -389,7 +400,15 @@ export default function LocationsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                {["Name", "City", "State", "Country", "HRL", "Status", ...(isAdmin ? [""] : [])].map((h, i) => (
+                {[
+                  "Name",
+                  ...(visibleColumns.city ? ["City"] : []),
+                  ...(visibleColumns.state ? ["State"] : []),
+                  ...(visibleColumns.country ? ["Country"] : []),
+                  ...(visibleColumns.hrl ? ["HRL"] : []),
+                  "Status",
+                  ...(isAdmin ? [""] : []),
+                ].map((h, i) => (
                   <TableHead key={i}>{h}</TableHead>
                 ))}
               </TableRow>
@@ -398,16 +417,18 @@ export default function LocationsPage() {
               {locations.map((loc) => (
                 <TableRow key={loc.location_id}>
                   <TableCell className="font-semibold text-foreground">{loc.location_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{loc.city || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{loc.state || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{loc.country || "—"}</TableCell>
-                  <TableCell>
-                    {(loc as any).is_high_risk_location ? (
-                      <Badge variant="warning" className="text-2xs">
-                        <AlertTriangle size={10} className="mr-1" /> Water Stress
-                      </Badge>
-                    ) : <span className="text-muted-foreground/40">—</span>}
-                  </TableCell>
+                  {visibleColumns.city && <TableCell className="text-muted-foreground">{hasDisplayValue(loc.city) ? loc.city : "—"}</TableCell>}
+                  {visibleColumns.state && <TableCell className="text-muted-foreground">{hasDisplayValue(loc.state) ? loc.state : "—"}</TableCell>}
+                  {visibleColumns.country && <TableCell className="text-muted-foreground">{hasDisplayValue(loc.country) ? loc.country : "—"}</TableCell>}
+                  {visibleColumns.hrl && (
+                    <TableCell>
+                      {loc.is_high_risk_location ? (
+                        <Badge variant="warning" className="text-2xs">
+                          <AlertTriangle size={10} className="mr-1" /> Water Stress
+                        </Badge>
+                      ) : <span className="text-muted-foreground/40">—</span>}
+                    </TableCell>
+                  )}
                   <TableCell><StatusBadge status={loc.is_active ? "ACTIVE" : "BLOCKED"} /></TableCell>
                   {isAdmin && (
                     <TableCell>
@@ -415,8 +436,8 @@ export default function LocationsPage() {
                         <Button variant="ghost" size="icon-sm" onClick={() => openLbPanel(loc)} title="LB Factors" className="text-brand-teal hover:bg-accent">
                           <Gauge size={13} />
                         </Button>
-                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(loc)} title="Edit"><Pencil size={13} /></Button>
-                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="hover:bg-destructive-tint hover:text-destructive"><Trash2 size={13} /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(loc)} title="Edit" className="text-foreground/80 hover:bg-primary/10 hover:text-primary"><Pencil size={13} /></Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(loc)} title="Delete" className="text-foreground/80 hover:bg-destructive-tint hover:text-destructive"><Trash2 size={13} /></Button>
                       </div>
                     </TableCell>
                   )}

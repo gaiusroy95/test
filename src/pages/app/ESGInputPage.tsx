@@ -12,12 +12,13 @@ import {
   ChevronDown, ChevronRight, CheckCircle2, Clock, XCircle,
   Upload, FileText, Trash2, Send, Save,
   MapPin, Calendar, BarChart3, Paperclip,
-  AlertTriangle, Download, Lock, Circle,
+  AlertTriangle, Download, Lock, Circle, ArrowDown,
 } from "lucide-react";
 import { FormWorkspace, FormHeader, FormContextBar, FormBody, FormFooter } from "@/components/shared/FormWorkspace";
 import Scope3InputTab from "@/components/scope3/Scope3InputTab";
 import RichTextEditor from "@/components/shared/RichTextEditor";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
+import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -230,6 +231,8 @@ export default function ESGInputPage() {
   const [lockedMonthIds, setLockedMonthIds] = useState<Set<number>>(new Set());
   const [todayMonth, setTodayMonth] = useState<number | null>(null);
   const [periodSelected, setPeriodSelected] = useState(false);
+  /** Explicit confirmation from the centered onboarding panel before showing the entry form */
+  const [entryReady, setEntryReady] = useState(false);
 
   // Documents
   const [documents, setDocuments] = useState<any[]>([]);
@@ -349,6 +352,7 @@ export default function ESGInputPage() {
     // Reset so auto-select runs fresh for this new location+year
     autoSelectedPeriodRef.current = "";
     setSelMonth("");
+    setEntryReady(false);
     tenantApi.listLocationSubmissions(selLocation, selYear as number)
       .then(r => {
         const items = r.data?.items || r.data || [];
@@ -368,24 +372,26 @@ export default function ESGInputPage() {
     }).catch(() => {});
   }, [selLocation, selYear]);
 
-  // Load submission when period selected — auto-trigger
+  // Load submission when period confirmed via onboarding "Load Entry Form"
   useEffect(() => {
-    if (!selLocation || !selYear || !selMonth) {
+    if (!entryReady || !selLocation || !selYear || !selMonth) {
       setPeriodSelected(false);
-      setSubmission(null);
-      setFormValues({});
-      setFormNotes({});
-      setPrevValues({});
-      setDocuments([]);
-      setComputedEmissions({});
-      setBreakdownValues({});
-      setBreakdownOpen(new Set());
+      if (!entryReady) {
+        setSubmission(null);
+        setFormValues({});
+        setFormNotes({});
+        setPrevValues({});
+        setDocuments([]);
+        setComputedEmissions({});
+        setBreakdownValues({});
+        setBreakdownOpen(new Set());
+      }
       return;
     }
     setPeriodSelected(true);
     loadSubmission();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selLocation, selYear, selMonth]);
+  }, [entryReady, selLocation, selYear, selMonth]);
 
   const loadSubmission = async () => {
     if (!selLocation || !selYear || !selMonth) return;
@@ -941,67 +947,49 @@ export default function ESGInputPage() {
       <FormHeader
         title="ESG Data Entry"
         description="Enter environmental data for your assigned location and reporting period"
-        breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "ESG Input" }]}
+        breadcrumb={[{ label: "Home", href: "/app" }, { label: "ESG Input" }]}
         status={statusCfg && (
           <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-bold ${statusCfg.color} ${statusCfg.bg}`}>
             <statusCfg.icon size={12} /> {statusCfg.label}
           </span>
         )}
-      />
-
-      <FormContextBar
-        items={[
-          { label: "Location", value: currentLocationName || "—", icon: <MapPin size={13} /> },
-          { label: "FY", value: years.find((y: any) => y.year_id === selYear)?.fy_label ?? "—", icon: <Calendar size={13} /> },
-          { label: "Month", value: months.find((m: any) => m.month_id === selMonth)?.month_name ?? "—" },
-        ]}
-      >
-        <div className="flex items-center gap-2 flex-wrap">
-          {isLocationUser && visibleLocations.length === 1 ? null : (
-            <Select
-              value={selLocation || "__none__"}
-              onValueChange={(v) => setSelLocation(v === "__none__" ? "" : v)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select Location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Select Location</SelectItem>
-                {visibleLocations.map((l: Location) => (
-                  <SelectItem key={l.location_id} value={l.location_id}>{l.location_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <Select
-            value={selYear ? String(selYear) : "__none__"}
-            onValueChange={(v) => {
-              setSelYear(v === "__none__" ? "" : Number(v));
-              setSelMonth("");
+        actions={entryReady ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setEntryReady(false);
+              setPeriodSelected(false);
             }}
           >
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Year" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">Year</SelectItem>
-              {years.map((y: any) => (
-                <SelectItem key={y.year_id} value={String(y.year_id)}>{y.fy_label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {submission && (
-            <span className="text-label text-muted-foreground">
-              <span className="font-semibold text-foreground">{filledCount}</span>/{totalKpiCount} filled
-            </span>
-          )}
-          {saveStatus === "saving" && <span className="text-label text-muted-foreground animate-pulse">Saving…</span>}
-          {saveStatus === "saved" && <span className="text-label text-ok font-semibold">Saved</span>}
-        </div>
-      </FormContextBar>
+            Change period
+          </Button>
+        ) : undefined}
+      />
 
-      {/* Month strip */}
-      {selLocation && selYear && months.length > 0 && (
+      {/* Context strip only after form is loaded — no period selectors in the gray row */}
+      {entryReady && (
+        <FormContextBar
+          items={[
+            { label: "Location", value: currentLocationName || "—", icon: <MapPin size={13} /> },
+            { label: "FY", value: years.find((y: any) => y.year_id === selYear)?.fy_label ?? "—", icon: <Calendar size={13} /> },
+            { label: "Month", value: months.find((m: any) => m.month_id === selMonth)?.month_name ?? "—" },
+          ]}
+        >
+          <div className="flex items-center gap-2 flex-wrap">
+            {submission && (
+              <span className="text-label text-muted-foreground">
+                <span className="font-semibold text-foreground">{filledCount}</span>/{totalKpiCount} filled
+              </span>
+            )}
+            {saveStatus === "saving" && <span className="text-label text-muted-foreground animate-pulse">Saving…</span>}
+            {saveStatus === "saved" && <span className="text-label text-ok font-semibold">Saved</span>}
+          </div>
+        </FormContextBar>
+      )}
+
+      {/* Month strip — available after entry is ready for quick month switching */}
+      {entryReady && selLocation && selYear && months.length > 0 && (
         <div className="flex-shrink-0 flex items-center gap-1 overflow-x-auto px-5 py-2 border-b border-border bg-card">
           {months.map((m: any) => {
             const histItem = monthHistory.find(h => h.month_id === m.month_id);
@@ -1021,12 +1009,116 @@ export default function ESGInputPage() {
       )}
 
       <FormBody className="!px-0">
-      {!periodSelected && !loading && (
-        <div className="flex flex-col items-center justify-start pt-8 pb-6 text-muted-foreground">
-          <div className="text-center">
-            <BarChart3 size={32} className="mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-[13px] font-semibold text-muted-foreground">Select a period to begin</p>
-            <p className="text-[12px] mt-1">Choose a location and month above to load the form</p>
+      {/* Centered onboarding flow */}
+      {!entryReady && !loading && (
+        <div className="flex-1 flex items-center justify-center px-4 py-10 min-h-[420px]">
+          <div className="w-full max-w-lg rounded-xl border-2 border-primary/25 bg-card shadow-sm px-6 py-8 sm:px-8">
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
+                <BarChart3 size={22} />
+              </div>
+              <h2 className="text-[16px] font-bold text-foreground">Select a period to begin</h2>
+              <p className="text-[12px] text-muted-foreground mt-1">
+                Choose a location and month below to load the form.
+              </p>
+            </div>
+
+            {/* Step 1 — Location + FY */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-info shrink-0" aria-hidden />
+                <span className="text-[11px] font-bold uppercase tracking-wide text-info">Step 1 · Select location</span>
+              </div>
+              <div className="flex flex-col sm:flex-row items-stretch gap-2 p-1.5 rounded-full border border-border bg-sunken/40">
+                {isLocationUser && visibleLocations.length === 1 ? (
+                  <div className="flex-1 h-10 px-4 rounded-full bg-card border border-border flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                    <MapPin size={14} className="text-muted-foreground" />
+                    {visibleLocations[0].location_name}
+                  </div>
+                ) : (
+                  <Select
+                    value={selLocation || "__none__"}
+                    onValueChange={(v) => setSelLocation(v === "__none__" ? "" : v)}
+                  >
+                    <SelectTrigger className="flex-1 h-10 rounded-full border-border bg-card px-4">
+                      <SelectValue placeholder="Select Location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select Location</SelectItem>
+                      {visibleLocations.map((l: Location) => (
+                        <SelectItem key={l.location_id} value={l.location_id}>{l.location_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Select
+                  value={selYear ? String(selYear) : "__none__"}
+                  onValueChange={(v) => {
+                    setSelYear(v === "__none__" ? "" : Number(v));
+                    setSelMonth("");
+                  }}
+                >
+                  <SelectTrigger className="sm:w-[150px] h-10 rounded-full border-border bg-card px-4">
+                    <SelectValue placeholder="Financial Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Financial Year</SelectItem>
+                    {years.map((y: any) => (
+                      <SelectItem key={y.year_id} value={String(y.year_id)}>{y.fy_label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Vertical step connector */}
+            <div className="flex flex-col items-center gap-1 py-1 mb-4" aria-hidden>
+              <span className="w-2.5 h-2.5 rounded-full bg-info" />
+              <ArrowDown size={14} className="text-muted-foreground/50" />
+              <span className="w-2.5 h-2.5 rounded-full bg-warn" />
+            </div>
+
+            {/* Step 2 — Month */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-warn shrink-0" aria-hidden />
+                <span className="text-[11px] font-bold uppercase tracking-wide text-warn">Step 2 · Select month</span>
+              </div>
+              {!selLocation || !selYear ? (
+                <p className="text-[12px] text-muted-foreground px-1">
+                  Select a location and financial year first.
+                </p>
+              ) : months.length === 0 ? (
+                <p className="text-[12px] text-muted-foreground px-1">No months available.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start">
+                  {months.map((m: any) => {
+                    const histItem = monthHistory.find(h => h.month_id === m.month_id);
+                    return (
+                      <MonthChip
+                        key={m.month_id}
+                        month={m}
+                        historyItem={histItem}
+                        isActive={selMonth === m.month_id}
+                        isCurrent={m.month_id === todayMonth}
+                        isLocked={lockedMonthIds.has(m.month_id)}
+                        onClick={() => {
+                          if (!lockedMonthIds.has(m.month_id)) setSelMonth(m.month_id);
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <Button
+              className="w-full h-10"
+              disabled={!selLocation || !selYear || !selMonth}
+              onClick={() => setEntryReady(true)}
+            >
+              Load Entry Form
+            </Button>
           </div>
         </div>
       )}

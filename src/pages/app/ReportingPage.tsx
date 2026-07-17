@@ -130,7 +130,7 @@ export default function ReportingPage() {
   const unlockedCount = periods.filter((p) => !p.is_locked).length;
 
   const fyToolbar = !loading && reportingYears.length > 0 ? (
-    <div className="flex items-center gap-3 flex-wrap">
+    <div className="flex items-center gap-2 flex-wrap">
       <div className="flex gap-1 bg-sunken rounded-lg p-1 w-fit flex-wrap">
         {reportingYears.map((ry) => {
           const active = selectedYear?.year_id === ry.year_id;
@@ -149,6 +149,11 @@ export default function ReportingPage() {
           );
         })}
       </div>
+      {isAdmin && (
+        <Button size="sm" variant="outline" onClick={() => setAssignOpen(true)} className="h-7 shrink-0">
+          <Plus size={14} /> Assign FY
+        </Button>
+      )}
       {selectedYear && (
         <span className="text-label text-muted-foreground">
           Starts {selectedYear.financial_year?.start_month_name || `month ${selectedYear.fy_start_month || 4}`}
@@ -162,13 +167,6 @@ export default function ReportingPage() {
       title="Reporting Years"
       description="Assign financial years and manage monthly period locks"
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Reporting Years" }]}
-      actions={
-        isAdmin ? (
-          <Button size="sm" onClick={() => setAssignOpen(true)}>
-            <Plus size={14} /> Assign FY
-          </Button>
-        ) : undefined
-      }
       toolbar={fyToolbar}
     >
       {loading ? <LoadingSkeleton rows={3} cols={3} /> : reportingYears.length === 0 ? (
@@ -204,38 +202,44 @@ export default function ReportingPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
               {periods.sort((a, b) => a.month_id - b.month_id).map((p) => {
                 const monthName = p.month?.month_name || `Month ${p.month_id}`;
+                const isOpen = !p.is_locked;
                 return (
                   <div
                     key={p.id || p.month_id}
-                    className={`rounded-md border p-2.5 text-center transition-colors ${
-                      p.is_locked
-                        ? "border-border bg-sunken"
-                        : "border-ok/30 bg-ok-tint/40"
+                    className={`relative rounded-md border px-2.5 py-3 pr-8 text-center transition-colors ${
+                      isOpen
+                        ? "border-ok/40 bg-ok-tint"
+                        : "border-border bg-sunken/60"
                     }`}
                   >
-                    <div className={`w-7 h-7 rounded-md mx-auto mb-1.5 flex items-center justify-center ${
-                      p.is_locked ? "bg-border/60" : "bg-ok-tint"
-                    }`}>
-                      {p.is_locked
-                        ? <Lock size={14} className="text-muted-foreground" />
-                        : <Unlock size={14} className="text-ok" />}
-                    </div>
-                    <div className="text-xs font-bold text-foreground">{monthName}</div>
-                    <div className={`text-[11px] font-semibold mb-2 ${p.is_locked ? "text-muted-foreground" : "text-ok"}`}>
-                      {p.is_locked ? "Locked" : "Open"}
-                    </div>
-                    {isAdmin && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className={`w-full h-7 text-[11px] ${
-                          p.is_locked ? "" : "border-warn/40 text-warn hover:bg-warn-tint hover:text-warn"
+                    {isAdmin ? (
+                      <button
+                        type="button"
+                        title={isOpen ? "Lock period" : "Unlock period"}
+                        aria-label={isOpen ? `Lock ${monthName}` : `Unlock ${monthName}`}
+                        aria-pressed={!isOpen}
+                        onClick={() => setConfirmLock({ period: p, action: isOpen ? "lock" : "unlock" })}
+                        className={`absolute top-1.5 right-1.5 p-1 rounded-md transition-colors ${
+                          isOpen
+                            ? "text-ok hover:bg-ok/15"
+                            : "text-muted-foreground hover:bg-card hover:text-foreground"
                         }`}
-                        onClick={() => setConfirmLock({ period: p, action: p.is_locked ? "unlock" : "lock" })}
                       >
-                        {p.is_locked ? "Unlock" : "Lock"}
-                      </Button>
+                        {isOpen ? <Unlock size={14} strokeWidth={2.25} /> : <Lock size={14} strokeWidth={2.25} />}
+                      </button>
+                    ) : (
+                      <span
+                        className={`absolute top-1.5 right-1.5 p-1 ${
+                          isOpen ? "text-ok" : "text-muted-foreground"
+                        }`}
+                        aria-hidden
+                      >
+                        {isOpen ? <Unlock size={14} /> : <Lock size={14} />}
+                      </span>
                     )}
+                    <div className={`text-xs font-bold ${isOpen ? "text-foreground" : "text-muted-foreground"}`}>
+                      {monthName}
+                    </div>
                   </div>
                 );
               })}

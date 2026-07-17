@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Bell, CheckCheck, ExternalLink } from "lucide-react";
 import type { Notification } from "@/types";
 import { formatDateTime, getApiError } from "@/lib/utils";
+import { notifyNotificationCountChanged } from "@/components/layout/NotificationBell";
 
 const TYPE_BORDER: Record<string, string> = {
   SUBMITTED: "border-l-info",
@@ -60,12 +61,21 @@ export default function NotificationsPage() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const markRead = async (id: string) => {
-    try { await tenantApi.markRead(id); fetch(); }
+    try {
+      await tenantApi.markRead(id);
+      notifyNotificationCountChanged();
+      fetch();
+    }
     catch {}
   };
 
   const markAllRead = async () => {
-    try { await tenantApi.markAllRead(); toast.success("All marked as read"); fetch(); }
+    try {
+      await tenantApi.markAllRead();
+      notifyNotificationCountChanged();
+      toast.success("All marked as read");
+      fetch();
+    }
     catch (err: any) { toast.error(getApiError(err, "Failed")); }
   };
 

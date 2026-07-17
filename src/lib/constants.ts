@@ -1,7 +1,7 @@
 import {
   Zap, Wind, Droplets, Trash2, Home, Building2, Layers, Shield, Settings,
   MapPin, BarChart3, Database, UserCheck, FileText, Users, Calendar,
-  Bell, FolderTree, FileSearch, MessageSquare, LifeBuoy,
+  FolderTree, FileSearch, MessageSquare, LifeBuoy,
   Leaf, Recycle, Factory, FlaskConical, Truck, Globe, Heart, Scale,
   Package2, Target, ClipboardCheck, BookOpen,
   // Extended icon set for module icon picker
@@ -108,6 +108,4 @@ export const TENANT_NAV = [
   { key: "targets",        label: "Targets",            icon: Target,        path: "/app/targets",          group: "Insights" },
   { key: "suppliers",      label: "Supplier Scorecard", icon: Building2,     path: "/app/suppliers",        group: "Insights" },
   { key: "query",          label: "Ask ESMOS",          icon: MessageSquare, path: "/app/query",            group: "Insights" },
-  // ── Standalone ──
-  { key: "notifications",  label: "Notifications",      icon: Bell,          path: "/app/notifications" },
 ];

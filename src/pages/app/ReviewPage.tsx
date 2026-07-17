@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo, type MouseEvent as ReactMouseEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PageTabs } from "@/components/shared/PageTabs";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
@@ -11,12 +11,21 @@ import {
   CheckCircle2, XCircle, Clock, ChevronDown, ChevronRight,
   FileText, ClipboardCheck, BarChart3, MapPin, Calendar,
   X as XIcon, Check, AlertCircle, Paperclip, Download, Lock,
-  Package2, MessageSquare,
+  Package2, MessageSquare, Filter,
 } from "lucide-react";
 import type { Submission, SubmissionListItem, KPI, Indicator, Scope3Batch } from "@/types";
-import { formatDate, getApiError } from "@/lib/utils";
+import { formatDate, getApiError, cn } from "@/lib/utils";
 import Scope3ReviewDetail from "@/components/scope3/Scope3ReviewDetail";
 import SubmissionRemarksPanel from "@/components/remarks/SubmissionRemarksPanel";
+import { Input } from "@/components/ui/input";
+
+// ── Layout ─────────────────────────────────────────────────────────────
+const LEFT_PCT_DEFAULT = 40;
+const LEFT_PCT_MIN = 22;
+const LEFT_PCT_MAX = 55;
+
+// Shared data-grid column template: text | unit (center) | qty | mj | emission | docs
+const GRID_COLS = "grid-cols-[minmax(0,1fr)_72px_104px_110px_110px_32px]";
 
 // ── Status config ──────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -42,6 +51,123 @@ function StatusPill({ status }: { status: string }) {
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${cfg.color} ${cfg.bg} border ${cfg.border}`}>
       <Icon size={11} /> {cfg.label}
     </span>
+  );
+}
+
+/** Compact color-coded status for the left directory (saves horizontal space). */
+function StatusDot({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG];
+  const dot =
+    status === "APPROVED" ? "bg-ok"
+    : status === "REJECTED" ? "bg-destructive"
+    : status === "SUBMITTED" ? "bg-warn"
+    : "bg-muted-foreground/60";
+  return (
+    <span
+      className={cn("inline-block w-2 h-2 rounded-full shrink-0", dot)}
+      title={cfg?.label ?? status}
+      aria-label={cfg?.label ?? status}
+    />
+  );
+}
+
+const filterSelectCls =
+  "h-8 rounded-sm border border-input bg-card px-2 text-[12px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
+
+function ReviewPanelFilters({
+  dateFrom,
+  dateTo,
+  periodYearId,
+  periodMonthId,
+  years,
+  months,
+  hasFilters,
+  onDateFrom,
+  onDateTo,
+  onYear,
+  onMonth,
+  onClear,
+}: {
+  dateFrom: string;
+  dateTo: string;
+  periodYearId: string;
+  periodMonthId: string;
+  years: { year_id: number; fy_label: string }[];
+  months: { month_id: number; month_name: string }[];
+  hasFilters: boolean;
+  onDateFrom: (v: string) => void;
+  onDateTo: (v: string) => void;
+  onYear: (v: string) => void;
+  onMonth: (v: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex-shrink-0 border-b border-border bg-sunken/50 px-4 py-2.5">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex items-center gap-1.5 text-muted-foreground mr-1 mb-0.5">
+          <Filter size={13} />
+          <span className="text-[11px] font-semibold uppercase tracking-wide">Filters</span>
+        </div>
+
+        <label className="flex flex-col gap-1 min-w-[132px]">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Date from</span>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => onDateFrom(e.target.value)}
+            className="h-8 text-[12px] px-2"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 min-w-[132px]">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Date to</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => onDateTo(e.target.value)}
+            className="h-8 text-[12px] px-2"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 min-w-[140px]">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Reporting year</span>
+          <select
+            value={periodYearId}
+            onChange={(e) => onYear(e.target.value)}
+            className={filterSelectCls}
+          >
+            <option value="">All years</option>
+            {years.map((y) => (
+              <option key={y.year_id} value={String(y.year_id)}>{y.fy_label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 min-w-[130px]">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Period</span>
+          <select
+            value={periodMonthId}
+            onChange={(e) => onMonth(e.target.value)}
+            className={filterSelectCls}
+          >
+            <option value="">All periods</option>
+            {months.map((m) => (
+              <option key={m.month_id} value={String(m.month_id)}>{m.month_name}</option>
+            ))}
+          </select>
+        </label>
+
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="h-8 px-2.5 rounded-sm text-[12px] font-semibold text-muted-foreground hover:text-foreground hover:bg-card border border-transparent hover:border-border transition-colors"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -127,12 +253,27 @@ export default function ReviewPage() {
   const [showRemarksPanel, setShowRemarksPanel] = useState(false);
   const [remarksCount, setRemarksCount] = useState(0);
 
+  // 40/60 workspace + drag resize
+  const [leftPct, setLeftPct] = useState(LEFT_PCT_DEFAULT);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+
+  // Panel filters (date range + reporting period) — filter the directory list
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [periodYearId, setPeriodYearId] = useState("");
+  const [periodMonthId, setPeriodMonthId] = useState("");
+  const [years, setYears] = useState<{ year_id: number; fy_label: string }[]>([]);
+  const [months, setMonths] = useState<{ month_id: number; month_name: string }[]>([]);
+
   // Load KPI structure for grouping
   useEffect(() => {
     Promise.allSettled([
       tenantApi.listKPIs({ size: 500 }),
       tenantApi.listIndicators({ size: 500 }),
-    ]).then(([kpiR, indR]) => {
+      tenantApi.listReportingYears(),
+      tenantApi.listMonths(),
+    ]).then(([kpiR, indR, yearR, monR]) => {
       if (kpiR.status === "fulfilled") {
         const d = kpiR.value.data;
         setKpis(Array.isArray(d) ? d : d?.items || []);
@@ -140,6 +281,23 @@ export default function ReviewPage() {
       if (indR.status === "fulfilled") {
         const d = indR.value.data;
         setIndicators(Array.isArray(d) ? d : d?.items || []);
+      }
+      if (yearR.status === "fulfilled") {
+        const d = yearR.value.data;
+        const arr: any[] = Array.isArray(d) ? d : d?.items || [];
+        setYears(
+          arr
+            .map((y: any) => ({
+              year_id: y.year_id,
+              fy_label: y.financial_year?.fy_label || y.fy_label || String(y.year_id),
+            }))
+            .sort((a, b) => a.year_id - b.year_id),
+        );
+      }
+      if (monR.status === "fulfilled") {
+        const d = monR.value.data;
+        const monthArr = Array.isArray(d) ? d : d?.items || [];
+        setMonths(monthArr);
       }
     });
   }, []);
@@ -346,6 +504,77 @@ export default function ReviewPage() {
     });
   };
 
+  const onResizeStart = useCallback((e: ReactMouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    const onMove = (ev: MouseEvent) => {
+      if (!draggingRef.current || !workspaceRef.current) return;
+      const rect = workspaceRef.current.getBoundingClientRect();
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+      setLeftPct(Math.min(LEFT_PCT_MAX, Math.max(LEFT_PCT_MIN, pct)));
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
+
+  const clearPanelFilters = () => {
+    setDateFrom("");
+    setDateTo("");
+    setPeriodYearId("");
+    setPeriodMonthId("");
+  };
+
+  const hasPanelFilters = !!(dateFrom || dateTo || periodYearId || periodMonthId);
+
+  const filteredSubmissions = useMemo(() => {
+    return submissions.filter((sub) => {
+      if (periodYearId && String(sub.year_id) !== periodYearId) return false;
+      if (periodMonthId && String(sub.month_id) !== periodMonthId) return false;
+      if (dateFrom || dateTo) {
+        if (!sub.submitted_at) return false;
+        const day = sub.submitted_at.slice(0, 10);
+        if (dateFrom && day < dateFrom) return false;
+        if (dateTo && day > dateTo) return false;
+      }
+      return true;
+    });
+  }, [submissions, dateFrom, dateTo, periodYearId, periodMonthId]);
+
+  const filteredScope3Batches = useMemo(() => {
+    return scope3Batches.filter((b) => {
+      if (periodYearId) {
+        const y = years.find((yr) => String(yr.year_id) === periodYearId);
+        const fyStart = y?.fy_label?.match(/\d{4}/)?.[0];
+        const matchYear = fyStart ? Number(fyStart) : Number(periodYearId);
+        if (b.reporting_year !== matchYear) return false;
+      }
+      if (periodMonthId) {
+        if (b.reporting_month == null) return false;
+        const m = months.find((mo) => String(mo.month_id) === periodMonthId) as { calendar_month?: number } | undefined;
+        const cal = m?.calendar_month ?? Number(periodMonthId);
+        if (b.reporting_month !== cal && b.reporting_month !== Number(periodMonthId)) return false;
+      }
+      if (dateFrom || dateTo) {
+        const ts = (b as { submitted_at?: string; updated_at?: string }).submitted_at
+          || (b as { updated_at?: string }).updated_at;
+        if (!ts) return false;
+        const day = String(ts).slice(0, 10);
+        if (dateFrom && day < dateFrom) return false;
+        if (dateTo && day > dateTo) return false;
+      }
+      return true;
+    });
+  }, [scope3Batches, dateFrom, dateTo, periodYearId, periodMonthId, years, months]);
+
   // Build lookup maps from detail kpi_values
   const kpiValueMap = detail
     ? Object.fromEntries(detail.kpi_values.filter(v => v.kpi_id).map(v => [v.kpi_id!, v]))
@@ -359,18 +588,14 @@ export default function ReviewPage() {
     selectedMeta?.submission_id === selectedId
       ? selectedMeta
       : submissions.find(s => s.submission_id === selectedId) ?? selectedMeta;
-  const hasDetailOpen = !!(selectedId || selectedScope3);
 
   return (
-    <div className="flex h-full min-h-0 w-full bg-sunken overflow-hidden">
+    <div ref={workspaceRef} className="flex h-full min-h-0 w-full bg-sunken overflow-hidden">
 
-      {/* ── LEFT PANEL: Submissions list ── */}
+      {/* ── LEFT PANEL: Submissions list (40% baseline) ── */}
       <div
-        className={`flex flex-col bg-card border-r border-border min-h-0 min-w-0 ${
-          hasDetailOpen
-            ? "w-[min(380px,38%)] flex-shrink-0"
-            : "flex-1 max-w-3xl"
-        }`}
+        className="flex flex-col bg-card border-r border-border min-h-0 min-w-0 flex-shrink-0"
+        style={{ width: `${leftPct}%` }}
       >
         {/* Header */}
         <div className="px-4 py-2.5 border-b border-border flex-shrink-0">
@@ -396,16 +621,19 @@ export default function ReviewPage() {
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12 text-[13px] text-muted-foreground animate-pulse">Loading…</div>
-          ) : submissions.length === 0 && scope3Batches.length === 0 ? (
+          ) : filteredSubmissions.length === 0 && filteredScope3Batches.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <ClipboardCheck size={32} className="mb-3 text-muted-foreground/40" />
               <p className="text-[13px] font-semibold">No submissions found</p>
               <p className="text-[12px] mt-1">
-                {activeFilter ? `No ${activeFilter.toLowerCase()} submissions` : "No submissions yet"}
+                {hasPanelFilters
+                  ? "No submissions match the current filters"
+                  : activeFilter
+                    ? `No ${activeFilter.toLowerCase()} submissions`
+                    : "No submissions yet"}
               </p>
             </div>
-          ) : submissions.map((sub) => {
-            const cfg = STATUS_CONFIG[sub.status as keyof typeof STATUS_CONFIG];
+          ) : filteredSubmissions.map((sub) => {
             const isSelected = selectedId === sub.submission_id;
             const completeness = sub.kpi_count > 0
               ? Math.round((sub.filled_count / sub.kpi_count) * 100)
@@ -420,17 +648,19 @@ export default function ReviewPage() {
               <button
                 key={sub.submission_id}
                 onClick={() => selectSubmission(sub)}
-                className={`w-full text-left px-5 py-3 border-b border-[hsl(var(--border-hairline))] hover:bg-sunken transition-colors
-                  ${isSelected ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
+                className={cn(
+                  "w-full text-left px-4 py-3 border-b border-[hsl(var(--border-hairline))] border-l-[3px] hover:bg-sunken/70 transition-colors",
+                  isSelected
+                    ? "border-l-primary bg-primary/[0.07]"
+                    : "border-l-transparent",
+                )}
               >
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <MapPin size={13} className="text-muted-foreground flex-shrink-0" />
-                    <span className="text-[13px] font-bold text-foreground truncate">{sub.location_name}</span>
-                  </div>
-                  <StatusPill status={sub.status} />
+                <div className="flex items-center gap-2 min-w-0 mb-1.5">
+                  <StatusDot status={sub.status} />
+                  <MapPin size={13} className="text-muted-foreground flex-shrink-0" />
+                  <span className="text-[13px] font-bold text-foreground truncate">{sub.location_name}</span>
                 </div>
-                <div className="flex items-center gap-3 text-[12px] text-muted-foreground mb-2">
+                <div className="flex items-center gap-3 text-[12px] text-muted-foreground mb-2 pl-[18px]">
                   <span className="flex items-center gap-1">
                     <Calendar size={11} className="text-muted-foreground" />
                     {sub.month_name} · {sub.year_label}
@@ -439,33 +669,33 @@ export default function ReviewPage() {
                   <span><span className="font-semibold text-foreground">{sub.filled_count}</span>/{sub.kpi_count} KPIs</span>
                 </div>
                 {/* Progress bar */}
-                <div className="h-1.5 bg-sunken rounded-full overflow-hidden mb-2">
+                <div className="h-1.5 bg-sunken rounded-full overflow-hidden mb-2 pl-0 ml-[18px]">
                   <div
                     className={`h-full rounded-full transition-all ${sub.status === "APPROVED" ? "bg-ok" : sub.status === "REJECTED" ? "bg-destructive" : "bg-primary"}`}
                     style={{ width: `${completeness}%` }}
                   />
                 </div>
                 {sub.submitted_by_name && (
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-[11px] text-muted-foreground pl-[18px]">
                     Submitted by <span className="font-medium text-muted-foreground">{sub.submitted_by_name}</span>
                     {relativeDate && ` · ${relativeDate}`}
                   </p>
                 )}
                 {sub.reviewer_notes && sub.status === "REJECTED" && (
-                  <p className="text-[11px] text-destructive mt-1 truncate">Reason: {sub.reviewer_notes}</p>
+                  <p className="text-[11px] text-destructive mt-1 truncate pl-[18px]">Reason: {sub.reviewer_notes}</p>
                 )}
               </button>
             );
           })}
 
           {/* ── Scope 3 Batches ── */}
-          {scope3Batches.length > 0 && (
+          {filteredScope3Batches.length > 0 && (
             <>
               <div className="px-5 py-2 bg-sunken border-b border-[hsl(var(--border-hairline))] flex items-center gap-2">
                 <Package2 size={12} className="text-primary" />
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Scope 3 Batches</span>
               </div>
-              {scope3Batches.map((b) => {
+              {filteredScope3Batches.map((b) => {
                 const isSelected = selectedScope3?.batch_id === b.batch_id;
                 const monthLabel = b.reporting_month
                   ? ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][b.reporting_month]
@@ -474,17 +704,19 @@ export default function ReviewPage() {
                   <button
                     key={b.batch_id}
                     onClick={() => loadScope3Detail(b)}
-                    className={`w-full text-left px-5 py-3 border-b border-[hsl(var(--border-hairline))] hover:bg-sunken transition-colors
-                      ${isSelected ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
+                    className={cn(
+                      "w-full text-left px-4 py-3 border-b border-[hsl(var(--border-hairline))] border-l-[3px] hover:bg-sunken/70 transition-colors",
+                      isSelected
+                        ? "border-l-primary bg-primary/[0.07]"
+                        : "border-l-transparent",
+                    )}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Package2 size={13} className="text-primary flex-shrink-0" />
-                        <span className="text-[13px] font-bold text-foreground truncate">{b.ghg_category_name}</span>
-                      </div>
-                      <StatusPill status={b.status} />
+                    <div className="flex items-center gap-2 min-w-0 mb-1.5">
+                      <StatusDot status={b.status} />
+                      <Package2 size={13} className="text-primary flex-shrink-0" />
+                      <span className="text-[13px] font-bold text-foreground truncate">{b.ghg_category_name}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-[12px] text-muted-foreground mb-1.5">
+                    <div className="flex items-center gap-3 text-[12px] text-muted-foreground mb-1.5 pl-[18px]">
                       <span className="flex items-center gap-1">
                         <Calendar size={11} className="text-muted-foreground" />
                         {monthLabel} {b.reporting_year}
@@ -492,15 +724,15 @@ export default function ReviewPage() {
                       <span className="text-muted-foreground/40">|</span>
                       <span>{b.total_rows} entries</span>
                       <span className="text-muted-foreground/40">|</span>
-                      <span className="font-semibold text-foreground">{(b.total_emissions ?? 0).toFixed(2)} tCO2e</span>
+                      <span className="font-semibold text-foreground tabular-nums">{(b.total_emissions ?? 0).toFixed(2)} tCO2e</span>
                     </div>
                     {b.uploader_name && (
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground pl-[18px]">
                         By <span className="font-medium text-muted-foreground">{b.uploader_name}</span>
                       </p>
                     )}
                     {b.rejection_reason && b.status === "REJECTED" && (
-                      <p className="text-[11px] text-destructive mt-1 truncate">Reason: {b.rejection_reason}</p>
+                      <p className="text-[11px] text-destructive mt-1 truncate pl-[18px]">Reason: {b.rejection_reason}</p>
                     )}
                   </button>
                 );
@@ -510,23 +742,74 @@ export default function ReviewPage() {
         </div>
       </div>
 
+      {/* ── Drag handle (resize) ── */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize panels"
+        aria-valuenow={Math.round(leftPct)}
+        aria-valuemin={LEFT_PCT_MIN}
+        aria-valuemax={LEFT_PCT_MAX}
+        tabIndex={0}
+        onMouseDown={onResizeStart}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowLeft") setLeftPct((p) => Math.max(LEFT_PCT_MIN, p - 2));
+          if (e.key === "ArrowRight") setLeftPct((p) => Math.min(LEFT_PCT_MAX, p + 2));
+        }}
+        className="group relative w-1.5 flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/35 active:bg-primary/50 transition-colors focus:outline-none focus-visible:bg-primary/40"
+      >
+        <span className="pointer-events-none absolute inset-y-0 -left-1 -right-1" />
+        <span className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-muted-foreground/25 group-hover:bg-primary/70 transition-colors" />
+      </div>
+
       {/* ── RIGHT PANEL: Scope 3 detail ── */}
       {selectedScope3 && (
-        <Scope3ReviewDetail
-          batch={selectedScope3}
-          canReview={canReview}
-          onReviewed={() => {
-            fetchSubmissions();
-            fetchFilterCounts();
-            setSelectedScope3(null);
-          }}
-          onClose={() => setSelectedScope3(null)}
-        />
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+          <ReviewPanelFilters
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            periodYearId={periodYearId}
+            periodMonthId={periodMonthId}
+            years={years}
+            months={months}
+            hasFilters={hasPanelFilters}
+            onDateFrom={setDateFrom}
+            onDateTo={setDateTo}
+            onYear={setPeriodYearId}
+            onMonth={setPeriodMonthId}
+            onClear={clearPanelFilters}
+          />
+          <Scope3ReviewDetail
+            batch={selectedScope3}
+            canReview={canReview}
+            onReviewed={() => {
+              fetchSubmissions();
+              fetchFilterCounts();
+              setSelectedScope3(null);
+            }}
+            onClose={() => setSelectedScope3(null)}
+          />
+        </div>
       )}
 
       {/* ── RIGHT PANEL: Submission detail + remarks side panel ── */}
       {selectedId && !selectedScope3 && (
-        <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden border-l border-border">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden border-l-0">
+          <ReviewPanelFilters
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            periodYearId={periodYearId}
+            periodMonthId={periodMonthId}
+            years={years}
+            months={months}
+            hasFilters={hasPanelFilters}
+            onDateFrom={setDateFrom}
+            onDateTo={setDateTo}
+            onYear={setPeriodYearId}
+            onMonth={setPeriodMonthId}
+            onClear={clearPanelFilters}
+          />
+        <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-card">
           {detailLoading ? (
             <div className="flex-1 flex items-center justify-center text-[13px] text-muted-foreground animate-pulse">
@@ -671,9 +954,9 @@ export default function ReviewPage() {
                       </div>
 
                       {/* Column headers */}
-                      <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 px-5 py-2 bg-sunken/60 border-b border-[hsl(var(--border-hairline))] text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.07em]">
-                        <span>KPI / Indicator</span>
-                        <span>Unit</span>
+                      <div className={`grid ${GRID_COLS} gap-2 px-5 py-2 bg-sunken/60 border-b border-[hsl(var(--border-hairline))] text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.07em]`}>
+                        <span className="text-left">KPI / Indicator</span>
+                        <span className="text-center">Unit</span>
                         <span className="text-right">Quantity</span>
                         <span className="text-right">MJ Value</span>
                         <span className="text-right">Emission</span>
@@ -687,18 +970,18 @@ export default function ReviewPage() {
                         const docOpen = docPanelOpen.has(key);
                         return (
                           <div key={ind.indicator_id} className="border-b border-[hsl(var(--border-hairline))] last:border-b-0">
-                            <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 items-center px-5 py-2.5 hover:bg-sunken/30">
-                              <div className="flex items-center gap-2 min-w-0">
+                            <div className={`grid ${GRID_COLS} gap-2 items-center px-5 py-2.5 hover:bg-sunken/30`}>
+                              <div className="flex items-center gap-2 min-w-0 text-left">
                                 <BarChart3 size={12} className="text-primary/50 flex-shrink-0" />
                                 <span className="text-[12px] text-foreground truncate">{ind.indicator_name}</span>
                                 <span className="text-[10px] bg-info-tint text-info border border-info/30 px-1 rounded font-semibold flex-shrink-0">Direct</span>
                               </div>
-                              <span className="text-[11px] text-muted-foreground font-mono">—</span>
-                              <span className="text-right text-[13px] font-mono font-semibold text-foreground">
+                              <span className="text-center text-[11px] text-muted-foreground font-mono">—</span>
+                              <span className="text-right text-[13px] font-mono font-semibold text-foreground tabular-nums">
                                 {Number(v.quantity).toLocaleString()}
                               </span>
-                              <span className="text-right text-[12px] font-mono text-muted-foreground">—</span>
-                              <span className="text-right text-[12px] font-mono text-muted-foreground">—</span>
+                              <span className="text-right text-[12px] font-mono text-muted-foreground tabular-nums">—</span>
+                              <span className="text-right text-[12px] font-mono text-muted-foreground tabular-nums">—</span>
                               <button
                                 onClick={() => toggleDocPanel(key)}
                                 className={`relative flex items-center justify-center w-6 h-6 rounded transition-all ${docOpen ? "text-primary" : recordDocCounts[v.record_id] > 0 ? "text-amber-400 hover:text-amber-500" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
@@ -738,17 +1021,17 @@ export default function ReviewPage() {
                               const isAutoEmission = kpi.is_emission_source;
                               return (
                                 <div key={kpi.kpi_id} className="border-t border-[hsl(var(--border-hairline))]/70">
-                                  <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 items-center px-5 py-2.5 hover:bg-sunken/30">
-                                    <div className="flex items-center gap-2 min-w-0">
+                                  <div className={`grid ${GRID_COLS} gap-2 items-center px-5 py-2.5 hover:bg-sunken/30`}>
+                                    <div className="flex items-center gap-2 min-w-0 text-left">
                                       {isAutoEmission ? <Lock size={11} className="text-muted-foreground/40 flex-shrink-0" /> : <BarChart3 size={12} className="text-muted-foreground/40 flex-shrink-0" />}
                                       <span className="text-[12px] text-foreground truncate">{kpi.kpi_name}</span>
                                     </div>
-                                    <span className="text-[11px] text-muted-foreground font-mono">{kpi.unit}</span>
-                                    <span className="text-right text-[13px] font-mono font-semibold text-foreground">
+                                    <span className="text-center text-[11px] text-muted-foreground font-mono">{kpi.unit}</span>
+                                    <span className="text-right text-[13px] font-mono font-semibold text-foreground tabular-nums">
                                       {Number(v.quantity).toLocaleString()}
                                     </span>
                                     <div className="relative group text-right">
-                                      <span className={`text-[12px] font-mono text-muted-foreground ${v.mj_value != null ? "cursor-help" : ""}`}>
+                                      <span className={`text-[12px] font-mono text-muted-foreground tabular-nums ${v.mj_value != null ? "cursor-help" : ""}`}>
                                         {v.mj_value != null ? Number(v.mj_value).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}
                                       </span>
                                       {v.mj_value != null && Number(v.quantity) > 0 && (
@@ -759,7 +1042,7 @@ export default function ReviewPage() {
                                       )}
                                     </div>
                                     <div className="relative group text-right">
-                                      <span className={`text-[12px] font-mono text-muted-foreground ${v.emission_value != null ? "cursor-help" : ""}`}>
+                                      <span className={`text-[12px] font-mono text-muted-foreground tabular-nums ${v.emission_value != null ? "cursor-help" : ""}`}>
                                         {v.emission_value != null ? Number(v.emission_value).toLocaleString(undefined, { maximumFractionDigits: 4 }) : "—"}
                                       </span>
                                       {v.emission_value != null && Number(v.quantity) > 0 && (
@@ -796,17 +1079,17 @@ export default function ReviewPage() {
                         const docOpen = docPanelOpen.has(key);
                         return (
                           <div key={kpi.kpi_id} className="border-t border-[hsl(var(--border-hairline))]/70">
-                            <div className="grid grid-cols-[1fr_65px_100px_110px_110px_30px] gap-2 items-center px-5 py-2.5 hover:bg-sunken/30">
-                              <div className="flex items-center gap-2 min-w-0">
+                            <div className={`grid ${GRID_COLS} gap-2 items-center px-5 py-2.5 hover:bg-sunken/30`}>
+                              <div className="flex items-center gap-2 min-w-0 text-left">
                                 <BarChart3 size={12} className="text-muted-foreground/40 flex-shrink-0" />
                                 <span className="text-[12px] text-foreground truncate">{kpi.kpi_name}</span>
                               </div>
-                              <span className="text-[11px] text-muted-foreground font-mono">{kpi.unit}</span>
-                              <span className="text-right text-[13px] font-mono font-semibold text-foreground">
+                              <span className="text-center text-[11px] text-muted-foreground font-mono">{kpi.unit}</span>
+                              <span className="text-right text-[13px] font-mono font-semibold text-foreground tabular-nums">
                                 {Number(v.quantity).toLocaleString()}
                               </span>
                               <div className="relative group text-right">
-                                <span className={`text-[12px] font-mono text-muted-foreground ${v.mj_value != null ? "cursor-help" : ""}`}>
+                                <span className={`text-[12px] font-mono text-muted-foreground tabular-nums ${v.mj_value != null ? "cursor-help" : ""}`}>
                                   {v.mj_value != null ? Number(v.mj_value).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}
                                 </span>
                                 {v.mj_value != null && Number(v.quantity) > 0 && (
@@ -817,7 +1100,7 @@ export default function ReviewPage() {
                                 )}
                               </div>
                               <div className="relative group text-right">
-                                <span className={`text-[12px] font-mono text-muted-foreground ${v.emission_value != null ? "cursor-help" : ""}`}>
+                                <span className={`text-[12px] font-mono text-muted-foreground tabular-nums ${v.emission_value != null ? "cursor-help" : ""}`}>
                                   {v.emission_value != null ? Number(v.emission_value).toLocaleString(undefined, { maximumFractionDigits: 4 }) : "—"}
                                 </span>
                                 {v.emission_value != null && Number(v.quantity) > 0 && (
@@ -954,15 +1237,32 @@ export default function ReviewPage() {
           />
         )}
         </div>
+        </div>
       )}
 
       {/* Empty right panel prompt when nothing selected */}
       {!selectedId && !selectedScope3 && (
-        <div className="hidden lg:flex flex-1 items-center justify-center bg-sunken">
-          <div className="text-center text-muted-foreground">
-            <ClipboardCheck size={40} className="mx-auto mb-3 text-muted-foreground/40" />
-            <p className="text-[14px] font-semibold text-muted-foreground">Select a submission to review</p>
-            <p className="text-[12px] mt-1">Click any item on the left to view details</p>
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-sunken overflow-hidden">
+          <ReviewPanelFilters
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            periodYearId={periodYearId}
+            periodMonthId={periodMonthId}
+            years={years}
+            months={months}
+            hasFilters={hasPanelFilters}
+            onDateFrom={setDateFrom}
+            onDateTo={setDateTo}
+            onYear={setPeriodYearId}
+            onMonth={setPeriodMonthId}
+            onClear={clearPanelFilters}
+          />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center text-muted-foreground">
+              <ClipboardCheck size={40} className="mx-auto mb-3 text-muted-foreground/40" />
+              <p className="text-[14px] font-semibold text-muted-foreground">Select a submission to review</p>
+              <p className="text-[12px] mt-1">Click any item on the left to view details</p>
+            </div>
           </div>
         </div>
       )}

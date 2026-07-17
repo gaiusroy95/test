@@ -16,7 +16,7 @@ export function AppTopBarContext({ portalType, className }: AppTopBarContextProp
   const label =
     portalType === "platform"
       ? "Platform Admin"
-      : user?.company_name || "Company Portal";
+      : user?.company_name || null;
 
   const roleLabel =
     portalType === "platform"
@@ -26,8 +26,15 @@ export function AppTopBarContext({ portalType, className }: AppTopBarContextProp
   return (
     <div className={cn("flex-1 min-w-0 flex items-center gap-3", className)}>
       <div className="min-w-0">
-        <p className="text-ui font-semibold text-foreground truncate leading-tight">{label}</p>
-        <p className="text-2xs text-muted-foreground truncate leading-tight mt-0.5">{roleLabel}</p>
+        {label ? (
+          <p className="text-ui font-semibold text-foreground truncate leading-tight">{label}</p>
+        ) : null}
+        <p className={cn(
+          "text-2xs text-muted-foreground truncate leading-tight",
+          label ? "mt-0.5" : "text-ui font-semibold text-foreground",
+        )}>
+          {roleLabel}
+        </p>
       </div>
     </div>
   );

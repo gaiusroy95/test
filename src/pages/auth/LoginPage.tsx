@@ -34,6 +34,10 @@ export default function LoginPage() {
   const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
 
   useEffect(() => {
+    if (sessionStorage.getItem("esmos:idle-expired") === "true") {
+      sessionStorage.removeItem("esmos:idle-expired");
+      setError("Your session expired after a period of inactivity. Please sign in again.");
+    }
     const t = setTimeout(() => setMounted(true), 60);
     return () => clearTimeout(t);
   }, []);

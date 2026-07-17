@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
+import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth";
 import { tenantApi } from "@/api/client";
 import { getModuleIcon } from "@/lib/constants";
 import { useModulesStore } from "@/store/modules";
-import { LoadingSkeleton } from "@/components/shared/PageComponents";
+import { LoadingSkeleton, StatCard } from "@/components/shared/PageComponents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   MapPin, BarChart3, Database, UserCheck, Plus, ClipboardCheck,
-  FileText, ChevronRight, CheckCircle2, Circle, AlertTriangle, Clock, ArrowUpRight,
+  FileText, ChevronRight, CheckCircle2, Circle, AlertTriangle, Clock,
+  FileSpreadsheet,
 } from "lucide-react";
 import type { Notification } from "@/types";
 import { formatDateTime, cn } from "@/lib/utils";
@@ -31,6 +34,44 @@ type AttentionItem = {
   tone: "warn" | "info" | "ok";
   path: string;
 };
+
+function exportRows(filename: string, sheet: string, rows: Record<string, unknown>[]) {
+  if (rows.length === 0) {
+    toast.error("No data to export");
+    return;
+  }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheet);
+  XLSX.writeFile(wb, filename);
+  toast.success("Exported to Excel");
+}
+
+function ExcelExportButton({
+  onClick,
+  title = "Export Excel",
+  inverted,
+}: {
+  onClick: () => void;
+  title?: string;
+  inverted?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className={cn(
+        "p-1.5 rounded-md transition-colors shrink-0",
+        inverted
+          ? "text-white/90 hover:bg-white/15"
+          : "text-ok hover:bg-ok-tint",
+      )}
+    >
+      <FileSpreadsheet size={14} />
+    </button>
+  );
+}
 
 export default function TenantDashboard() {
   const { user } = useAuthStore();
@@ -163,8 +204,48 @@ export default function TenantDashboard() {
     { label: "KPIs", value: stats.metrics, icon: BarChart3, path: "/app/kpi-setup", emphasize: false, hint: "Configured" },
   ];
 
+  const shortcuts = [
+    { label: "Enter data", desc: "ESG input", path: "/app/esg-input", icon: Plus },
+    { label: "Review", desc: "Approvals", path: "/app/review", icon: UserCheck },
+    { label: "Reports", desc: "Analytics", path: "/app/reports", icon: FileText },
+    { label: "Locations", desc: "Sites", path: "/app/locations", icon: MapPin },
+  ];
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  const exportKpis = () => exportRows(
+    `dashboard-kpis-${selectedFyLabel}.xlsx`,
+    "KPIs",
+    kpis.map((k) => ({ Metric: k.label, Value: k.value, Hint: k.hint })),
+  );
+
+  const exportAttention = () => exportRows(
+    `dashboard-attention-${selectedFyLabel}.xlsx`,
+    "Attention",
+    attention.map((a) => ({ Title: a.title, Detail: a.detail || "", Tone: a.tone, Path: a.path })),
+  );
+
+  const exportModules = () => exportRows(
+    `dashboard-modules-${selectedFyLabel}.xlsx`,
+    "Modules",
+    modules.map((m) => ({
+      Module: m.module_name,
+      Records: moduleCounts[m.module_id] ?? 0,
+      FY: selectedFyLabel,
+    })),
+  );
+
+  const exportActivity = () => exportRows(
+    `dashboard-activity.xlsx`,
+    "Activity",
+    notifications.map((n) => ({
+      Title: n.title,
+      Type: n.type,
+      Read: n.is_read ? "Yes" : "No",
+      Time: n.created_at,
+    })),
+  );
 
   return (
     <div className="page-root stagger-in">
@@ -217,6 +298,7 @@ export default function TenantDashboard() {
                 </SelectContent>
               </Select>
             )}
+            <ExcelExportButton inverted onClick={exportKpis} title="Export KPI summary" />
             <Button
               size="sm"
               variant="outline"
@@ -235,77 +317,75 @@ export default function TenantDashboard() {
         </div>
       </section>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
-        {kpis.map((k) => {
-          const Icon = k.icon;
-          return (
-            <button
-              key={k.label}
-              type="button"
-              onClick={() => navigate(k.path)}
-              className={cn(
-                "group relative overflow-hidden rounded-lg border bg-card px-4 py-3.5 text-left transition-all duration-200",
-                "hover:-translate-y-0.5 hover:shadow-elevated",
-                k.emphasize ? "border-warn/50 ring-1 ring-warn/20" : "border-border"
-              )}
-            >
-              <div
-                className={cn(
-                  "absolute left-0 top-0 bottom-0 w-1",
-                  k.emphasize ? "bg-warn" : "bg-primary/80 opacity-0 group-hover:opacity-100 transition-opacity"
-                )}
-              />
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <span className="text-label font-semibold text-muted-foreground uppercase tracking-wide">{k.label}</span>
-                <span className={cn(
-                  "w-8 h-8 rounded-md flex items-center justify-center",
-                  k.emphasize ? "bg-warn-tint text-warn" : "bg-accent text-primary"
-                )}>
-                  <Icon size={15} />
-                </span>
-              </div>
-              <div className="metric-value text-[26px]">{loading ? "—" : k.value.toLocaleString()}</div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-label text-muted-foreground">{k.hint}</span>
-                <ArrowUpRight size={13} className="text-muted-foreground/40 group-hover:text-primary transition-colors" />
-              </div>
-            </button>
-          );
-        })}
+      {/* Uniform 4×1 / 2×2 KPI strip */}
+      <div className="card-grid mb-4">
+        {kpis.map((k) => (
+          <StatCard
+            key={k.label}
+            icon={k.icon}
+            label={k.label}
+            value={loading ? "—" : k.value.toLocaleString()}
+            subtitle={k.hint}
+            emphasize={k.emphasize}
+            color={k.emphasize ? "amber" : "primary"}
+            to={k.path}
+            className="min-h-[112px]"
+          />
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 mb-4">
-        {/* Attention — dominant column */}
-        <section className="lg:col-span-7 rounded-lg border border-border bg-card overflow-hidden shadow-surface">
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2 bg-gradient-to-r from-warn-tint/40 to-transparent">
+      {/* Balanced mid grid — equal columns, no empty rivers */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4 items-stretch">
+        <section className="summary-panel flex flex-col min-h-[260px]">
+          <div className="summary-panel-header bg-gradient-to-r from-warn-tint/40 to-transparent">
             <h2 className="section-title flex items-center gap-2">
               <span className="w-7 h-7 rounded-md bg-warn-tint text-warn flex items-center justify-center">
                 <AlertTriangle size={14} />
               </span>
               Needs attention
             </h2>
-            <span className="text-label font-semibold text-muted-foreground tabular-nums">
-              {attention.length} open
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-label font-semibold text-muted-foreground tabular-nums">
+                {attention.length} open
+              </span>
+              <ExcelExportButton onClick={exportAttention} />
+            </div>
           </div>
           {loading ? (
-            <div className="p-4"><LoadingSkeleton rows={3} cols={1} /></div>
+            <div className="p-4 flex-1"><LoadingSkeleton rows={3} cols={1} /></div>
           ) : attention.length === 0 ? (
-            <div className="px-5 py-10 flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-full bg-ok-tint text-ok flex items-center justify-center mb-3">
-                <CheckCircle2 size={22} />
+            <div className="flex-1 flex flex-col p-4">
+              <div className="flex items-center gap-3 rounded-md bg-ok-tint/50 px-3 py-2.5 mb-3">
+                <CheckCircle2 size={18} className="text-ok shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-ui font-bold text-foreground">All clear for this FY</p>
+                  <p className="text-label text-muted-foreground">No pending reviews or open remarks.</p>
+                </div>
               </div>
-              <p className="text-ui font-bold text-foreground">All clear for this FY</p>
-              <p className="text-label text-muted-foreground mt-1 max-w-xs">
-                No pending reviews, rejections, or open remarks. Keep entering data on schedule.
-              </p>
-              <Button size="sm" className="mt-4" onClick={() => navigate("/app/esg-input")}>
-                <Plus size={14} /> Enter ESG data
-              </Button>
+              <div className="grid grid-cols-2 gap-2 flex-1">
+                {shortcuts.map((a) => {
+                  const Icon = a.icon;
+                  return (
+                    <button
+                      key={a.path}
+                      type="button"
+                      onClick={() => navigate(a.path)}
+                      className="flex flex-col items-start gap-2 p-3 rounded-md border border-border hover:border-primary/30 hover:bg-accent/60 transition-all text-left group"
+                    >
+                      <span className="w-8 h-8 rounded-md bg-accent text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <Icon size={15} />
+                      </span>
+                      <div>
+                        <div className="text-ui font-bold text-foreground">{a.label}</div>
+                        <div className="text-label text-muted-foreground">{a.desc}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-border flex-1">
               {attention.slice(0, 6).map((item) => (
                 <li key={item.id}>
                   <button
@@ -335,20 +415,21 @@ export default function TenantDashboard() {
           )}
         </section>
 
-        {/* Setup / pulse */}
-        <section className="lg:col-span-5 rounded-lg border border-border bg-card overflow-hidden shadow-surface flex flex-col">
+        <section className="summary-panel flex flex-col min-h-[260px]">
           {showOnboarding ? (
             <>
-              <div className="px-4 py-3 border-b border-border">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <h2 className="section-title">Workspace setup</h2>
-                  <span className="font-mono text-ui font-bold text-primary tabular-nums">{setupPct}%</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-sunken overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-700"
-                    style={{ width: `${setupPct}%` }}
-                  />
+              <div className="summary-panel-header">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <h2 className="section-title">Workspace setup</h2>
+                    <span className="font-mono text-ui font-bold text-primary tabular-nums">{setupPct}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-sunken overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-700"
+                      style={{ width: `${setupPct}%` }}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="p-2 flex-1">
@@ -374,16 +455,11 @@ export default function TenantDashboard() {
             </>
           ) : (
             <>
-              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <div className="summary-panel-header">
                 <h2 className="section-title">Shortcuts</h2>
               </div>
-              <div className="p-3 grid grid-cols-2 gap-2 flex-1">
-                {[
-                  { label: "Enter data", desc: "ESG input", path: "/app/esg-input", icon: Plus },
-                  { label: "Review", desc: "Approvals", path: "/app/review", icon: UserCheck },
-                  { label: "Reports", desc: "Analytics", path: "/app/reports", icon: FileText },
-                  { label: "Locations", desc: "Sites", path: "/app/locations", icon: MapPin },
-                ].map((a) => {
+              <div className="summary-panel-body grid grid-cols-2 gap-2 flex-1">
+                {shortcuts.map((a) => {
                   const Icon = a.icon;
                   return (
                     <button
@@ -408,18 +484,21 @@ export default function TenantDashboard() {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-        <section className="lg:col-span-3 rounded-lg border border-border bg-card overflow-hidden shadow-surface">
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
+        <section className="summary-panel flex flex-col min-h-[240px]">
+          <div className="summary-panel-header">
             <div>
               <h2 className="section-title">Data by module</h2>
               <p className="text-label text-muted-foreground mt-0.5">Record volume · {selectedFyLabel}</p>
             </div>
-            <Button variant="ghost" size="sm" className="h-7 text-label" onClick={() => navigate("/app/reports")}>
-              Open reports <ChevronRight size={12} />
-            </Button>
+            <div className="flex items-center gap-1">
+              <ExcelExportButton onClick={exportModules} />
+              <Button variant="ghost" size="sm" className="h-7 text-label" onClick={() => navigate("/app/reports")}>
+                Open reports <ChevronRight size={12} />
+              </Button>
+            </div>
           </div>
-          <div className="p-2">
+          <div className="p-2 flex-1">
             {loading ? (
               <LoadingSkeleton rows={4} cols={1} />
             ) : modules.length === 0 ? (
@@ -463,12 +542,15 @@ export default function TenantDashboard() {
           </div>
         </section>
 
-        <section className="lg:col-span-2 rounded-lg border border-border bg-card overflow-hidden shadow-surface flex flex-col">
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <section className="summary-panel flex flex-col min-h-[240px]">
+          <div className="summary-panel-header">
             <h2 className="section-title">Recent activity</h2>
-            <Button variant="ghost" size="sm" className="h-7 text-label" onClick={() => navigate("/app/notifications")}>
-              All <ChevronRight size={12} />
-            </Button>
+            <div className="flex items-center gap-1">
+              <ExcelExportButton onClick={exportActivity} />
+              <Button variant="ghost" size="sm" className="h-7 text-label" onClick={() => navigate("/app/notifications")}>
+                All <ChevronRight size={12} />
+              </Button>
+            </div>
           </div>
           <div className="flex-1 min-h-0">
             {loading ? (

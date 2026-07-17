@@ -1,22 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, type ReactNode } from "react";
 import * as XLSX from "xlsx";
 import { tenantApi } from "@/api/client";
 import { useModulesStore } from "@/store/modules";
 import { useVocabulariesStore } from "@/store/vocabularies";
-import { StatCard, LoadingSkeleton } from "@/components/shared/PageComponents";
+import { LoadingSkeleton } from "@/components/shared/PageComponents";
 import { PageShell } from "@/components/shared/PageShell";
-import { PageTabs } from "@/components/shared/PageTabs";
 import { FilterBar, FilterSelect } from "@/components/shared/FilterBar";
-import { ChartCard } from "@/components/shared/ChartCard";
 import { CHART_COLORS, CHART_AXIS, CHART_GRID, chartTooltipStyle } from "@/components/shared/ChartTheme";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "sonner";
 import {
-  BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
+  BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { Database, Zap, Wind, Droplets, Trash2, FileText, FileSpreadsheet, Package2, FileDown } from "lucide-react";
-import { getApiError } from "@/lib/utils";
+import { getApiError, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { ESGInput, KPI, ReportingYear, Location, Indicator, DerivedMetric, WasteDisposalBreakdown, AppModule } from "@/types";
 import { evaluateFormula } from "@/lib/formulaEvaluator";
@@ -75,6 +73,7 @@ export default function ReportsPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [scope3Batches, setScope3Batches] = useState<any[]>([]);
+  const [scopeView, setScopeView] = useState<"chart" | "table">("chart");
 
   useEffect(() => {
     let anyError = false;
@@ -201,11 +200,11 @@ export default function ReportsPage() {
   const waterIndIds = modIndicatorIds(waterMod);
   const wasteIndIds = modIndicatorIds(wasteMod);
 
-  // Stat card values
+  // Stat card values — energy shown in GJ when MJ available
   const energyMJ = sumField(energyIds, energyIndIds, "mj_value");
   const energyQty = sumField(energyIds, energyIndIds, "quantity");
-  const energyStatValue = energyMJ > 0 ? energyMJ : energyQty;
-  const energyStatLabel = energyMJ > 0 ? "Total Energy (MJ)" : "Total Energy (Qty)";
+  const energyStatValue = energyMJ > 0 ? energyMJ / 1000 : energyQty;
+  const energyStatLabel = energyMJ > 0 ? "Total Energy (GJ)" : "Total Energy (Qty)";
   const waterTotal = sumField(waterIds, waterIndIds, "quantity");
   const wasteTotal = sumField(wasteIds, wasteIndIds, "quantity");
 
@@ -223,6 +222,25 @@ export default function ReportsPage() {
     }
     return { month: name, value: me.filter((e) => inModule(e, energyIds, energyIndIds)).reduce((s, e) => s + (Number(e.quantity) || 0), 0) };
   });
+
+  const monthlyTarget = useMemo(() => {
+    const vals = monthlyEmissions.map((m) => m.value).filter((v) => v > 0);
+    if (vals.length === 0) return 0;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }, [monthlyEmissions]);
+
+  const exportMonthlyChart = () => {
+    const rows = monthlyEmissions.map((m) => ({
+      Month: m.month,
+      [hasEmissionData ? "Emissions (tCO2e)" : "Energy (Qty)"]: m.value,
+      "Period average": monthlyTarget || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Monthly");
+    XLSX.writeFile(wb, `monthly-${hasEmissionData ? "emissions" : "energy"}-${fyLabel}.xlsx`);
+    toast.success("Chart data exported");
+  };
 
   // Chart 2: Emissions by Scope pie — data-driven (works even if scope_number not set on KPI)
   const scopeTotalsForPie = emissionScopes.map((sd) => {
@@ -700,65 +718,21 @@ export default function ReportsPage() {
 
   const hasFilters = !!(selectedFY || (!isLocationUser && selectedLocation) || selectedMonth);
 
+  const metricTiles = [
+    { icon: Zap, label: energyStatLabel, value: energyStatValue.toLocaleString(undefined, { maximumFractionDigits: 1 }), tint: "bg-warn-tint/50" },
+    { icon: Wind, label: "Total Emissions (tCO₂e)", value: totalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 }), tint: "bg-ok-tint/50" },
+    { icon: Droplets, label: "Total Water (kL)", value: waterTotal.toLocaleString(undefined, { maximumFractionDigits: 0 }), tint: "bg-info-tint/50" },
+    { icon: Trash2, label: "Total Waste (MT)", value: wasteTotal.toLocaleString(undefined, { maximumFractionDigits: 2 }), tint: "bg-sunken" },
+    { icon: Package2, label: "Scope 3 Emissions (tCO₂e)", value: scope3TotalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 }), tint: "bg-accent/60" },
+  ];
+
   return (
     <PageShell
       title="Reports & Analytics"
       description="Approved data only"
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Reports & Analytics" }]}
       fullWidth
-      className="pt-3 pb-4 [&_.page-header]:mb-2"
-      toolbar={
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between gap-3 flex-wrap border-b border-border">
-            <PageTabs
-              tabs={[
-                { key: "analytics", label: "Analytics", icon: <Database size={14} /> },
-                { key: "annexure", label: "Report", icon: <FileText size={14} /> },
-              ]}
-              value={tab}
-              onChange={(k) => setTab(k as ReportTab)}
-              className="border-b-0"
-            />
-          </div>
-          <FilterBar
-            showClear={hasFilters}
-            onClear={() => { setSelectedFY(""); setSelectedMonth(""); if (!isLocationUser) setSelectedLocation(""); }}
-            className="pb-0.5"
-          >
-            <FilterSelect
-              label="FY"
-              value={selectedFY}
-              onChange={setSelectedFY}
-              placeholder="All FY"
-              options={reportingYears.map((r) => ({
-                value: String(r.year_id),
-                label: r.financial_year?.fy_label || `FY ${r.year_id}`,
-              }))}
-              minWidth={150}
-            />
-            {!isLocationUser && (
-              <FilterSelect
-                label="Location"
-                value={selectedLocation}
-                onChange={setSelectedLocation}
-                placeholder="All Locations"
-                options={locations.map((l) => ({ value: l.location_id, label: l.location_name }))}
-                minWidth={160}
-              />
-            )}
-            {tab === "analytics" && (
-              <FilterSelect
-                label="Month"
-                value={selectedMonth}
-                onChange={setSelectedMonth}
-                placeholder="All Months"
-                options={MONTH_NAMES.map((name, i) => ({ value: String(i + 1), label: name }))}
-                minWidth={130}
-              />
-            )}
-          </FilterBar>
-        </div>
-      }
+      className="pt-3 pb-4 [&_.page-header]:mb-0"
       actions={
         <div className="flex items-center gap-2">
           {tab === "annexure" && (
@@ -777,35 +751,151 @@ export default function ReportsPage() {
         </div>
       }
     >
+      {/* Sticky sub-tab + filter chrome */}
+      <div className="sticky top-0 z-30 -mx-1 px-1 mb-3 bg-background/95 backdrop-blur-sm border-b border-border pb-2">
+        <div role="tablist" className="config-tabs mb-2" aria-label="Reports views">
+          {([
+            { key: "analytics" as ReportTab, label: "Analytics", icon: Database },
+            { key: "annexure" as ReportTab, label: "Report", icon: FileText },
+          ]).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
+              className={cn("config-tab", tab === key && "config-tab-active")}
+            >
+              <Icon size={14} /> {label}
+            </button>
+          ))}
+        </div>
+        <FilterBar
+          showClear={hasFilters}
+          onClear={() => { setSelectedFY(""); setSelectedMonth(""); if (!isLocationUser) setSelectedLocation(""); }}
+        >
+          <FilterSelect
+            label="FY"
+            value={selectedFY}
+            onChange={setSelectedFY}
+            placeholder="All FY"
+            options={reportingYears.map((r) => ({
+              value: String(r.year_id),
+              label: r.financial_year?.fy_label || `FY ${r.year_id}`,
+            }))}
+            minWidth={150}
+          />
+          {!isLocationUser && (
+            <FilterSelect
+              label="Location"
+              value={selectedLocation}
+              onChange={setSelectedLocation}
+              placeholder="All Locations"
+              options={locations.map((l) => ({ value: l.location_id, label: l.location_name }))}
+              minWidth={160}
+            />
+          )}
+          {tab === "analytics" && (
+            <FilterSelect
+              label="Month"
+              value={selectedMonth}
+              onChange={setSelectedMonth}
+              placeholder="All Months"
+              options={MONTH_NAMES.map((name, i) => ({ value: String(i + 1), label: name }))}
+              minWidth={130}
+            />
+          )}
+        </FilterBar>
+      </div>
+
       {/* ══════ ANALYTICS TAB ══════ */}
       {tab === "analytics" && (
         <>
           {filtered.length === 0 && (
             <p className="text-[12px] text-amber-500 mb-2">No entries found for the selected filters</p>
           )}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-3">
-            <StatCard icon={Zap} label={energyStatLabel} value={energyStatValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} accent={CHART_COLORS[4]} />
-            <StatCard icon={Wind} label="Total Emissions (tCO₂e)" value={totalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent={CHART_COLORS[7]} />
-            <StatCard icon={Droplets} label="Total Water (kL)" value={waterTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })} accent={CHART_COLORS[4]} />
-            <StatCard icon={Trash2} label="Total Waste (MT)" value={wasteTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent={CHART_COLORS[2]} />
-            <StatCard icon={Package2} label="Scope 3 Emissions (tCO₂e)" value={scope3TotalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 })} accent={CHART_COLORS[6]} />
+
+          {/* Metric summary — tonal strip, no hard card outlines */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-0 mb-4 rounded-md overflow-hidden bg-sunken/40">
+            {metricTiles.map((m) => (
+              <div key={m.label} className={cn("px-4 py-3.5 flex items-start gap-3", m.tint)}>
+                <div className="w-8 h-8 rounded-md bg-card/80 flex items-center justify-center shrink-0 text-foreground/70">
+                  <m.icon size={16} />
+                </div>
+                <div className="min-w-0">
+                  <div className="metric-value text-[20px]">{m.value}</div>
+                  <div className="text-[11px] font-semibold field-label mt-1 leading-snug">{m.label}</div>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-            <ChartCard title={hasEmissionData ? "Monthly Emissions (tCO₂e)" : "Monthly Energy Consumption (Qty)"}>
+            {/* Monthly emissions — dashed target + Excel export */}
+            <AnalyticsPanel
+              title={hasEmissionData ? "Monthly Emissions (tCO₂e)" : "Monthly Energy Consumption (Qty)"}
+              actions={
+                <button
+                  type="button"
+                  title="Export Excel"
+                  onClick={exportMonthlyChart}
+                  className="p-1.5 rounded-md text-ok hover:bg-ok-tint"
+                >
+                  <FileSpreadsheet size={14} />
+                </button>
+              }
+            >
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={monthlyEmissions}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_AXIS }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: CHART_AXIS }} axisLine={false} tickLine={false} />
                   <Tooltip contentStyle={chartTooltipStyle} />
+                  {monthlyTarget > 0 && (
+                    <ReferenceLine
+                      y={monthlyTarget}
+                      stroke="hsl(var(--destructive))"
+                      strokeDasharray="6 4"
+                      strokeWidth={1.5}
+                      label={{ value: "Target", position: "insideTopRight", fill: "hsl(var(--destructive))", fontSize: 10 }}
+                    />
+                  )}
                   <Bar dataKey="value" name={hasEmissionData ? "Emissions (tCO₂e)" : "Quantity"} fill={CHART_COLORS[4]} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </ChartCard>
+            </AnalyticsPanel>
 
-            <ChartCard title="Emissions by Scope">
-              {scopeTotalsForPie.length === 0 ? <p className="text-center text-muted-foreground text-sm py-16">No emission data</p> : (
+            {/* Emissions by Scope — Chart | Data Table toggle */}
+            <AnalyticsPanel
+              title="Emissions by Scope"
+              actions={
+                <div className="inline-flex rounded-md border border-border/60 p-0.5 bg-card/60">
+                  <button
+                    type="button"
+                    onClick={() => setScopeView("chart")}
+                    className={cn(
+                      "px-2.5 py-1 rounded text-[11px] font-semibold transition-colors",
+                      scopeView === "chart" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+                    )}
+                  >
+                    Chart
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScopeView("table")}
+                    className={cn(
+                      "px-2.5 py-1 rounded text-[11px] font-semibold transition-colors",
+                      scopeView === "table" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+                    )}
+                  >
+                    Data Table
+                  </button>
+                </div>
+              }
+            >
+              {scopeTotalsForPie.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-16">No emission data</p>
+              ) : scopeView === "chart" ? (
                 <div className="flex items-center gap-4">
                   <ResponsiveContainer width="55%" height={220}>
                     <PieChart>
@@ -818,16 +908,48 @@ export default function ReportsPage() {
                   <div className="flex-1 flex flex-col gap-2">
                     {scopeTotalsForPie.map((m, i) => (
                       <div key={i} className="flex items-center justify-between text-[12px]">
-                        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded" style={{ background: m.color }} /><span className="text-muted-foreground">{m.name}</span></div>
-                        <span className="font-bold text-foreground">{m.value.toLocaleString()} tCO₂e</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: m.color }} />
+                          <span className="text-muted-foreground">{m.name}</span>
+                        </div>
+                        <span className="font-bold text-foreground tabular-nums">{m.value.toLocaleString()} tCO₂e</span>
                       </div>
                     ))}
                   </div>
                 </div>
+              ) : (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="text-[10px] uppercase tracking-wider text-muted-foreground border-b border-[hsl(var(--border-hairline))]">
+                      <th className="py-2 font-semibold">Scope</th>
+                      <th className="py-2 font-semibold text-right">tCO₂e</th>
+                      <th className="py-2 font-semibold text-right">Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scopeTotalsForPie.map((m, i) => {
+                      const total = scopeTotalsForPie.reduce((a, b) => a + b.value, 0) || 1;
+                      return (
+                        <tr key={i} className="border-b border-[hsl(var(--border-hairline))]">
+                          <td className="py-2 text-[12px]">
+                            <span className="inline-flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full" style={{ background: m.color }} />
+                              {m.name}
+                            </span>
+                          </td>
+                          <td className="py-2 text-[12px] text-right tabular-nums font-semibold">{m.value.toLocaleString()}</td>
+                          <td className="py-2 text-[12px] text-right tabular-nums text-muted-foreground">
+                            {((m.value / total) * 100).toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
-            </ChartCard>
+            </AnalyticsPanel>
 
-            <ChartCard title="Top Emitters by Location">
+            <AnalyticsPanel title="Top Emitters by Location">
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={locationComparison} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
@@ -837,9 +959,9 @@ export default function ReportsPage() {
                   <Bar dataKey="value" fill="#14b8a6" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </ChartCard>
+            </AnalyticsPanel>
 
-            <ChartCard title="GHG Scope Breakdown">
+            <AnalyticsPanel title="GHG Scope Breakdown">
               {scopeTotals.length === 0 ? <p className="text-center text-muted-foreground text-sm py-16">No scope data</p> : (
                 <div className="flex items-center gap-4">
                   <ResponsiveContainer width="55%" height={220}>
@@ -853,16 +975,21 @@ export default function ReportsPage() {
                   <div className="flex-1 flex flex-col gap-3">
                     {scopeTotals.map((s, i) => (
                       <div key={i}>
-                        <div className="flex justify-between text-[12px] mb-0.5"><span className="text-muted-foreground">{s.name}</span><span className="font-bold text-foreground">{s.value.toLocaleString()}</span></div>
-                        <div className="h-1.5 rounded-full bg-sunken"><div className="h-full rounded-full" style={{ background: s.color, width: `${(s.value / scopeTotals.reduce((a, b) => a + b.value, 0)) * 100}%` }} /></div>
+                        <div className="flex justify-between text-[12px] mb-0.5">
+                          <span className="text-muted-foreground">{s.name}</span>
+                          <span className="font-bold text-foreground tabular-nums">{s.value.toLocaleString()}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-card/80">
+                          <div className="h-full rounded-full" style={{ background: s.color, width: `${(s.value / scopeTotals.reduce((a, b) => a + b.value, 0)) * 100}%` }} />
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-            </ChartCard>
+            </AnalyticsPanel>
 
-            <ChartCard title={`Energy Mix — Renewable vs Non-Renewable (${hasMJData ? "MJ" : "Qty"})`}>
+            <AnalyticsPanel title={`Energy Mix — Renewable vs Non-Renewable (${hasMJData ? "MJ" : "Qty"})`}>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={energyMix} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
@@ -874,9 +1001,9 @@ export default function ReportsPage() {
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                 </BarChart>
               </ResponsiveContainer>
-            </ChartCard>
+            </AnalyticsPanel>
 
-            <ChartCard title={`Energy (${hasMJData ? "MJ" : "Qty"}) vs Emissions (tCO₂e) Trend`}>
+            <AnalyticsPanel title={`Energy (${hasMJData ? "MJ" : "Qty"}) vs Emissions (tCO₂e) Trend`}>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={mjVsEmission}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -889,12 +1016,11 @@ export default function ReportsPage() {
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                 </LineChart>
               </ResponsiveContainer>
-            </ChartCard>
+            </AnalyticsPanel>
           </div>
 
-          {/* Scope 3 breakdown — only when data exists */}
           {scope3ByCategory.length > 0 && (
-            <ChartCard title="Scope 3 Emissions by GHG Category (tCO₂e)">
+            <AnalyticsPanel title="Scope 3 Emissions by GHG Category (tCO₂e)">
               <ResponsiveContainer width="100%" height={Math.max(220, scope3ByCategory.length * 36)}>
                 <BarChart data={scope3ByCategory} layout="vertical" margin={{ left: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
@@ -904,7 +1030,7 @@ export default function ReportsPage() {
                   <Bar dataKey="value" fill="#7c3aed" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </ChartCard>
+            </AnalyticsPanel>
           )}
         </>
       )}
@@ -1072,5 +1198,26 @@ export default function ReportsPage() {
         </div>
       )}
     </PageShell>
+  );
+}
+
+/** Borderless tonal chart panel — reduces hard white card outlines */
+function AnalyticsPanel({
+  title,
+  actions,
+  children,
+}: {
+  title: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-md bg-sunken/35 overflow-hidden">
+      <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+        <h3 className="section-title">{title}</h3>
+        {actions}
+      </div>
+      <div className="px-4 pb-4">{children}</div>
+    </div>
   );
 }

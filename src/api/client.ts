@@ -10,11 +10,14 @@ const api = axios.create({ baseURL: API, headers: { "Content-Type": "application
 
 api.interceptors.request.use((config) => {
   if (DEMO_MODE) {
-    const resp = getDemoResponse(config.url, config.method?.toUpperCase());
+    const resp = getDemoResponse({
+      url: config.url,
+      method: config.method?.toUpperCase(),
+      params: config.params,
+      data: config.data,
+    });
     const fakeResponse = {
-      // If demo helper already returns an object with `data`, unwrap it so
-      // callers receive the same shape as a real axios response.
-      data: resp && typeof resp === "object" && "data" in resp ? (resp as any).data : resp,
+      data: resp,
       status: 200,
       statusText: "OK",
       headers: {},

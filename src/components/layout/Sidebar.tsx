@@ -6,7 +6,7 @@ import { tenantApi, platformApi } from "@/api/client";
 import { APP_TAGLINE, PLATFORM_NAV, TENANT_NAV } from "@/lib/constants";
 import { SidebarFooter } from "@/components/layout/AppStatusBar";
 import { BrandLockup } from "@/components/shared/BrandMark";
-import { PanelLeftClose, PanelLeft, Building2, Shield } from "lucide-react";
+import { PanelLeftClose, PanelLeft } from "lucide-react";
 import type { UserType, Role } from "@/types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -37,15 +37,6 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
   const { theme, palette } = useAppearanceStore();
   const sidebarInverted =
     getResolvedTheme(theme) === "dark" || palette === "teal";
-
-  const [unreadCount, setUnreadCount] = useState(0);
-  useEffect(() => {
-    if (portalType !== "tenant") return;
-    const fetch = () => tenantApi.unreadCount().then(r => setUnreadCount(r.data?.unread_count ?? 0)).catch(() => {});
-    fetch();
-    const t = setInterval(fetch, 60_000);
-    return () => clearInterval(t);
-  }, [portalType]);
 
   const [pendingSupportCount, setPendingSupportCount] = useState(0);
   useEffect(() => {
@@ -81,8 +72,6 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
     return location.pathname.startsWith(path);
   };
 
-  const PortalIcon = portalType === "platform" ? Shield : Building2;
-
   return (
     <TooltipProvider delayDuration={300}>
       <div
@@ -107,21 +96,6 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
           </button>
         </div>
 
-        {/* Portal context */}
-        {!collapsed && (
-          <div className="px-3.5 py-2 border-b border-sidebar-border">
-            <div className={cn(
-              "inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-2xs font-semibold",
-              portalType === "platform"
-                ? "bg-amber-500/15 text-amber-200"
-                : "bg-sidebar-accent text-sidebar-foreground/80 border border-sidebar-border"
-            )}>
-              <PortalIcon size={11} />
-              {portalType === "platform" ? "Platform Admin" : "Company Portal"}
-            </div>
-          </div>
-        )}
-
         {/* Navigation */}
         <nav className="flex-1 flex flex-col gap-0.5 px-2 py-2 overflow-y-auto">
           {(() => {
@@ -131,7 +105,6 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
               if ((item as any).group) lastGroup = (item as any).group;
               const active = isActive(item.path);
               const Icon = item.icon;
-              const isNotif = item.key === "notifications";
               const isSettings = item.key === "settings";
               const showSupportBadge = isSettings && pendingSupportCount > 0;
               const isPlatformTickets = item.key === "tickets";
@@ -154,9 +127,6 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                   )}
                   <div className="relative flex-shrink-0">
                     <Icon size={17} strokeWidth={active ? 2.25 : 2} className={active ? "text-sidebar-primary" : undefined} />
-                    {isNotif && unreadCount > 0 && (
-                      <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive ring-2 ring-sidebar" />
-                    )}
                     {showSupportBadge && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warn ring-2 ring-sidebar" />
                     )}
@@ -167,11 +137,6 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                   {!collapsed && (
                     <>
                       <span className="flex-1 truncate">{item.label}</span>
-                      {isNotif && unreadCount > 0 && (
-                        <span className="text-2xs font-bold px-1.5 py-0.5 rounded-md tabular-nums bg-destructive/20 text-red-300">
-                          {unreadCount}
-                        </span>
-                      )}
                       {showSupportBadge && (
                         <span className="text-2xs font-bold px-1.5 py-0.5 rounded-md tabular-nums bg-amber-500/20 text-amber-200" title="Pending support-access requests">
                           {pendingSupportCount}
@@ -201,7 +166,7 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                     {header}
                     <Tooltip>
                       <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                      <TooltipContent side="right">{item.label}{isNotif && unreadCount > 0 ? ` (${unreadCount})` : ""}</TooltipContent>
+                      <TooltipContent side="right">{item.label}</TooltipContent>
                     </Tooltip>
                   </Fragment>
                 );

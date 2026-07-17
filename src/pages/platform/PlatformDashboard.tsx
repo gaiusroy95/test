@@ -71,19 +71,21 @@ export default function PlatformDashboard() {
         </div>
       )}
       {/* Stat tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+      <div className="card-grid mb-4">
         <StatCard icon={Building2}     label="Total Companies"      value={totalCompanies}  subtitle="Manage companies →"    to="/platform/companies" />
-        <StatCard icon={Users}         label="Active Companies"     value={activeCount}     subtitle="Currently operational" accent="hsl(var(--teal))" to="/platform/companies?status=ACTIVE" />
-        <StatCard icon={AlertTriangle} label="Suspended / Blocked"  value={suspendedCount}  subtitle="Needs attention"       accent="hsl(var(--warn))" to="/platform/companies?status=SUSPENDED" />
-        <StatCard icon={FileText}      label="Audit Actions"        value={auditTotal}      subtitle="All time"              accent="hsl(var(--muted-foreground))" to="/platform/audit-log" />
+        <StatCard icon={Users}         label="Active Companies"     value={activeCount}     subtitle="Currently operational" color="green" to="/platform/companies?status=ACTIVE" />
+        <StatCard icon={AlertTriangle} label="Suspended / Blocked"  value={suspendedCount}  subtitle="Needs attention"       color="amber" to="/platform/companies?status=SUSPENDED" />
+        <StatCard icon={FileText}      label="Audit Actions"        value={auditTotal}      subtitle="All time"              color="muted" to="/platform/audit-log" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+      <div className="card-grid-2 mb-4">
         {/* Recent Companies */}
-        <div className="lg:col-span-2 surface-elevated">
-          <div className="px-6 py-4 border-b border-[hsl(var(--border-hairline))]">
-            <h3 className="text-base font-bold text-foreground">Recent Companies</h3>
-            <p className="text-label text-muted-foreground mt-0.5">Latest onboarded companies</p>
+        <div className="summary-panel">
+          <div className="summary-panel-header">
+            <div>
+              <h3 className="section-title">Recent Companies</h3>
+              <p className="card-meta mt-0.5">Latest onboarded companies</p>
+            </div>
           </div>
           {loading ? (
             <div className="p-6"><LoadingSkeleton rows={5} cols={5} /></div>
@@ -122,12 +124,14 @@ export default function PlatformDashboard() {
         </div>
 
         {/* Subscription Plans */}
-        <div className="surface">
-          <div className="px-6 py-4 border-b border-[hsl(var(--border-hairline))]">
-            <h3 className="text-base font-bold text-foreground">Subscription Plans</h3>
-            <p className="text-label text-muted-foreground mt-0.5">{plans.length} plan{plans.length !== 1 ? "s" : ""} configured</p>
+        <div className="summary-panel">
+          <div className="summary-panel-header">
+            <div>
+              <h3 className="section-title">Subscription Plans</h3>
+              <p className="card-meta mt-0.5">{plans.length} plan{plans.length !== 1 ? "s" : ""} configured</p>
+            </div>
           </div>
-          <div className="p-4 flex flex-col gap-3">
+          <div className="summary-panel-body flex flex-col gap-3">
             {plans.map((p) => (
               <div key={p.plan_id} className="p-4 rounded-md border border-border hover:border-border hover:shadow-sm transition-all duration-200">
                 <div className="flex items-center justify-between mb-3">
@@ -156,10 +160,12 @@ export default function PlatformDashboard() {
       </div>
 
       {/* Recent Audit Log */}
-      <div className="surface">
-        <div className="px-6 py-4 border-b border-[hsl(var(--border-hairline))]">
-          <h3 className="text-base font-bold text-foreground">Recent Audit Log</h3>
-          <p className="text-label text-muted-foreground mt-0.5">Latest platform actions</p>
+      <div className="summary-panel">
+        <div className="summary-panel-header">
+          <div>
+            <h3 className="section-title">Recent Audit Log</h3>
+            <p className="card-meta mt-0.5">Latest platform actions</p>
+          </div>
         </div>
         {loading ? (
           <div className="p-6"><LoadingSkeleton rows={5} cols={4} /></div>

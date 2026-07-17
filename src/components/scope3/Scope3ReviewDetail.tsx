@@ -102,7 +102,7 @@ export default function Scope3ReviewDetail({ batch, canReview, onReviewed, onClo
   const monthLabel = batch.reporting_month ? MONTH_NAMES[batch.reporting_month] : "Annual";
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-card">
       {/* Header */}
       <div className="bg-card border-b border-border px-6 py-4 flex-shrink-0">
         <div className="flex items-start justify-between gap-4">
@@ -168,11 +168,11 @@ export default function Scope3ReviewDetail({ batch, canReview, onReviewed, onClo
                     <th className={hdrCls} style={{ width: 100 }}>Method</th>
                     <th className={hdrCls} style={{ minWidth: 160 }}>Description</th>
                     <th className={hdrCls} style={{ width: 130 }}>Supplier</th>
-                    <th className={hdrCls} style={{ width: 80 }}>Qty / Amt</th>
-                    <th className={hdrCls} style={{ width: 60 }}>Unit / Curr</th>
+                    <th className={`${hdrCls} text-right`} style={{ width: 80 }}>Qty / Amt</th>
+                    <th className={`${hdrCls} text-center`} style={{ width: 72 }}>Unit / Curr</th>
                     <th className={hdrCls} style={{ width: 120 }}>Factor / Source</th>
                     <th className={`${hdrCls} text-right`} style={{ width: 90 }}>tCO₂e</th>
-                    <th className={hdrCls} style={{ width: 70 }}>Status</th>
+                    <th className={`${hdrCls} text-center`} style={{ width: 70 }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -291,13 +291,13 @@ function UnifiedEntryRow({ entry: e }: { entry: Scope3Entry }) {
       </td>
       <td className={cellCls}>{e.activity_label || "—"}</td>
       <td className={`${cellCls} text-muted-foreground`}>{e.supplier_name || "—"}</td>
-      <td className={`${cellCls} font-mono`}>{qtyAmt}</td>
-      <td className={`${cellCls} text-muted-foreground`}>{unitCurr}</td>
+      <td className={`${cellCls} text-right font-mono tabular-nums`}>{qtyAmt}</td>
+      <td className={`${cellCls} text-center text-muted-foreground`}>{unitCurr}</td>
       <td className={`${cellCls} text-muted-foreground text-[11px] max-w-[120px] truncate`} title={factorSrc}>{factorSrc}</td>
-      <td className={`${cellCls} text-right font-mono font-semibold`}>
+      <td className={`${cellCls} text-right font-mono font-semibold tabular-nums`}>
         {e.emission_value != null ? e.emission_value.toFixed(4) : "—"}
       </td>
-      <td className={cellCls}>
+      <td className={`${cellCls} text-center`}>
         {hasError ? (
           <span className="text-destructive text-[11px]" title={e.error_message || ""}>
             <AlertCircle size={12} className="inline mr-0.5" />Error
