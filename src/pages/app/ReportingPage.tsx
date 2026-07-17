@@ -7,10 +7,11 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Calendar, Lock, Unlock, LockKeyhole } from "lucide-react";
+import { Plus, Calendar, LockKeyhole } from "lucide-react";
 import type { ReportingYear, PeriodStatus, FinancialYear } from "@/types";
-import { getApiError } from "@/lib/utils";
+import { cn, getApiError } from "@/lib/utils";
 
 export default function ReportingPage() {
   const { user } = useAuthStore();
@@ -129,31 +130,37 @@ export default function ReportingPage() {
   const lockedCount = periods.filter((p) => p.is_locked).length;
   const unlockedCount = periods.filter((p) => !p.is_locked).length;
 
+  /* Assign FY sits immediately beside FY tabs — never in the far-right actions zone */
   const fyToolbar = !loading && reportingYears.length > 0 ? (
     <div className="flex items-center gap-2 flex-wrap">
-      <div className="flex gap-1 bg-sunken rounded-lg p-1 w-fit flex-wrap">
-        {reportingYears.map((ry) => {
-          const active = selectedYear?.year_id === ry.year_id;
-          const label = ry.financial_year?.fy_label || `FY ${ry.year_id}`;
-          return (
-            <button
-              key={ry.id}
-              type="button"
-              onClick={() => selectYear(ry)}
-              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors ${
-                active ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground/90"
-              }`}
-            >
-              {label}
-            </button>
-          );
-        })}
+      <div className="inline-flex items-center gap-1.5 flex-wrap">
+        <div role="tablist" className="flex gap-1 bg-sunken rounded-lg p-1 w-fit flex-wrap" aria-label="Financial years">
+          {reportingYears.map((ry) => {
+            const active = selectedYear?.year_id === ry.year_id;
+            const label = ry.financial_year?.fy_label || `FY ${ry.year_id}`;
+            return (
+              <button
+                key={ry.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => selectYear(ry)}
+                className={cn(
+                  "px-2.5 py-1 rounded-md text-xs font-semibold transition-colors",
+                  active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground/90",
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+        {isAdmin && (
+          <Button size="sm" onClick={() => setAssignOpen(true)} className="h-8 shrink-0">
+            <Plus size={14} /> Assign FY
+          </Button>
+        )}
       </div>
-      {isAdmin && (
-        <Button size="sm" variant="outline" onClick={() => setAssignOpen(true)} className="h-7 shrink-0">
-          <Plus size={14} /> Assign FY
-        </Button>
-      )}
       {selectedYear && (
         <span className="text-label text-muted-foreground">
           Starts {selectedYear.financial_year?.start_month_name || `month ${selectedYear.fy_start_month || 4}`}
@@ -166,7 +173,7 @@ export default function ReportingPage() {
     <PageShell
       title="Reporting Years"
       description="Assign financial years and manage monthly period locks"
-      breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "Reporting Years" }]}
+      breadcrumb={[{ label: "Home", href: "/app" }, { label: "Reporting Years" }]}
       toolbar={fyToolbar}
     >
       {loading ? <LoadingSkeleton rows={3} cols={3} /> : reportingYears.length === 0 ? (
@@ -206,38 +213,32 @@ export default function ReportingPage() {
                 return (
                   <div
                     key={p.id || p.month_id}
-                    className={`relative rounded-md border px-2.5 py-3 pr-8 text-center transition-colors ${
+                    className={cn(
+                      "relative rounded-md border px-3 py-4 pr-12 text-center transition-colors",
                       isOpen
-                        ? "border-ok/40 bg-ok-tint"
-                        : "border-border bg-sunken/60"
-                    }`}
-                  >
-                    {isAdmin ? (
-                      <button
-                        type="button"
-                        title={isOpen ? "Lock period" : "Unlock period"}
-                        aria-label={isOpen ? `Lock ${monthName}` : `Unlock ${monthName}`}
-                        aria-pressed={!isOpen}
-                        onClick={() => setConfirmLock({ period: p, action: isOpen ? "lock" : "unlock" })}
-                        className={`absolute top-1.5 right-1.5 p-1 rounded-md transition-colors ${
-                          isOpen
-                            ? "text-ok hover:bg-ok/15"
-                            : "text-muted-foreground hover:bg-card hover:text-foreground"
-                        }`}
-                      >
-                        {isOpen ? <Unlock size={14} strokeWidth={2.25} /> : <Lock size={14} strokeWidth={2.25} />}
-                      </button>
-                    ) : (
-                      <span
-                        className={`absolute top-1.5 right-1.5 p-1 ${
-                          isOpen ? "text-ok" : "text-muted-foreground"
-                        }`}
-                        aria-hidden
-                      >
-                        {isOpen ? <Unlock size={14} /> : <Lock size={14} />}
-                      </span>
+                        ? "border-ok/30 bg-[#E8F5EE]"
+                        : "border-border bg-white",
                     )}
-                    <div className={`text-xs font-bold ${isOpen ? "text-foreground" : "text-muted-foreground"}`}>
+                  >
+                    <div className="absolute top-2 right-2">
+                      <Switch
+                        checked={isOpen}
+                        disabled={!isAdmin || actionLoading}
+                        onCheckedChange={(checked) => {
+                          if (!isAdmin) return;
+                          setConfirmLock({
+                            period: p,
+                            action: checked ? "unlock" : "lock",
+                          });
+                        }}
+                        aria-label={isOpen ? `${monthName} open — click to lock` : `${monthName} locked — click to unlock`}
+                        title={isOpen ? "Open — toggle to lock" : "Locked — toggle to open"}
+                      />
+                    </div>
+                    <div className={cn(
+                      "text-xs font-bold",
+                      isOpen ? "text-foreground" : "text-muted-foreground",
+                    )}>
                       {monthName}
                     </div>
                   </div>
@@ -259,7 +260,7 @@ export default function ReportingPage() {
           : `Unlock ${confirmLock?.period?.month?.month_name || "this month"}? Data editing will be allowed again.`
         }
         confirmLabel={confirmLock?.action === "lock" ? "Lock Period" : "Unlock Period"}
-        variant={confirmLock?.action === "lock" ? "default" : "default"}
+        variant="default"
         loading={actionLoading}
       />
     </PageShell>
