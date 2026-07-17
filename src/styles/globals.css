@@ -121,9 +121,9 @@
   html.dark {
     --background:        222 28% 8%;
     --card:              222 24% 11%;
-    --surface-sunken:    222 22% 14%;
-    --border:            222 16% 20%;
-    --border-hairline:   222 18% 16%;
+    --surface-sunken:    222 20% 16%;
+    --border:            222 16% 22%;
+    --border-hairline:   222 16% 18%;
     --foreground:        210 30% 96%;
     --muted-foreground:  215 12% 62%;
     --placeholder:       215 10% 48%;
@@ -262,6 +262,17 @@
     @apply text-label text-muted-foreground;
   }
 
+  /* Alternating tonal rows — light sunken / card; dark-aware via tokens */
+  .tone-a {
+    @apply bg-sunken;
+  }
+  .tone-b {
+    @apply bg-card;
+  }
+  .tone-track {
+    @apply bg-muted;
+  }
+
   /* Strict symmetrical card grids — 4 desktop / 2 tablet / 1 mobile */
   .card-grid {
     @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3;
@@ -378,6 +389,14 @@
     @apply sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100]
            focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground
            focus:rounded-md focus:text-ui focus:font-semibold;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 
   /* Dashboard hero band — quiet enterprise header */

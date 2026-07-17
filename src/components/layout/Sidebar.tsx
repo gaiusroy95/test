@@ -96,8 +96,8 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 flex flex-col gap-0.5 px-2 py-2 overflow-y-auto">
+        {/* Navigation — no Notifications row; alerts live in the top-bar bell */}
+        <nav className="flex-1 flex flex-col gap-0.5 px-0 py-2 overflow-y-auto">
           {(() => {
             let lastGroup: string | undefined;
             return nav.map((item) => {
@@ -115,18 +115,25 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                   key={item.key}
                   onClick={() => navigate(item.path)}
                   className={cn(
-                    "relative flex items-center gap-2.5 rounded-md border-none cursor-pointer w-full text-left transition-colors duration-150 text-ui",
-                    collapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2",
+                    "relative flex items-center gap-2.5 border-none cursor-pointer w-full text-left transition-colors duration-150 text-ui rounded-none",
+                    collapsed ? "px-2.5 py-2.5 justify-center" : "pl-3.5 pr-3 py-2",
                     active
-                      ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
-                      : "bg-transparent text-sidebar-foreground/55 font-medium hover:bg-sidebar-accent/70 hover:text-sidebar-foreground"
+                      ? "bg-transparent text-sidebar-foreground font-semibold"
+                      : "bg-transparent text-sidebar-foreground/55 font-medium hover:text-sidebar-foreground",
                   )}
                 >
                   {active && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-sidebar-primary" aria-hidden />
+                    <span
+                      className="absolute left-0 top-0 bottom-0 w-[3px] bg-sidebar-primary"
+                      aria-hidden
+                    />
                   )}
                   <div className="relative flex-shrink-0">
-                    <Icon size={17} strokeWidth={active ? 2.25 : 2} className={active ? "text-sidebar-primary" : undefined} />
+                    <Icon
+                      size={17}
+                      strokeWidth={active ? 2.25 : 2}
+                      className={active ? "text-sidebar-foreground" : undefined}
+                    />
                     {showSupportBadge && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-warn ring-2 ring-sidebar" />
                     )}
@@ -136,7 +143,9 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
                   </div>
                   {!collapsed && (
                     <>
-                      <span className="flex-1 truncate">{item.label}</span>
+                      <span className={cn("flex-1 truncate", active && "text-sidebar-foreground")}>
+                        {item.label}
+                      </span>
                       {showSupportBadge && (
                         <span className="text-2xs font-bold px-1.5 py-0.5 rounded-md tabular-nums bg-amber-500/20 text-amber-200" title="Pending support-access requests">
                           {pendingSupportCount}
@@ -154,8 +163,8 @@ export function Sidebar({ portalType, collapsed, setCollapsed }: Props) {
 
               const header = showGroupHeader ? (
                 collapsed
-                  ? <div key={`sep-${item.key}`} className="my-2 mx-2 border-t border-sidebar-border" />
-                  : <div key={`sep-${item.key}`} className="px-3 pt-4 pb-1">
+                  ? <div key={`sep-${item.key}`} className="my-2 mx-3 border-t border-sidebar-border" />
+                  : <div key={`sep-${item.key}`} className="px-3.5 pt-4 pb-1">
                       <span className="text-2xs font-bold uppercase tracking-[0.12em] text-sidebar-foreground/35">{(item as any).group}</span>
                     </div>
               ) : null;

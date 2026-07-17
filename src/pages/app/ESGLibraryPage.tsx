@@ -11,7 +11,7 @@ import { useModulesStore } from "@/store/modules";
 import { PageShell } from "@/components/shared/PageShell";
 import { LoadingSkeleton } from "@/components/shared/PageComponents";
 import { getModuleIcon } from "@/lib/constants";
-import { getApiError } from "@/lib/utils";
+import { cn, getApiError } from "@/lib/utils";
 import { ChevronDown, ChevronRight, Check, Download, Loader2, BookOpen, FlaskConical, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -176,32 +176,30 @@ export default function ESGLibraryPage() {
           </Tooltip>
         </TooltipProvider>
       }
-      actions={
-        <div className="inline-flex items-center p-0.5 bg-sunken rounded-md border border-border">
-          {([
-            { key: "indicators", label: "Indicators", icon: BookOpen },
-            { key: "factors",    label: "Factors",    icon: FlaskConical },
-          ] as const).map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setCatalogTab(key)}
-              className={`
-                flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-ui font-semibold transition-all
-                ${catalogTab === key
-                  ? "bg-card text-foreground shadow-sm border border-border"
-                  : "text-muted-foreground hover:text-foreground border border-transparent"}
-              `}
-            >
-              <Icon size={14} className={catalogTab === key ? "text-primary" : "opacity-70"} />
-              {label}
-            </button>
-          ))}
-        </div>
-      }
     >
       <div className="surface overflow-hidden">
-        
-        {/* Card Header (Module Tabs + Search/Stats) */}
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border px-3 py-2">
+          <div role="tablist" className="config-tabs" aria-label="Catalog views">
+            {([
+              { key: "indicators" as const, label: "Indicators", icon: BookOpen },
+              { key: "factors" as const, label: "Factors", icon: FlaskConical },
+            ]).map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={catalogTab === key}
+                onClick={() => setCatalogTab(key)}
+                className={cn("config-tab", catalogTab === key && "config-tab-active")}
+              >
+                <Icon size={14} className={catalogTab === key ? "text-primary" : "opacity-70"} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Module tabs + search/stats */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between px-2 pt-1 border-b border-[hsl(var(--border-hairline))] bg-sunken/50">
           <div className="flex flex-wrap px-2">
             {modules.map((m) => {
@@ -312,11 +310,11 @@ export default function ESGLibraryPage() {
 
         {/* ── Indicators Catalog View ── */}
         {catalogTab === "indicators" && (
-          <div className="bg-sunken/30 p-3">
+          <div>
             {loading ? (
-              <div className="bg-card rounded-lg border border-border p-6"><LoadingSkeleton rows={5} cols={3} /></div>
+              <div className="p-6"><LoadingSkeleton rows={5} cols={3} /></div>
             ) : indicators.length === 0 ? (
-              <div className="bg-card rounded-lg border border-border p-16 text-center shadow-sm">
+              <div className="p-16 text-center">
                 <BookOpen size={32} className="text-muted-foreground/40 mx-auto mb-4" />
                 <p className="text-[14px] font-medium text-muted-foreground">
                   No catalog indicators for {activeModule?.module_name} yet.
@@ -325,9 +323,8 @@ export default function ESGLibraryPage() {
               </div>
             ) : (
               <>
-                {/* Bulk-select bar */}
                 {pullableIndicators.length > 0 && (
-                  <div className="flex items-center justify-between bg-card border border-border rounded-sm px-3 py-2 mb-2">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-[hsl(var(--border-hairline))] tone-a">
                     <label className="flex items-center gap-2 text-ui font-medium text-foreground cursor-pointer hover:text-primary transition-colors">
                       <input
                         type="checkbox"
@@ -340,101 +337,103 @@ export default function ESGLibraryPage() {
                   </div>
                 )}
 
-                {/* Indicator list */}
-                <div className="space-y-1">
-                  {indicators.map((ind) => {
+                <div>
+                  {indicators.map((ind, rowIndex) => {
                     const isPulled    = pulledIndIds.has(ind.indicator_id);
                     const isExpanded  = expanded.has(ind.indicator_id);
                     const isSelected  = selected.has(ind.indicator_id);
                     const factorTotal = (ind.kpis ?? []).reduce((s, k) => s + (k.factor_count ?? 0), 0);
-                    
+                    const rowTone = rowIndex % 2 === 0 ? "tone-a" : "tone-b";
+
                     return (
-                      <div
-                        key={ind.indicator_id}
-                        className={`bg-card border rounded-sm transition-all ${
-                          isSelected ? "border-primary shadow-sm ring-1 ring-primary/10" : "border-border hover:border-border hover:shadow-sm"
-                        }`}
-                      >
-                        <div className="flex items-start gap-2.5 px-3 py-2">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            disabled={isPulled}
-                            onChange={() => toggleSelect(ind.indicator_id)}
-                            className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary disabled:opacity-30 cursor-pointer"
-                          />
-                          <button
-                            onClick={() => toggleExpanded(ind.indicator_id)}
-                            className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-left group min-h-[var(--density-row)]"
-                          >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
-                                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="text-ui font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                                  {ind.indicator_name}
+                      <div key={ind.indicator_id}>
+                        <div
+                          className={cn(
+                            "border-b border-[hsl(var(--border-hairline))] border-l-[3px] transition-colors",
+                            isSelected ? "border-l-primary" : "border-l-transparent",
+                            rowTone,
+                          )}
+                        >
+                          <div className="flex items-start gap-2.5 px-4 py-2.5">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isPulled}
+                              onChange={() => toggleSelect(ind.indicator_id)}
+                              className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary disabled:opacity-30 cursor-pointer"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => toggleExpanded(ind.indicator_id)}
+                              className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-left group min-h-[var(--density-row)]"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+                                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                 </div>
-                                {ind.description && (
-                                  <p className="text-label text-muted-foreground mt-0.5 line-clamp-1">
-                                    {ind.description}
-                                  </p>
+                                <div className="min-w-0">
+                                  <div className="text-ui font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                                    {ind.indicator_name}
+                                  </div>
+                                  {ind.description && (
+                                    <p className="text-label text-muted-foreground mt-0.5 line-clamp-1">
+                                      {ind.description}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 pl-7 sm:pl-0 shrink-0">
+                                <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-sm text-muted-foreground bg-black/[0.04]">
+                                  {(ind.kpis ?? []).length} KPI{(ind.kpis ?? []).length !== 1 ? "s" : ""}
+                                </span>
+                                <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-sm text-muted-foreground bg-black/[0.04]">
+                                  {factorTotal} Factor{factorTotal !== 1 ? "s" : ""}
+                                </span>
+                                {isPulled && (
+                                  <span className="flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded-sm bg-ok-tint text-ok">
+                                    <Check size={11} strokeWidth={3} /> Pulled
+                                  </span>
                                 )}
                               </div>
-                            </div>
+                            </button>
+                          </div>
 
-                            <div className="flex items-center gap-1.5 pl-7 sm:pl-0 shrink-0">
-                              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-sm bg-sunken text-muted-foreground border border-border">
-                                {(ind.kpis ?? []).length} KPI{(ind.kpis ?? []).length !== 1 ? "s" : ""}
-                              </span>
-                              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded-sm bg-sunken text-muted-foreground border border-border">
-                                {factorTotal} Factor{factorTotal !== 1 ? "s" : ""}
-                              </span>
-                              {isPulled && (
-                                <span className="flex items-center gap-1 text-2xs font-bold px-2 py-0.5 rounded-sm bg-ok-tint text-ok border border-ok/20">
-                                  <Check size={11} strokeWidth={3} /> Pulled
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                        </div>
-
-                        {isExpanded && (
-                          <div className="border-t border-[hsl(var(--border-hairline))] bg-sunken/50 p-2 rounded-b-sm">
-                            {(ind.kpis ?? []).length === 0 ? (
-                              <p className="text-[12px] text-muted-foreground italic">No KPIs found under this indicator.</p>
-                            ) : (
-                              <div className="bg-card border border-border rounded-sm overflow-hidden">
-                                <table className="w-full text-ui">
+                          {isExpanded && (
+                            <div className="px-4 pb-3 pl-11">
+                              {(ind.kpis ?? []).length === 0 ? (
+                                <p className="text-[12px] text-muted-foreground italic py-1">No KPIs found under this indicator.</p>
+                              ) : (
+                                <table className="w-full text-ui border-t border-[hsl(var(--border-hairline))]">
                                   <thead>
-                                    <tr className="bg-sunken border-b border-[hsl(var(--border-hairline))] text-2xs uppercase tracking-wider text-muted-foreground font-semibold">
-                                      <th className="text-left px-3 py-1.5">KPI Name</th>
-                                      <th className="text-left px-3 py-1.5">Unit</th>
-                                      <th className="text-left px-3 py-1.5">Scope</th>
-                                      <th className="text-left px-3 py-1.5">Factors</th>
+                                    <tr className="text-2xs uppercase tracking-wider text-muted-foreground font-semibold">
+                                      <th className="text-left py-1.5 pr-3">KPI Name</th>
+                                      <th className="text-left py-1.5 pr-3">Unit</th>
+                                      <th className="text-left py-1.5 pr-3">Scope</th>
+                                      <th className="text-left py-1.5">Factors</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {(ind.kpis ?? []).map((k, idx) => (
-                                      <tr key={k.kpi_id} className={idx !== (ind.kpis ?? []).length - 1 ? "border-b border-[hsl(var(--border-hairline))]" : ""}>
-                                        <td className="px-3 py-1.5 font-medium text-foreground">{k.kpi_name}</td>
-                                        <td className="px-3 py-1.5 text-muted-foreground font-mono text-label">{k.unit || "—"}</td>
-                                        <td className="px-3 py-1.5">
+                                    {(ind.kpis ?? []).map((k) => (
+                                      <tr key={k.kpi_id} className="border-t border-[hsl(var(--border-hairline))]/60">
+                                        <td className="py-1.5 pr-3 font-medium text-foreground">{k.kpi_name}</td>
+                                        <td className="py-1.5 pr-3 text-muted-foreground font-mono text-label">{k.unit || "—"}</td>
+                                        <td className="py-1.5 pr-3">
                                           {k.scope_number ? (
                                             <span className="text-2xs font-bold px-1.5 py-0.5 rounded-sm bg-info-tint text-info">S{k.scope_number}</span>
                                           ) : <span className="text-muted-foreground/40">—</span>}
                                         </td>
-                                        <td className="px-3 py-1.5 text-muted-foreground font-medium">
+                                        <td className="py-1.5 text-muted-foreground font-medium">
                                           {k.factor_count > 0 ? k.factor_count : <span className="text-muted-foreground/40">—</span>}
                                         </td>
                                       </tr>
                                     ))}
                                   </tbody>
                                 </table>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

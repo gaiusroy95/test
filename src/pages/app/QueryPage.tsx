@@ -280,10 +280,10 @@ export default function QueryPage() {
 
                 {loading && (
                   <div className="flex gap-3" role="status" aria-live="polite" aria-busy="true">
-                    <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${isLLM ? "bg-accent" : "bg-[#F8F9FA]"}`}>
+                    <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${isLLM ? "bg-accent" : "tone-a"}`}>
                       {isLLM ? <Sparkles size={15} className="text-accent-foreground" /> : <Bot size={15} className="text-muted-foreground" />}
                     </div>
-                    <div className="rounded-lg px-3 py-2.5 bg-[#F8F9FA]">
+                    <div className="rounded-lg px-3 py-2.5 tone-a">
                       <div className="flex items-center gap-2 text-[13px] text-muted-foreground">
                         <Loader2 size={14} className="animate-spin" />
                         {isLLM ? "AI is analyzing your question…" : "Analyzing your data…"}

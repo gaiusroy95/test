@@ -42,12 +42,12 @@ interface FormHeaderProps {
 export function FormHeader({ title, status, actions, className }: FormHeaderProps) {
   return (
     <header className={cn("flex-shrink-0 px-5 py-2 border-b border-border bg-card", className)}>
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2.5 flex-wrap">
         <div className="flex items-center gap-2 min-w-0 shrink-0">
           <h1 className="page-title">{title}</h1>
           {status}
         </div>
-        {actions && <div className="flex items-center gap-2 ml-auto shrink-0">{actions}</div>}
+        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </div>
     </header>
   );

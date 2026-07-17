@@ -62,7 +62,7 @@ export default function ResultTable({ table }: { table: QueryTable }) {
           </thead>
           <tbody>
             {displayRows.map((row, ri) => (
-              <tr key={ri} className={ri % 2 === 0 ? "bg-white" : "bg-[#F8F9FA]"}>
+              <tr key={ri} className={ri % 2 === 0 ? "tone-b" : "tone-a"}>
                 {row.map((cell, ci) => (
                   <td
                     key={ci}

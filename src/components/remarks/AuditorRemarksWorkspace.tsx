@@ -37,7 +37,7 @@ type StatCfg = { label: string; color: string; bg: string; border: string; icon:
 export const SEVERITY_RAIL: Record<RemarkSeverity, SevCfg> = {
   OBSERVATION:     { label: "Observation",     color: "text-info",        bg: "bg-info-tint",        border: "border-info/30",        rail: "bg-info",        icon: Info },
   FINDING:         { label: "Finding",         color: "text-warn",        bg: "bg-warn-tint",        border: "border-warn/30",        rail: "bg-warn",        icon: AlertCircle },
-  NON_CONFORMITY:  { label: "Non-Conformity",  color: "text-destructive", bg: "bg-destructive-tint", border: "border-destructive/30", rail: "bg-destructive", icon: AlertTriangle },
+  NON_CONFORMITY:  { label: "Non-Conformity",  color: "text-amber-800 dark:text-amber-200", bg: "bg-amber-500/15", border: "border-amber-800/40 dark:border-amber-500/40", rail: "bg-amber-700 dark:bg-amber-500", icon: AlertTriangle },
 };
 
 export const STATUS_META: Record<RemarkStatus, StatCfg> = {
@@ -149,7 +149,7 @@ export function RemarksChart({ data }: { data: ChartRow[] }) {
         <Legend wrapperStyle={{ fontSize: 11 }} />
         <Bar dataKey="Open" fill="#f59e0b" radius={[3, 3, 0, 0]} />
         <Bar dataKey="Findings" fill="#eab308" radius={[3, 3, 0, 0]} />
-        <Bar dataKey="Non-Conformities" fill="#ef4444" radius={[3, 3, 0, 0]} />
+        <Bar dataKey="Non-Conformities" fill="#b45309" radius={[3, 3, 0, 0]} />
         <Bar dataKey="Observations" fill="#0ea5e9" radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
@@ -295,29 +295,35 @@ export function RecordsTable({
 
 export function AuditResizeHandle({
   leftPct, onResizeStart, onNudge,
+  valuemin = LEFT_PCT_MIN,
+  valuemax = LEFT_PCT_MAX,
+  label = "Resize panels",
 }: {
   leftPct: number;
   onResizeStart: (e: ReactMouseEvent) => void;
   onNudge: (delta: number) => void;
+  valuemin?: number;
+  valuemax?: number;
+  label?: string;
 }) {
   return (
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize audit panels"
+      aria-label={label}
       aria-valuenow={Math.round(leftPct)}
-      aria-valuemin={LEFT_PCT_MIN}
-      aria-valuemax={LEFT_PCT_MAX}
+      aria-valuemin={valuemin}
+      aria-valuemax={valuemax}
       tabIndex={0}
       onMouseDown={onResizeStart}
       onKeyDown={(e) => {
         if (e.key === "ArrowLeft") onNudge(-2);
         if (e.key === "ArrowRight") onNudge(2);
       }}
-      className="group relative w-2.5 flex-shrink-0 cursor-col-resize flex items-stretch justify-center bg-[repeating-linear-gradient(180deg,hsl(var(--border))_0_2px,transparent_2px_5px)] hover:bg-primary/20 active:bg-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      className="group relative z-20 w-2.5 flex-shrink-0 cursor-col-resize touch-none select-none flex items-stretch justify-center bg-[repeating-linear-gradient(180deg,hsl(var(--border))_0_2px,transparent_2px_5px)] hover:bg-primary/20 active:bg-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
-      <span className="pointer-events-none absolute inset-y-0 -left-1 -right-1" />
-      <span className="my-auto h-10 w-1 rounded-sm bg-muted-foreground/35 group-hover:bg-primary shadow-sm" />
+      <span className="pointer-events-none absolute inset-y-0 -left-2 -right-2 z-10" aria-hidden />
+      <span className="pointer-events-none relative z-0 my-auto h-12 w-1.5 rounded-sm bg-gradient-to-b from-muted-foreground/20 via-muted-foreground/45 to-muted-foreground/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)] group-hover:from-primary/30 group-hover:via-primary/70 group-hover:to-primary/30 transition-colors" />
     </div>
   );
 }

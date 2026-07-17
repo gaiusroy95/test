@@ -7,8 +7,8 @@ interface AppTopBarContextProps {
 }
 
 /**
- * App header context only — company / portal.
- * Page titles live in PageShell (avoid duplicating the name here).
+ * App header context — company / portal name only.
+ * Role subtitles (e.g. "Company Admin") are omitted to avoid redundant meta tags.
  */
 export function AppTopBarContext({ portalType, className }: AppTopBarContextProps) {
   const user = useAuthStore((s) => s.user);
@@ -16,26 +16,11 @@ export function AppTopBarContext({ portalType, className }: AppTopBarContextProp
   const label =
     portalType === "platform"
       ? "Platform Admin"
-      : user?.company_name || null;
-
-  const roleLabel =
-    portalType === "platform"
-      ? "ESMOS Platform"
-      : (user?.role || "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) || "Workspace";
+      : user?.company_name || "Workspace";
 
   return (
     <div className={cn("flex-1 min-w-0 flex items-center gap-3", className)}>
-      <div className="min-w-0">
-        {label ? (
-          <p className="text-ui font-semibold text-foreground truncate leading-tight">{label}</p>
-        ) : null}
-        <p className={cn(
-          "text-2xs text-muted-foreground truncate leading-tight",
-          label ? "mt-0.5" : "text-ui font-semibold text-foreground",
-        )}>
-          {roleLabel}
-        </p>
-      </div>
+      <p className="text-ui font-semibold text-foreground truncate leading-tight">{label}</p>
     </div>
   );
 }

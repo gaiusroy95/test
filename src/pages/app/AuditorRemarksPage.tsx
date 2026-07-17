@@ -34,7 +34,7 @@ import {
 const SEVERITY_CFG: Record<RemarkSeverity, { label: string; color: string; bg: string; border: string; rail: string; icon: typeof Info }> = {
   OBSERVATION:     { label: "Observation",     color: "text-info",        bg: "bg-info-tint",        border: "border-info/30",        rail: "bg-info",        icon: Info },
   FINDING:         { label: "Finding",         color: "text-warn",        bg: "bg-warn-tint",        border: "border-warn/30",        rail: "bg-warn",        icon: AlertCircle },
-  NON_CONFORMITY:  { label: "Non-Conformity",  color: "text-destructive", bg: "bg-destructive-tint", border: "border-destructive/30", rail: "bg-destructive", icon: AlertTriangle },
+  NON_CONFORMITY:  { label: "Non-Conformity",  color: "text-amber-800 dark:text-amber-200", bg: "bg-amber-500/15", border: "border-amber-800/40 dark:border-amber-500/40", rail: "bg-amber-700 dark:bg-amber-500", icon: AlertTriangle },
 };
 
 const STATUS_CFG: Record<RemarkStatus, { label: string; color: string; bg: string; border: string; icon: typeof Clock }> = {
@@ -222,6 +222,7 @@ export default function AuditorRemarksPage() {
 
   const onResizeStart = useCallback((e: ReactMouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     draggingRef.current = true;
     const onMove = (ev: MouseEvent) => {
       if (!draggingRef.current || !workspaceRef.current) return;
@@ -351,6 +352,7 @@ export default function AuditorRemarksPage() {
           leftPct={leftPct}
           onResizeStart={onResizeStart}
           onNudge={(delta) => setLeftPct((p) => Math.min(LEFT_PCT_MAX, Math.max(LEFT_PCT_MIN, p + delta)))}
+          label="Resize audit panels"
         />
 
         <StickyWorkspaceTabs

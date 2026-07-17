@@ -271,7 +271,7 @@ export default function TenantDashboard() {
         <div className="absolute -right-16 -top-20 w-72 h-72 rounded-full bg-primary/25 blur-3xl pointer-events-none" aria-hidden />
         <div className="absolute right-24 -bottom-24 w-56 h-56 rounded-full bg-primary/10 blur-3xl pointer-events-none" aria-hidden />
 
-        <div className="relative px-5 py-5 sm:px-6 sm:py-6 flex flex-col sm:flex-row sm:items-end gap-4">
+        <div className="relative px-5 py-5 sm:px-6 sm:py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70 mb-2">
               Operations · {selectedFyLabel}
@@ -283,7 +283,11 @@ export default function TenantDashboard() {
               {user?.company_name || "Your company"} — track submissions, clear reviews, stay audit-ready.
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <div
+            className="inline-flex items-center gap-2 flex-wrap shrink-0 rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 shadow-sm"
+            role="group"
+            aria-label="Dashboard actions"
+          >
             {reportingYears.length > 0 && (
               <Select value={selectedYearId} onValueChange={setSelectedYearId}>
                 <SelectTrigger className="h-9 w-[132px] text-ui bg-white/10 border-white/15 text-white hover:bg-white/15">
@@ -298,6 +302,7 @@ export default function TenantDashboard() {
                 </SelectContent>
               </Select>
             )}
+            <span className="hidden sm:block w-px h-6 bg-white/15 shrink-0" aria-hidden />
             <ExcelExportButton inverted onClick={exportKpis} title="Export KPI summary" />
             <Button
               size="sm"
@@ -307,7 +312,7 @@ export default function TenantDashboard() {
             >
               <Plus size={14} /> Enter data
             </Button>
-            <Button size="sm" onClick={() => navigate("/app/review")} className="h-9 bg-white text-foreground hover:bg-white/90">
+            <Button size="sm" onClick={() => navigate("/app/review")} className="h-9 bg-white text-slate-900 hover:bg-white/90 hover:text-slate-900">
               <ClipboardCheck size={14} /> Review queue
               {stats.pending > 0 && (
                 <span className="ml-1 font-mono text-[11px] tabular-nums">({stats.pending})</span>
@@ -336,7 +341,7 @@ export default function TenantDashboard() {
 
       {/* Balanced mid grid — equal columns, no empty rivers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4 items-stretch">
-        <section className="summary-panel flex flex-col min-h-[260px]">
+        <section className="summary-panel flex flex-col min-h-[280px]">
           <div className="summary-panel-header bg-gradient-to-r from-warn-tint/40 to-transparent">
             <h2 className="section-title flex items-center gap-2">
               <span className="w-7 h-7 rounded-md bg-warn-tint text-warn flex items-center justify-center">
@@ -354,35 +359,49 @@ export default function TenantDashboard() {
           {loading ? (
             <div className="p-4 flex-1"><LoadingSkeleton rows={3} cols={1} /></div>
           ) : attention.length === 0 ? (
-            <div className="flex-1 flex flex-col p-4">
-              <div className="flex items-center gap-3 rounded-md bg-ok-tint/50 px-3 py-2.5 mb-3">
-                <CheckCircle2 size={18} className="text-ok shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-ui font-bold text-foreground">All clear for this FY</p>
-                  <p className="text-label text-muted-foreground">No pending reviews or open remarks.</p>
+            <div className="flex-1 flex flex-col p-4 min-h-0">
+              {!showOnboarding ? (
+                <div className="flex-1 flex items-center justify-center min-h-[180px]">
+                  <div className="flex items-center gap-3 rounded-md bg-ok-tint/50 px-4 py-3 w-full max-w-md">
+                    <CheckCircle2 size={20} className="text-ok shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-ui font-bold text-foreground">All clear for this FY</p>
+                      <p className="text-label text-muted-foreground">No pending reviews or open remarks.</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 flex-1">
-                {shortcuts.map((a) => {
-                  const Icon = a.icon;
-                  return (
-                    <button
-                      key={a.path}
-                      type="button"
-                      onClick={() => navigate(a.path)}
-                      className="flex flex-col items-start gap-2 p-3 rounded-md border border-border hover:border-primary/30 hover:bg-accent/60 transition-all text-left group"
-                    >
-                      <span className="w-8 h-8 rounded-md bg-accent text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
-                        <Icon size={15} />
-                      </span>
-                      <div>
-                        <div className="text-ui font-bold text-foreground">{a.label}</div>
-                        <div className="text-label text-muted-foreground">{a.desc}</div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 rounded-md bg-ok-tint/50 px-3 py-2.5 mb-3">
+                    <CheckCircle2 size={18} className="text-ok shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-ui font-bold text-foreground">All clear for this FY</p>
+                      <p className="text-label text-muted-foreground">No pending reviews or open remarks.</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 flex-1">
+                    {shortcuts.map((a) => {
+                      const Icon = a.icon;
+                      return (
+                        <button
+                          key={a.path}
+                          type="button"
+                          onClick={() => navigate(a.path)}
+                          className="flex flex-col items-start gap-2 p-3 rounded-md border border-border hover:border-primary/30 hover:bg-accent/60 transition-all text-left group"
+                        >
+                          <span className="w-8 h-8 rounded-md bg-accent text-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                            <Icon size={15} />
+                          </span>
+                          <div>
+                            <div className="text-ui font-bold text-foreground">{a.label}</div>
+                            <div className="text-label text-muted-foreground">{a.desc}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <ul className="divide-y divide-border flex-1">
@@ -415,7 +434,7 @@ export default function TenantDashboard() {
           )}
         </section>
 
-        <section className="summary-panel flex flex-col min-h-[260px]">
+        <section className="summary-panel flex flex-col min-h-[280px]">
           {showOnboarding ? (
             <>
               <div className="summary-panel-header">
@@ -485,7 +504,7 @@ export default function TenantDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
-        <section className="summary-panel flex flex-col min-h-[240px]">
+        <section className="summary-panel flex flex-col min-h-[280px]">
           <div className="summary-panel-header">
             <div>
               <h2 className="section-title">Data by module</h2>
@@ -542,7 +561,7 @@ export default function TenantDashboard() {
           </div>
         </section>
 
-        <section className="summary-panel flex flex-col min-h-[240px]">
+        <section className="summary-panel flex flex-col min-h-[280px]">
           <div className="summary-panel-header">
             <h2 className="section-title">Recent activity</h2>
             <div className="flex items-center gap-1">

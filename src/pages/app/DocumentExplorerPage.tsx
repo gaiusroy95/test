@@ -166,78 +166,76 @@ export default function DocumentExplorerPage() {
 
   const hasFilters = !!(selLocation || selYear || selModule || selKpiOrInd);
 
-  const filterToolbar = (
-    <div className="sticky top-0 z-20 -mx-1 px-1 bg-background/95 backdrop-blur-sm border-b border-border pb-2">
-      <FilterBar
-        showClear={hasFilters}
-        onClear={() => { setSelLocation(""); setSelYear(""); setSelModule(""); setSelKpiOrInd(""); }}
-        className="gap-3"
-      >
-        <FilterSelect
-          label="Location"
-          value={selLocation}
-          onChange={setSelLocation}
-          placeholder="All Locations"
-          minWidth={170}
-          options={locations.map((l) => ({ value: l.location_id, label: l.location_name }))}
-        />
-        <FilterSelect
-          label="Financial Year"
-          value={selYear}
-          onChange={setSelYear}
-          placeholder="All FY"
-          minWidth={130}
-          options={reportingYears.map((ry) => ({
-            value: String(ry.year_id),
-            label: `FY ${ry.financial_year?.fy_label || ry.year_id}`,
-          }))}
-        />
-        <FilterSelect
-          label="Module"
-          value={selModule}
-          onChange={setSelModule}
-          placeholder="All Modules"
-          minWidth={140}
-          options={modules.map((m) => ({ value: String(m.module_id), label: m.module_name }))}
-        />
-        <div className="flex items-center gap-1.5 min-w-0" style={{ minWidth: 200 }}>
-          <Label className="text-[11px] font-semibold text-muted-foreground whitespace-nowrap shrink-0">
-            KPI / Indicator
-          </Label>
-          <Select
-            value={selKpiOrInd || "__all__"}
-            onValueChange={(v) => setSelKpiOrInd(v === "__all__" ? "" : v)}
-          >
-            <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
-              <SelectValue placeholder="All KPIs & Indicators" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All KPIs & Indicators</SelectItem>
-              {filteredKPIs.length > 0 && (
-                <SelectGroup>
-                  <SelectLabel>KPIs</SelectLabel>
-                  {filteredKPIs.map((k) => (
-                    <SelectItem key={k.kpi_id} value={`kpi:${k.kpi_id}`}>
-                      {k.kpi_name} ({k.unit})
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              )}
-              {filteredIndicators.length > 0 && (
-                <SelectGroup>
-                  <SelectLabel>Indicators</SelectLabel>
-                  {filteredIndicators.map((ind) => (
-                    <SelectItem key={ind.indicator_id} value={`ind:${ind.indicator_id}`}>
-                      {ind.indicator_name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </FilterBar>
-    </div>
+  const explorerFilters = (
+    <FilterBar
+      showClear={hasFilters}
+      onClear={() => { setSelLocation(""); setSelYear(""); setSelModule(""); setSelKpiOrInd(""); }}
+      className="gap-3 flex-1 min-w-0"
+    >
+      <FilterSelect
+        label="Location"
+        value={selLocation}
+        onChange={setSelLocation}
+        placeholder="All Locations"
+        minWidth={170}
+        options={locations.map((l) => ({ value: l.location_id, label: l.location_name }))}
+      />
+      <FilterSelect
+        label="Financial Year"
+        value={selYear}
+        onChange={setSelYear}
+        placeholder="All FY"
+        minWidth={130}
+        options={reportingYears.map((ry) => ({
+          value: String(ry.year_id),
+          label: `FY ${ry.financial_year?.fy_label || ry.year_id}`,
+        }))}
+      />
+      <FilterSelect
+        label="Module"
+        value={selModule}
+        onChange={setSelModule}
+        placeholder="All Modules"
+        minWidth={140}
+        options={modules.map((m) => ({ value: String(m.module_id), label: m.module_name }))}
+      />
+      <div className="flex items-center gap-1.5 min-w-0" style={{ minWidth: 200 }}>
+        <Label className="text-[11px] font-semibold text-muted-foreground whitespace-nowrap shrink-0">
+          KPI / Indicator
+        </Label>
+        <Select
+          value={selKpiOrInd || "__all__"}
+          onValueChange={(v) => setSelKpiOrInd(v === "__all__" ? "" : v)}
+        >
+          <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
+            <SelectValue placeholder="All KPIs & Indicators" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All KPIs & Indicators</SelectItem>
+            {filteredKPIs.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>KPIs</SelectLabel>
+                {filteredKPIs.map((k) => (
+                  <SelectItem key={k.kpi_id} value={`kpi:${k.kpi_id}`}>
+                    {k.kpi_name} ({k.unit})
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+            {filteredIndicators.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>Indicators</SelectLabel>
+                {filteredIndicators.map((ind) => (
+                  <SelectItem key={ind.indicator_id} value={`ind:${ind.indicator_id}`}>
+                    {ind.indicator_name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+    </FilterBar>
   );
 
   return (
@@ -245,7 +243,6 @@ export default function DocumentExplorerPage() {
       title="Document Explorer"
       description="Browse and download supporting documents across all locations"
       breadcrumb={[{ label: "Home", href: "/app" }, { label: "Documents" }]}
-      toolbar={filterToolbar}
       actions={
         <Button size="sm" onClick={goUpload}>
           <Plus size={14} /> Upload Document
@@ -253,6 +250,8 @@ export default function DocumentExplorerPage() {
       }
     >
       <DataTable
+        toolbarPlacement="inside"
+        filters={explorerFilters}
         loading={loading}
         skeletonCols={8}
         skeletonRows={8}

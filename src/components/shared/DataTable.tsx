@@ -41,6 +41,8 @@ interface DataTableProps {
   /** Number of skeleton columns when loading */
   skeletonCols?: number;
   skeletonRows?: number;
+  /** When "inside", search/filters/actions render in the card header above the table */
+  toolbarPlacement?: "above" | "inside";
 }
 
 /**
@@ -58,6 +60,7 @@ export function DataTable({
   className,
   skeletonCols = 5,
   skeletonRows = 8,
+  toolbarPlacement = "above",
 }: DataTableProps) {
   const totalPages = pagination
     ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
@@ -65,32 +68,39 @@ export function DataTable({
 
   const hasToolbar = search || filters || actions;
 
-  return (
-    <div className={cn("flex flex-col gap-3", className)}>
-      {hasToolbar && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {search && (
-            <div className="relative">
-              <Search
-                size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-                aria-hidden="true"
-              />
-              <Input
-                value={search.value}
-                onChange={(e) => search.onChange(e.target.value)}
-                placeholder={search.placeholder || "Search…"}
-                className="pl-8 w-[220px] h-8 text-xs"
-                aria-label={search.placeholder || "Search"}
-              />
-            </div>
-          )}
-          {filters}
-          {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
+  const toolbar = hasToolbar ? (
+    <div className="flex items-center gap-2 flex-wrap">
+      {search && (
+        <div className="relative">
+          <Search
+            size={14}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            aria-hidden="true"
+          />
+          <Input
+            value={search.value}
+            onChange={(e) => search.onChange(e.target.value)}
+            placeholder={search.placeholder || "Search…"}
+            className="pl-8 w-[220px] h-8 text-xs"
+            aria-label={search.placeholder || "Search"}
+          />
         </div>
       )}
+      {filters}
+      {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
+    </div>
+  ) : null;
+
+  return (
+    <div className={cn("flex flex-col gap-3", className)}>
+      {hasToolbar && toolbarPlacement === "above" && toolbar}
 
       <div className="surface overflow-hidden">
+        {hasToolbar && toolbarPlacement === "inside" && (
+          <div className="flex items-center gap-2 flex-wrap px-5 py-3 border-b border-[hsl(var(--border-hairline))] bg-card">
+            {toolbar}
+          </div>
+        )}
         {loading ? (
           <div className="p-6 space-y-3">
             <div className="flex gap-4 mb-2">

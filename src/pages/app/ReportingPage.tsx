@@ -7,9 +7,8 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { FormDialog, type FormField } from "@/components/shared/FormDialog";
 import { useIsSupportSession } from "@/components/shared/WriteOnly";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Calendar, LockKeyhole } from "lucide-react";
+import { Plus, Calendar, LockKeyhole, Lock, Unlock } from "lucide-react";
 import type { ReportingYear, PeriodStatus, FinancialYear } from "@/types";
 import { cn, getApiError } from "@/lib/utils";
 
@@ -214,26 +213,37 @@ export default function ReportingPage() {
                   <div
                     key={p.id || p.month_id}
                     className={cn(
-                      "relative rounded-md border px-3 py-4 pr-12 text-center transition-colors",
+                      "relative rounded-md border px-3 py-4 text-center transition-colors",
                       isOpen
-                        ? "border-ok/30 bg-[#E8F5EE]"
-                        : "border-border bg-white",
+                        ? "border-ok/30 bg-ok-tint"
+                        : "border-border bg-card",
                     )}
                   >
-                    <div className="absolute top-2 right-2">
-                      <Switch
-                        checked={isOpen}
-                        disabled={!isAdmin || actionLoading}
-                        onCheckedChange={(checked) => {
-                          if (!isAdmin) return;
-                          setConfirmLock({
-                            period: p,
-                            action: checked ? "unlock" : "lock",
-                          });
-                        }}
-                        aria-label={isOpen ? `${monthName} open — click to lock` : `${monthName} locked — click to unlock`}
-                        title={isOpen ? "Open — toggle to lock" : "Locked — toggle to open"}
+                    <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
+                      <span
+                        className={cn(
+                          "w-2 h-2 rounded-full shrink-0",
+                          isOpen ? "bg-ok" : "bg-muted-foreground/35",
+                        )}
+                        aria-hidden
                       />
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          disabled={actionLoading}
+                          onClick={() =>
+                            setConfirmLock({
+                              period: p,
+                              action: isOpen ? "lock" : "unlock",
+                            })
+                          }
+                          className="p-1 rounded-md text-muted-foreground hover:bg-sunken hover:text-foreground transition-colors disabled:opacity-40"
+                          aria-label={isOpen ? `Lock ${monthName}` : `Unlock ${monthName}`}
+                          title={isOpen ? "Lock period" : "Unlock period"}
+                        >
+                          {isOpen ? <Lock size={12} /> : <Unlock size={12} />}
+                        </button>
+                      )}
                     </div>
                     <div className={cn(
                       "text-xs font-bold",

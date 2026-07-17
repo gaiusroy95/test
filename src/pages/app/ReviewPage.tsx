@@ -17,6 +17,7 @@ import type { Submission, SubmissionListItem, KPI, Indicator, Scope3Batch } from
 import { formatDate, getApiError, cn } from "@/lib/utils";
 import Scope3ReviewDetail from "@/components/scope3/Scope3ReviewDetail";
 import SubmissionRemarksPanel from "@/components/remarks/SubmissionRemarksPanel";
+import { AuditResizeHandle } from "@/components/remarks/AuditorRemarksWorkspace";
 import { Input } from "@/components/ui/input";
 
 // ── Layout ─────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ const STATUS_CONFIG = {
 
 const FILTER_TABS = [
   { key: "", label: "All" },
-  { key: "SUBMITTED", label: "Pending Review" },
+  { key: "SUBMITTED", label: "Pending" },
   { key: "APPROVED", label: "Approved" },
   { key: "REJECTED", label: "Rejected" },
   { key: "DRAFT", label: "Draft" },
@@ -74,7 +75,7 @@ function StatusDot({ status }: { status: string }) {
 const filterSelectCls =
   "h-8 rounded-sm border border-input bg-card px-2 text-[12px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
 
-function ReviewPanelFilters({
+function ReviewFiltersPanel({
   dateFrom,
   dateTo,
   periodYearId,
@@ -87,6 +88,8 @@ function ReviewPanelFilters({
   onYear,
   onMonth,
   onClear,
+  onApply,
+  compact,
 }: {
   dateFrom: string;
   dateTo: string;
@@ -100,16 +103,13 @@ function ReviewPanelFilters({
   onYear: (v: string) => void;
   onMonth: (v: string) => void;
   onClear: () => void;
+  onApply?: () => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="flex-shrink-0 border-b border-border bg-sunken/50 px-4 py-2.5">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex items-center gap-1.5 text-muted-foreground mr-1 mb-0.5">
-          <Filter size={13} />
-          <span className="text-[11px] font-semibold uppercase tracking-wide">Filters</span>
-        </div>
-
-        <label className="flex flex-col gap-1 min-w-[132px]">
+    <div className={cn("space-y-3", compact && "p-0")}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 min-w-0">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Date from</span>
           <Input
             type="date"
@@ -119,7 +119,7 @@ function ReviewPanelFilters({
           />
         </label>
 
-        <label className="flex flex-col gap-1 min-w-[132px]">
+        <label className="flex flex-col gap-1 min-w-0">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Date to</span>
           <Input
             type="date"
@@ -129,7 +129,7 @@ function ReviewPanelFilters({
           />
         </label>
 
-        <label className="flex flex-col gap-1 min-w-[140px]">
+        <label className="flex flex-col gap-1 min-w-0">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Reporting year</span>
           <select
             value={periodYearId}
@@ -143,7 +143,7 @@ function ReviewPanelFilters({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 min-w-[130px]">
+        <label className="flex flex-col gap-1 min-w-0">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Period</span>
           <select
             value={periodMonthId}
@@ -156,17 +156,121 @@ function ReviewPanelFilters({
             ))}
           </select>
         </label>
+      </div>
 
+      <div className="flex items-center justify-end gap-2 pt-1 border-t border-[hsl(var(--border-hairline))]">
         {hasFilters && (
           <button
             type="button"
             onClick={onClear}
-            className="h-8 px-2.5 rounded-sm text-[12px] font-semibold text-muted-foreground hover:text-foreground hover:bg-card border border-transparent hover:border-border transition-colors"
+            className="h-8 px-2.5 rounded-sm text-[12px] font-semibold text-muted-foreground hover:text-foreground hover:bg-sunken border border-transparent hover:border-border transition-colors"
           >
             Clear
           </button>
         )}
+        {onApply && (
+          <button
+            type="button"
+            onClick={onApply}
+            className="h-8 px-3 rounded-sm text-[12px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Apply
+          </button>
+        )}
       </div>
+    </div>
+  );
+}
+
+function ReviewFiltersDropdown({
+  applied,
+  years,
+  months,
+  hasApplied,
+  onApply,
+  onClear,
+}: {
+  applied: {
+    dateFrom: string;
+    dateTo: string;
+    periodYearId: string;
+    periodMonthId: string;
+  };
+  years: { year_id: number; fy_label: string }[];
+  months: { month_id: number; month_name: string }[];
+  hasApplied: boolean;
+  onApply: (v: typeof applied) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(applied);
+
+  useEffect(() => {
+    if (open) setDraft(applied);
+  }, [open, applied]);
+
+  const draftHas = !!(draft.dateFrom || draft.dateTo || draft.periodYearId || draft.periodMonthId);
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          "inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border text-[12px] font-semibold transition-colors",
+          hasApplied
+            ? "border-primary/40 bg-primary/10 text-primary"
+            : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-sunken",
+        )}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+      >
+        <Filter size={13} />
+        Filters
+        {hasApplied && (
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-label="Filters active" />
+        )}
+      </button>
+      {open && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 cursor-default"
+            aria-label="Close filters"
+            onClick={() => setOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-label="Review filters"
+            className="absolute right-0 top-full z-50 mt-1.5 w-[min(360px,calc(100vw-2rem))] rounded-md border border-border bg-card shadow-lg p-4"
+          >
+            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-3">Filter submissions</p>
+            <ReviewFiltersPanel
+              dateFrom={draft.dateFrom}
+              dateTo={draft.dateTo}
+              periodYearId={draft.periodYearId}
+              periodMonthId={draft.periodMonthId}
+              years={years}
+              months={months}
+              hasFilters={draftHas}
+              onDateFrom={(v) => setDraft((d) => ({ ...d, dateFrom: v }))}
+              onDateTo={(v) => setDraft((d) => ({ ...d, dateTo: v }))}
+              onYear={(v) => setDraft((d) => ({ ...d, periodYearId: v }))}
+              onMonth={(v) => setDraft((d) => ({ ...d, periodMonthId: v }))}
+              onClear={() => {
+                onClear();
+                setDraft({ dateFrom: "", dateTo: "", periodYearId: "", periodMonthId: "" });
+                setOpen(false);
+              }}
+              onApply={() => {
+                onApply(draft);
+                setOpen(false);
+              }}
+              compact
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -533,6 +637,18 @@ export default function ReviewPage() {
     setPeriodMonthId("");
   };
 
+  const applyPanelFilters = (v: {
+    dateFrom: string;
+    dateTo: string;
+    periodYearId: string;
+    periodMonthId: string;
+  }) => {
+    setDateFrom(v.dateFrom);
+    setDateTo(v.dateTo);
+    setPeriodYearId(v.periodYearId);
+    setPeriodMonthId(v.periodMonthId);
+  };
+
   const hasPanelFilters = !!(dateFrom || dateTo || periodYearId || periodMonthId);
 
   const filteredSubmissions = useMemo(() => {
@@ -598,7 +714,7 @@ export default function ReviewPage() {
         style={{ width: `${leftPct}%` }}
       >
         {/* Header */}
-        <div className="px-4 py-2.5 border-b border-border flex-shrink-0">
+        <div className="px-4 py-2.5 border-b border-border flex-shrink-0 min-w-0">
           <div className="min-w-0 mb-2">
             <div className="flex items-center gap-x-2 gap-y-0.5 flex-wrap">
               <h1 className="page-title">Review & Approvals</h1>
@@ -606,15 +722,27 @@ export default function ReviewPage() {
               <p className="text-label text-muted-foreground">{total + scope3Batches.length} submission{(total + scope3Batches.length) !== 1 ? "s" : ""}</p>
             </div>
           </div>
-          <PageTabs
-            tabs={FILTER_TABS.map((tab) => ({
-              key: tab.key,
-              label: tab.label,
-              count: tab.key ? filterCounts[tab.key as keyof typeof filterCounts] : undefined,
-            }))}
-            value={activeFilter}
-            onChange={(key) => { setActiveFilter(key); clearSelection(); }}
-          />
+          <div className="-mx-4 px-4 min-w-0">
+            <PageTabs
+              tabs={FILTER_TABS.map((tab) => ({
+                key: tab.key,
+                label: tab.label,
+                count: tab.key ? filterCounts[tab.key as keyof typeof filterCounts] : undefined,
+              }))}
+              value={activeFilter}
+              onChange={(key) => { setActiveFilter(key); clearSelection(); }}
+            />
+          </div>
+          <div className="flex justify-end mt-2">
+            <ReviewFiltersDropdown
+              applied={{ dateFrom, dateTo, periodYearId, periodMonthId }}
+              years={years}
+              months={months}
+              hasApplied={hasPanelFilters}
+              onApply={applyPanelFilters}
+              onClear={clearPanelFilters}
+            />
+          </div>
         </div>
 
         {/* List */}
@@ -743,42 +871,18 @@ export default function ReviewPage() {
       </div>
 
       {/* ── Drag handle (resize) ── */}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize panels"
-        aria-valuenow={Math.round(leftPct)}
-        aria-valuemin={LEFT_PCT_MIN}
-        aria-valuemax={LEFT_PCT_MAX}
-        tabIndex={0}
-        onMouseDown={onResizeStart}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowLeft") setLeftPct((p) => Math.max(LEFT_PCT_MIN, p - 2));
-          if (e.key === "ArrowRight") setLeftPct((p) => Math.min(LEFT_PCT_MAX, p + 2));
-        }}
-        className="group relative w-1.5 flex-shrink-0 cursor-col-resize bg-border hover:bg-primary/35 active:bg-primary/50 transition-colors focus:outline-none focus-visible:bg-primary/40"
-      >
-        <span className="pointer-events-none absolute inset-y-0 -left-1 -right-1" />
-        <span className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-muted-foreground/25 group-hover:bg-primary/70 transition-colors" />
-      </div>
+      <AuditResizeHandle
+        leftPct={leftPct}
+        onResizeStart={onResizeStart}
+        onNudge={(delta) => setLeftPct((p) => Math.min(LEFT_PCT_MAX, Math.max(LEFT_PCT_MIN, p + delta)))}
+        valuemin={LEFT_PCT_MIN}
+        valuemax={LEFT_PCT_MAX}
+        label="Resize review panels"
+      />
 
       {/* ── RIGHT PANEL: Scope 3 detail ── */}
       {selectedScope3 && (
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-          <ReviewPanelFilters
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            periodYearId={periodYearId}
-            periodMonthId={periodMonthId}
-            years={years}
-            months={months}
-            hasFilters={hasPanelFilters}
-            onDateFrom={setDateFrom}
-            onDateTo={setDateTo}
-            onYear={setPeriodYearId}
-            onMonth={setPeriodMonthId}
-            onClear={clearPanelFilters}
-          />
           <Scope3ReviewDetail
             batch={selectedScope3}
             canReview={canReview}
@@ -795,20 +899,6 @@ export default function ReviewPage() {
       {/* ── RIGHT PANEL: Submission detail + remarks side panel ── */}
       {selectedId && !selectedScope3 && (
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden border-l-0">
-          <ReviewPanelFilters
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            periodYearId={periodYearId}
-            periodMonthId={periodMonthId}
-            years={years}
-            months={months}
-            hasFilters={hasPanelFilters}
-            onDateFrom={setDateFrom}
-            onDateTo={setDateTo}
-            onYear={setPeriodYearId}
-            onMonth={setPeriodMonthId}
-            onClear={clearPanelFilters}
-          />
         <div className="flex-1 flex min-w-0 min-h-0 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden min-w-0 bg-card">
           {detailLoading ? (
@@ -1243,20 +1333,6 @@ export default function ReviewPage() {
       {/* Empty right panel prompt when nothing selected */}
       {!selectedId && !selectedScope3 && (
         <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-sunken overflow-hidden">
-          <ReviewPanelFilters
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            periodYearId={periodYearId}
-            periodMonthId={periodMonthId}
-            years={years}
-            months={months}
-            hasFilters={hasPanelFilters}
-            onDateFrom={setDateFrom}
-            onDateTo={setDateTo}
-            onYear={setPeriodYearId}
-            onMonth={setPeriodMonthId}
-            onClear={clearPanelFilters}
-          />
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center text-muted-foreground">
               <ClipboardCheck size={40} className="mx-auto mb-3 text-muted-foreground/40" />

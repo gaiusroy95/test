@@ -809,7 +809,7 @@ function FactorSetCard({
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold text-foreground">{fs.set_name}</span>
             {isLibrary && <span className="text-[10px] bg-accent text-accent-foreground px-1.5 py-0.5 rounded font-medium">Library</span>}
-            {fs.source_set_id && <span className="text-[10px] bg-sky-100 text-info px-1.5 py-0.5 rounded font-medium">Pulled</span>}
+            {fs.source_set_id && <span className="text-[10px] bg-info-tint text-info px-1.5 py-0.5 rounded font-medium">Pulled</span>}
             {!isLibrary && !fs.source_set_id && !fs.is_system && <span className="text-[10px] bg-ok-tint text-ok px-1.5 py-0.5 rounded font-medium">Custom</span>}
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-3">

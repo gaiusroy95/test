@@ -275,6 +275,7 @@ export default function UserManagementPage() {
       breadcrumb={[{ label: "Company Portal", href: "/app" }, { label: "User Management" }]}
     >
       <DataTable
+        toolbarPlacement="inside"
         search={{ value: search, onChange: setSearch, placeholder: "Search name or email…" }}
         filters={
           <Select value={roleFilter || "__all__"} onValueChange={(v) => { setRoleFilter(v === "__all__" ? "" : v); setPage(1); }}>

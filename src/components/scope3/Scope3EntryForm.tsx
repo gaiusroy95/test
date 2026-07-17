@@ -557,7 +557,7 @@ export default function Scope3EntryForm({
             title="Category-specific details (Appendix D inputs)"
             className={`flex items-center justify-center w-6 h-6 rounded transition-colors
               ${catOpen
-                ? "bg-sky-100 text-info"
+                ? "bg-info-tint text-info"
                 : entry.computation_mode === "CATEGORY"
                   ? "text-sky-500 hover:bg-info-tint"
                   : "text-muted-foreground hover:text-sky-500 hover:bg-info-tint"}`}

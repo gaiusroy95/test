@@ -41,7 +41,7 @@ interface SupportAccessRequest {
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING:  "bg-warn-tint text-warn border-warn/30",
-  APPROVED: "bg-green-50 text-ok border-green-200",
+  APPROVED: "bg-ok-tint text-ok border-ok/30",
   DENIED:   "bg-destructive-tint text-destructive border-destructive/30",
   EXPIRED:  "bg-sunken text-muted-foreground border-border",
   REVOKED:  "bg-sunken text-muted-foreground border-border",

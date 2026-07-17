@@ -21,7 +21,10 @@ export function PageTabs({ tabs, value, onChange, className }: PageTabsProps) {
   return (
     <div
       role="tablist"
-      className={cn("flex border-b border-border -mb-px", className)}
+      className={cn(
+        "flex border-b border-border -mb-px overflow-x-auto scrollbar-none",
+        className,
+      )}
     >
       {tabs.map((tab) => {
         const active = tab.key === value;
@@ -33,7 +36,7 @@ export function PageTabs({ tabs, value, onChange, className }: PageTabsProps) {
             aria-selected={active}
             onClick={() => onChange(tab.key)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-2 text-ui font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap",
+              "flex items-center gap-1.5 px-2.5 py-2 text-ui font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0",
               active
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"

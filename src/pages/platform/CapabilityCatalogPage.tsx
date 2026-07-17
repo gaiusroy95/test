@@ -18,7 +18,7 @@ type CapabilityKind = "module" | "feature";
 
 const LIFECYCLE_STYLES: Record<LifecycleStatus, { bg: string; text: string; label: string }> = {
   DRAFT:      { bg: "bg-warn-tint",  text: "text-warn",  label: "Draft" },
-  PUBLISHED:  { bg: "bg-green-50",  text: "text-ok",  label: "Published" },
+  PUBLISHED:  { bg: "bg-ok-tint",  text: "text-ok",  label: "Published" },
   DEPRECATED: { bg: "bg-orange-50", text: "text-orange-700", label: "Deprecated" },
   ARCHIVED:   { bg: "bg-sunken", text: "text-muted-foreground",  label: "Archived" },
 };

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, lazy, Suspense } from "react";
+import * as XLSX from "xlsx";
 import { tenantApi } from "@/api/client";
 import { useAuthStore } from "@/store/auth";
 import { getModuleIcon } from "@/lib/constants";
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Plus, BarChart3, ChevronRight, ChevronLeft, Pencil, Trash2,
-  FlaskConical, Eye, EyeOff, Package2,
+  FlaskConical, Eye, EyeOff, Package2, FileSpreadsheet,
 } from "lucide-react";
 import {
   Sheet, SheetBody, SheetContent, SheetFooter, SheetHeader, SheetTitle,
@@ -417,6 +418,31 @@ export default function KPISetupPage() {
     } catch (err: any) { toast.error(getApiError(err, "Failed to deactivate")); }
   };
 
+  const exportKpisToExcel = () => {
+    const energyLabels: Record<string, string> = { RENEWABLE: "Renewable", NON_RENEWABLE: "Non-Renewable", NOT_APPLICABLE: "N/A" };
+    if (kpis.length === 0) {
+      toast.error("No KPIs to export");
+      return;
+    }
+    const rows = kpis.map((m) => {
+      const mod = modules.find((x) => x.module_id === m.module_id);
+      return {
+        "KPI Name": m.kpi_name,
+        Unit: m.input_type === "numeric" || !m.input_type ? m.unit : "—",
+        Module: mod?.module_name ?? "",
+        Scope: m.scope_number ? `Scope ${m.scope_number}` : "",
+        "Energy Type": m.energy_type ? energyLabels[m.energy_type] : "",
+        "Input Type": m.input_type ?? "numeric",
+        Description: m.description ?? "",
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "KPIs");
+    XLSX.writeFile(wb, "kpi-setup-list.xlsx");
+    toast.success("Exported to Excel");
+  };
+
   const scopeColors: Record<number, string> = { 1: "bg-destructive-tint text-destructive", 2: "bg-warn-tint text-warn", 3: "bg-info-tint text-info" };
   const energyLabel: Record<string, string> = { RENEWABLE: "Renewable", NON_RENEWABLE: "Non-Renewable", NOT_APPLICABLE: "N/A" };
   const totalPages = Math.ceil(total / pageSize);
@@ -618,7 +644,7 @@ export default function KPISetupPage() {
                     const opSymbol: Record<string, string> = { "+": "+", "-": "−", "*": "×", "/": "÷" };
 
                     return (
-                      <tr key={dm.metric_id} className="border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/50 transition-colors">
+                      <tr key={dm.metric_id} className="group border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/50 transition-colors">
                         <td className="px-4 py-2">
                           <div className="font-semibold text-foreground">{dm.name}</div>
                           {dm.description && <div className="text-[11px] text-muted-foreground truncate max-w-[180px]">{dm.description}</div>}
@@ -656,7 +682,7 @@ export default function KPISetupPage() {
                         </td>
                         {isAdmin && (
                           <td className="px-4 py-2">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => openDmEdit(dm)} title="Edit" className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground hover:text-foreground transition-colors">
                                 <Pencil size={14} />
                               </button>
@@ -1033,6 +1059,16 @@ export default function KPISetupPage() {
             </EmptyState>
           ) : (
             <div className="overflow-x-auto">
+              <div className="flex items-center justify-end px-4 py-2 border-b border-[hsl(var(--border-hairline))] bg-card">
+                <button
+                  type="button"
+                  onClick={exportKpisToExcel}
+                  title="Export Excel"
+                  className="p-1.5 rounded-md text-ok hover:bg-ok-tint transition-colors"
+                >
+                  <FileSpreadsheet size={16} />
+                </button>
+              </div>
               <table className="w-full text-[13px] border-collapse">
                 <thead>
                   <tr className="border-b-2 border-[hsl(var(--border-hairline))] bg-sunken/60">
@@ -1046,7 +1082,7 @@ export default function KPISetupPage() {
                     const mod = modules.find((x) => x.module_id === m.module_id);
                     const ModIcon = mod ? getModuleIcon(mod.icon_name) : null;
                     return (
-                      <tr key={m.kpi_id} className={`border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/60 transition-colors ${factorKPI?.kpi_id === m.kpi_id ? "bg-info-tint/40" : ""}`}>
+                      <tr key={m.kpi_id} className={`group border-b border-[hsl(var(--border-hairline))] hover:bg-sunken/60 transition-colors ${factorKPI?.kpi_id === m.kpi_id ? "bg-info-tint/40" : ""}`}>
                         <td className="px-4 py-2">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold text-foreground">{m.kpi_name}</span>
@@ -1075,13 +1111,13 @@ export default function KPISetupPage() {
                         </td>
                         <td className="px-4 py-2 text-[12px] text-muted-foreground">{m.energy_type ? energyLabel[m.energy_type] : "—"}</td>
                         <td className="px-4 py-2">
-                          <button onClick={() => loadFactors(m)} className="flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
+                          <button onClick={() => loadFactors(m)} className="flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline opacity-0 group-hover:opacity-100 transition-opacity">
                             View <ChevronRight size={12} />
                           </button>
                         </td>
                         {isAdmin && (
                           <td className="px-4 py-2">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button onClick={() => openEdit(m)} title="Edit KPI" className="p-1.5 rounded-md hover:bg-sunken text-muted-foreground hover:text-foreground transition-colors">
                                 <Pencil size={14} />
                               </button>

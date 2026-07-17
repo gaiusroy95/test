@@ -247,9 +247,16 @@ export default function SupplierScorecardPage() {
       className="[&_.page-header]:mb-2"
       actions={
         isAdmin ? (
-          <Button size="sm" onClick={() => { setEditingSupplier(null); setShowForm(true); }}>
-            <Plus size={14} /> Add Supplier
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {tab === "scorecard" && summary != null && summary.unlinked_count > 0 && (
+              <Button size="sm" variant="outline" onClick={handleLinkUnlinked}>
+                <Link2 size={14} /> Auto-Link ({summary.unlinked_count})
+              </Button>
+            )}
+            <Button size="sm" onClick={() => { setEditingSupplier(null); setShowForm(true); }}>
+              <Plus size={14} /> Add Supplier
+            </Button>
+          </div>
         ) : undefined
       }
     >
@@ -313,8 +320,6 @@ export default function SupplierScorecardPage() {
             summary={summary}
             loading={loadingSummary}
             paretoData={paretoWithCum}
-            isAdmin={isAdmin}
-            onLinkUnlinked={handleLinkUnlinked}
             onSelectSupplier={(id) => setSelectedSupplier(id)}
           />
         )
@@ -373,13 +378,11 @@ export default function SupplierScorecardPage() {
    ══════════════════════════════════════════════════════════════════════════ */
 
 function ScorecardDashboard({
-  summary, loading, paretoData, isAdmin, onLinkUnlinked, onSelectSupplier,
+  summary, loading, paretoData, onSelectSupplier,
 }: {
   summary: SupplierScorecardSummary | null;
   loading: boolean;
   paretoData: (SupplierScorecard & { name: string; cumPct: number })[];
-  isAdmin: boolean;
-  onLinkUnlinked: () => void;
   onSelectSupplier: (id: string) => void;
 }) {
   const [chartFocus, setChartFocus] = useState<ChartFocus>("all");
@@ -403,10 +406,11 @@ function ScorecardDashboard({
     { label: "Top Supplier Share", value: paretoData.length > 0 ? `${paretoData[0].pct_of_total}%` : "—", icon: TrendingUp, color: "violet" as const },
   ];
 
-  // Pareto 80% benchmark + emissions average for dashed target lines
-  const emissionsTarget = paretoData.length > 0
-    ? paretoData.reduce((s, r) => s + r.total_emissions, 0) / paretoData.length
-    : 0;
+  // Flat dashed benchmark: average emissions across ranked suppliers (left axis)
+  const emissionsTarget =
+    summary.top_suppliers.length > 0
+      ? summary.top_suppliers.reduce((s, r) => s + r.total_emissions, 0) / summary.top_suppliers.length
+      : 0;
 
   const exportPareto = () => exportRows(
     `supplier-pareto-${summary.reporting_year}.xlsx`,
@@ -469,18 +473,6 @@ function ScorecardDashboard({
           />
         ))}
       </div>
-
-      {summary.unlinked_count > 0 && isAdmin && (
-        <div className="flex items-center gap-3 rounded-md border border-warn/30 bg-warn-tint px-4 py-3 mb-4">
-          <AlertTriangle size={16} className="text-warn flex-shrink-0" />
-          <span className="text-[13px] text-amber-800 flex-1">
-            {summary.unlinked_count} entries have supplier names but aren't linked to the supplier directory.
-          </span>
-          <Button size="sm" variant="outline" onClick={onLinkUnlinked}>
-            <Link2 size={14} className="mr-1" /> Auto-Link
-          </Button>
-        </div>
-      )}
 
       {paretoData.length > 0 ? (
         <>

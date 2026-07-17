@@ -18,8 +18,8 @@ export default function ChatMessage({ message, onSuggestionClick, loading }: Pro
       <div
         className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${
           isUser
-            ? "bg-primary text-white"
-            : "bg-[#F8F9FA] text-muted-foreground"
+            ? "bg-primary text-primary-foreground"
+            : "tone-a text-muted-foreground"
         }`}
       >
         {isUser ? <User size={14} /> : <Bot size={14} />}
@@ -29,8 +29,8 @@ export default function ChatMessage({ message, onSuggestionClick, loading }: Pro
         <div
           className={`rounded-lg px-3.5 py-2.5 text-[13px] leading-relaxed ${
             isUser
-              ? "bg-primary text-white"
-              : "bg-[#F8F9FA] text-foreground"
+              ? "bg-primary text-primary-foreground"
+              : "tone-a text-foreground"
           }`}
         >
           {!isUser && message.engine_used && (
@@ -40,7 +40,7 @@ export default function ChatMessage({ message, onSuggestionClick, loading }: Pro
                   <Sparkles size={9} /> AI Powered
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-white text-muted-foreground">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-card text-muted-foreground border border-border/60">
                   <Cpu size={9} /> Standard
                 </span>
               )}

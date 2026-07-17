@@ -52,11 +52,11 @@ export function NotificationBell() {
       type="button"
       onClick={() => navigate("/app/notifications")}
       className={cn(
-        "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md border transition-colors",
+        "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
-          ? "border-primary/30 bg-primary/10 text-primary"
-          : "border-transparent text-muted-foreground hover:border-border hover:bg-sunken hover:text-foreground",
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-sunken hover:text-foreground",
       )}
       aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
       aria-current={active ? "page" : undefined}
@@ -65,7 +65,7 @@ export function NotificationBell() {
       <Bell size={18} strokeWidth={2} aria-hidden="true" />
       {unreadCount > 0 && (
         <span
-          className="absolute -right-1 -top-1 flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground ring-2 ring-card tabular-nums"
+          className="absolute -right-0.5 -top-0.5 flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-card tabular-nums"
           aria-live="polite"
         >
           {countLabel}

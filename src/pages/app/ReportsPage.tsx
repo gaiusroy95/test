@@ -13,7 +13,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { Database, Zap, Wind, Droplets, Trash2, FileText, FileSpreadsheet, Package2, FileDown } from "lucide-react";
+import { Database, Zap, Wind, Droplets, Trash2, FileText, FileSpreadsheet, Package2, FileDown, Maximize2, Minimize2 } from "lucide-react";
 import { getApiError, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { ESGInput, KPI, ReportingYear, Location, Indicator, DerivedMetric, WasteDisposalBreakdown, AppModule } from "@/types";
@@ -24,6 +24,27 @@ const MONTH_NAMES = ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "De
 // (platform-managed lookup tables) — no longer hardcoded here.
 
 type ReportTab = "analytics" | "annexure";
+
+type AnalyticsChartFocus =
+  | "all"
+  | "monthly"
+  | "scopePie"
+  | "topLocations"
+  | "scopeBreakdown"
+  | "energyMix"
+  | "mjVsEmission"
+  | "scope3Category";
+
+const CHART_FOCUS_OPTIONS: { value: AnalyticsChartFocus; label: string }[] = [
+  { value: "all", label: "All Charts" },
+  { value: "monthly", label: "Monthly Emissions / Energy" },
+  { value: "scopePie", label: "Emissions by Scope" },
+  { value: "topLocations", label: "Top Emitters by Location" },
+  { value: "scopeBreakdown", label: "GHG Scope Breakdown" },
+  { value: "energyMix", label: "Energy Mix" },
+  { value: "mjVsEmission", label: "Energy vs Emissions Trend" },
+  { value: "scope3Category", label: "Scope 3 by GHG Category" },
+];
 
 // Column definition for the Report pivot table
 interface ReportCol {
@@ -74,6 +95,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [scope3Batches, setScope3Batches] = useState<any[]>([]);
   const [scopeView, setScopeView] = useState<"chart" | "table">("chart");
+  const [chartFocus, setChartFocus] = useState<AnalyticsChartFocus>("all");
 
   useEffect(() => {
     let anyError = false;
@@ -718,6 +740,9 @@ export default function ReportsPage() {
 
   const hasFilters = !!(selectedFY || (!isLocationUser && selectedLocation) || selectedMonth);
 
+  const chartVisible = (id: Exclude<AnalyticsChartFocus, "all">) =>
+    chartFocus === "all" || chartFocus === id;
+
   const metricTiles = [
     { icon: Zap, label: energyStatLabel, value: energyStatValue.toLocaleString(undefined, { maximumFractionDigits: 1 }), tint: "bg-warn-tint/50" },
     { icon: Wind, label: "Total Emissions (tCO₂e)", value: totalEmissions.toLocaleString(undefined, { maximumFractionDigits: 2 }), tint: "bg-ok-tint/50" },
@@ -830,10 +855,29 @@ export default function ReportsPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
+          <div className="flex items-center justify-end gap-2 mb-3">
+            <label htmlFor="reports-chart-focus" className="text-[12px] font-semibold text-muted-foreground">
+              Show:
+            </label>
+            <select
+              id="reports-chart-focus"
+              className="h-8 rounded-md border border-border bg-card px-2.5 text-[12px] text-foreground outline-none focus:border-primary"
+              value={chartFocus}
+              onChange={(e) => setChartFocus(e.target.value as AnalyticsChartFocus)}
+            >
+              {CHART_FOCUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className={cn("grid gap-3 mb-3", chartFocus === "all" ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
             {/* Monthly emissions — dashed target + Excel export */}
+            {chartVisible("monthly") && (
             <AnalyticsPanel
               title={hasEmissionData ? "Monthly Emissions (tCO₂e)" : "Monthly Energy Consumption (Qty)"}
+              focused={chartFocus === "monthly"}
+              onToggleFocus={() => setChartFocus((f) => (f === "monthly" ? "all" : "monthly"))}
               actions={
                 <button
                   type="button"
@@ -864,10 +908,14 @@ export default function ReportsPage() {
                 </BarChart>
               </ResponsiveContainer>
             </AnalyticsPanel>
+            )}
 
             {/* Emissions by Scope — Chart | Data Table toggle */}
+            {chartVisible("scopePie") && (
             <AnalyticsPanel
               title="Emissions by Scope"
+              focused={chartFocus === "scopePie"}
+              onToggleFocus={() => setChartFocus((f) => (f === "scopePie" ? "all" : "scopePie"))}
               actions={
                 <div className="inline-flex rounded-md border border-border/60 p-0.5 bg-card/60">
                   <button
@@ -948,8 +996,14 @@ export default function ReportsPage() {
                 </table>
               )}
             </AnalyticsPanel>
+            )}
 
-            <AnalyticsPanel title="Top Emitters by Location">
+            {chartVisible("topLocations") && (
+            <AnalyticsPanel
+              title="Top Emitters by Location"
+              focused={chartFocus === "topLocations"}
+              onToggleFocus={() => setChartFocus((f) => (f === "topLocations" ? "all" : "topLocations"))}
+            >
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={locationComparison} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
@@ -960,8 +1014,14 @@ export default function ReportsPage() {
                 </BarChart>
               </ResponsiveContainer>
             </AnalyticsPanel>
+            )}
 
-            <AnalyticsPanel title="GHG Scope Breakdown">
+            {chartVisible("scopeBreakdown") && (
+            <AnalyticsPanel
+              title="GHG Scope Breakdown"
+              focused={chartFocus === "scopeBreakdown"}
+              onToggleFocus={() => setChartFocus((f) => (f === "scopeBreakdown" ? "all" : "scopeBreakdown"))}
+            >
               {scopeTotals.length === 0 ? <p className="text-center text-muted-foreground text-sm py-16">No scope data</p> : (
                 <div className="flex items-center gap-4">
                   <ResponsiveContainer width="55%" height={220}>
@@ -988,8 +1048,14 @@ export default function ReportsPage() {
                 </div>
               )}
             </AnalyticsPanel>
+            )}
 
-            <AnalyticsPanel title={`Energy Mix — Renewable vs Non-Renewable (${hasMJData ? "MJ" : "Qty"})`}>
+            {chartVisible("energyMix") && (
+            <AnalyticsPanel
+              title={`Energy Mix — Renewable vs Non-Renewable (${hasMJData ? "MJ" : "Qty"})`}
+              focused={chartFocus === "energyMix"}
+              onToggleFocus={() => setChartFocus((f) => (f === "energyMix" ? "all" : "energyMix"))}
+            >
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={energyMix} barCategoryGap="20%">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
@@ -1002,8 +1068,14 @@ export default function ReportsPage() {
                 </BarChart>
               </ResponsiveContainer>
             </AnalyticsPanel>
+            )}
 
-            <AnalyticsPanel title={`Energy (${hasMJData ? "MJ" : "Qty"}) vs Emissions (tCO₂e) Trend`}>
+            {chartVisible("mjVsEmission") && (
+            <AnalyticsPanel
+              title={`Energy (${hasMJData ? "MJ" : "Qty"}) vs Emissions (tCO₂e) Trend`}
+              focused={chartFocus === "mjVsEmission"}
+              onToggleFocus={() => setChartFocus((f) => (f === "mjVsEmission" ? "all" : "mjVsEmission"))}
+            >
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={mjVsEmission}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -1017,10 +1089,15 @@ export default function ReportsPage() {
                 </LineChart>
               </ResponsiveContainer>
             </AnalyticsPanel>
+            )}
           </div>
 
-          {scope3ByCategory.length > 0 && (
-            <AnalyticsPanel title="Scope 3 Emissions by GHG Category (tCO₂e)">
+          {scope3ByCategory.length > 0 && chartVisible("scope3Category") && (
+            <AnalyticsPanel
+              title="Scope 3 Emissions by GHG Category (tCO₂e)"
+              focused={chartFocus === "scope3Category"}
+              onToggleFocus={() => setChartFocus((f) => (f === "scope3Category" ? "all" : "scope3Category"))}
+            >
               <ResponsiveContainer width="100%" height={Math.max(220, scope3ByCategory.length * 36)}>
                 <BarChart data={scope3ByCategory} layout="vertical" margin={{ left: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
@@ -1206,18 +1283,34 @@ function AnalyticsPanel({
   title,
   actions,
   children,
+  focused,
+  onToggleFocus,
 }: {
   title: string;
   actions?: ReactNode;
   children: ReactNode;
+  focused?: boolean;
+  onToggleFocus?: () => void;
 }) {
   return (
-    <div className="rounded-md bg-sunken/35 overflow-hidden">
+    <div className={cn("rounded-md bg-sunken/35 overflow-hidden", focused && "ring-1 ring-primary/25")}>
       <div className="px-4 py-2.5 flex items-center justify-between gap-2">
         <h3 className="section-title">{title}</h3>
-        {actions}
+        <div className="flex items-center gap-1 shrink-0">
+          {actions}
+          {onToggleFocus && (
+            <button
+              type="button"
+              title={focused ? "Show all charts" : "Expand chart full width"}
+              onClick={onToggleFocus}
+              className="p-1.5 rounded-md text-muted-foreground hover:bg-sunken hover:text-foreground"
+            >
+              {focused ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            </button>
+          )}
+        </div>
       </div>
-      <div className="px-4 pb-4">{children}</div>
+      <div className={cn("px-4 pb-4", focused && "min-h-[320px]")}>{children}</div>
     </div>
   );
 }

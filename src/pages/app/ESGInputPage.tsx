@@ -1012,7 +1012,7 @@ export default function ESGInputPage() {
       {/* Centered onboarding flow */}
       {!entryReady && !loading && (
         <div className="flex-1 flex items-center justify-center px-4 py-10 min-h-[420px]">
-          <div className="w-full max-w-lg rounded-xl border-2 border-primary/25 bg-card shadow-sm px-6 py-8 sm:px-8">
+          <div className="w-full max-w-[560px] mx-auto rounded-xl border-2 border-primary/25 bg-card shadow-sm px-6 py-8 sm:px-8">
             <div className="text-center mb-6">
               <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center mx-auto mb-3">
                 <BarChart3 size={22} />
@@ -1130,7 +1130,7 @@ export default function ESGInputPage() {
       )}
 
       {periodSelected && !loading && (
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto w-full">
 
           {/* Module tabs */}
           <div className="bg-card border-b border-border px-6 flex gap-1 py-2 sticky top-0 z-10 overflow-x-auto">
@@ -1204,7 +1204,7 @@ export default function ESGInputPage() {
               canEdit={canEdit}
             />
           ) : (
-          <div className="p-4 space-y-3 w-full">
+          <div className="p-4 space-y-3 w-full max-w-[560px] mx-auto">
             {visibleModules.map(mod => {
               const Icon = getModuleIcon(mod.icon_name);
               const modIndicators = indicators

@@ -33,9 +33,6 @@ const AGG_FIELD_LABEL: Record<TargetAggField, string> = {
   emission_value: "Emissions (tCO₂e)",
 };
 
-const ZONE_A = "#F8F9FA";
-const ZONE_B = "#FFFFFF";
-
 function exportRows(filename: string, sheet: string, rows: Record<string, unknown>[]) {
   if (rows.length === 0) {
     toast.error("No data to export");
@@ -63,7 +60,7 @@ function ExcelExportButton({ onClick, title = "Export Excel" }: { onClick: () =>
 
 function ViewToggle({ value, onChange }: { value: ChartView; onChange: (v: ChartView) => void }) {
   return (
-    <div className="inline-flex rounded-md border border-border/60 p-0.5 bg-card/60">
+    <div role="group" aria-label="Progress chart view" className="config-tabs shrink-0">
       {([
         { key: "chart" as ChartView, label: "Chart" },
         { key: "table" as ChartView, label: "Data Table" },
@@ -71,11 +68,9 @@ function ViewToggle({ value, onChange }: { value: ChartView; onChange: (v: Chart
         <button
           key={o.key}
           type="button"
+          aria-pressed={value === o.key}
           onClick={() => onChange(o.key)}
-          className={cn(
-            "px-2.5 py-1 rounded text-[11px] font-semibold transition-colors",
-            value === o.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
-          )}
+          className={cn("config-tab", value === o.key && "config-tab-active")}
         >
           {o.label}
         </button>
@@ -84,7 +79,7 @@ function ViewToggle({ value, onChange }: { value: ChartView; onChange: (v: Chart
   );
 }
 
-/** Borderless tonal zone — #F8F9FA / white instead of card outlines */
+/** Borderless tonal zone — sunken / card instead of card outlines */
 function TonePanel({
   title,
   actions,
@@ -100,8 +95,7 @@ function TonePanel({
 }) {
   return (
     <div
-      className={cn("rounded-md overflow-hidden", className)}
-      style={{ backgroundColor: tone === "a" ? ZONE_A : ZONE_B }}
+      className={cn("rounded-md overflow-hidden", tone === "a" ? "tone-a" : "tone-b", className)}
     >
       {(title || actions) && (
         <div className="px-4 py-2.5 flex items-center justify-between gap-2">
@@ -311,7 +305,7 @@ function ProgressTab({
     return (
       <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-20 rounded-md animate-pulse" style={{ backgroundColor: i % 2 === 0 ? ZONE_A : ZONE_B }} />
+          <div key={i} className={cn("h-20 rounded-md animate-pulse", i % 2 === 0 ? "tone-a" : "tone-b")} />
         ))}
       </div>
     );
@@ -319,7 +313,7 @@ function ProgressTab({
 
   if (!data || data.total_targets === 0) {
     return (
-      <div className="rounded-md px-6 py-12 text-center" style={{ backgroundColor: ZONE_A }}>
+      <div className="rounded-md px-6 py-12 text-center tone-a">
         <Target size={32} className="mx-auto text-muted-foreground/40 mb-2" />
         <p className="text-[13px] text-muted-foreground">
           No targets defined yet.{" "}
@@ -465,7 +459,7 @@ function ProgressTab({
                   {chartData.map((d, i) => (
                     <tr
                       key={i}
-                      style={{ backgroundColor: i % 2 === 0 ? ZONE_B : ZONE_A }}
+                      className={i % 2 === 0 ? "tone-b" : "tone-a"}
                     >
                       <td className="py-2 text-[12px] font-medium text-foreground">{d.fullName}</td>
                       <td className="py-2 text-[12px] text-right font-mono tabular-nums">{d.baseline.toLocaleString()}</td>
@@ -550,8 +544,7 @@ function ProgressRow({ item, index }: { item: TargetProgress; index: number }) {
 
   return (
     <div
-      className="px-4 py-3"
-      style={{ backgroundColor: index % 2 === 0 ? ZONE_B : ZONE_A }}
+      className={cn("px-4 py-3", index % 2 === 0 ? "tone-b" : "tone-a")}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
@@ -561,10 +554,10 @@ function ProgressRow({ item, index }: { item: TargetProgress; index: number }) {
               style={{ backgroundColor: item.module_color }}
             />
             <span className="text-[13px] font-semibold text-foreground truncate">{item.label}</span>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: ZONE_A }}>
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded tone-a text-muted-foreground">
               {item.module_name}
             </span>
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ backgroundColor: ZONE_A }}>
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded tone-a text-muted-foreground">
               {item.target_type}
             </span>
             {item.on_track ? (
@@ -583,7 +576,7 @@ function ProgressRow({ item, index }: { item: TargetProgress; index: number }) {
             </span>
           </div>
 
-          <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: index % 2 === 0 ? ZONE_A : "#EEF0F2" }}>
+          <div className="h-2 rounded-full overflow-hidden tone-track">
             <div
               className={`h-full rounded-full ${item.on_track ? "bg-ok" : "bg-warn"}`}
               style={{ width: `${pct}%` }}
@@ -618,7 +611,7 @@ function ManageTab({
     return (
       <div className="space-y-2">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-10 rounded-md animate-pulse" style={{ backgroundColor: i % 2 === 0 ? ZONE_A : ZONE_B }} />
+          <div key={i} className={cn("h-10 rounded-md animate-pulse", i % 2 === 0 ? "tone-a" : "tone-b")} />
         ))}
       </div>
     );
@@ -626,7 +619,7 @@ function ManageTab({
 
   if (targets.length === 0) {
     return (
-      <div className="rounded-md px-6 py-12 text-center" style={{ backgroundColor: ZONE_A }}>
+      <div className="rounded-md px-6 py-12 text-center tone-a">
         <Target size={32} className="mx-auto text-muted-foreground/40 mb-2" />
         <p className="text-[13px] text-muted-foreground">
           No targets yet.{" "}
@@ -681,8 +674,7 @@ function ManageTab({
             {targets.map((t, i) => (
               <TableRow
                 key={t.target_id}
-                className="border-border/30"
-                style={{ backgroundColor: i % 2 === 0 ? ZONE_B : ZONE_A }}
+                className={cn("border-border/30", i % 2 === 0 ? "tone-b" : "tone-a")}
               >
                 <TableCell>
                   <span className="font-semibold text-foreground text-[13px]">

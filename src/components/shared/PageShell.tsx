@@ -60,7 +60,7 @@ interface PageShellProps {
 
 /**
  * PageShell — dense enterprise page layout.
- * Title + actions (+ optional toolbar). Breadcrumbs/descriptions are ignored for space.
+ * Title + primary actions sit together on the left (+ optional toolbar).
  */
 export function PageShell({
   title,
@@ -79,10 +79,10 @@ export function PageShell({
       <div className={rootCls}>
         <header className="page-header">
           <div className="dashboard-hero">
-            <div className="pl-3 flex items-center gap-3 flex-wrap">
+            <div className="pl-3 flex items-center gap-2.5 flex-wrap">
               <h1 className="page-title">{title}</h1>
               {actions && (
-                <div className="flex items-center gap-2 ml-auto shrink-0 flex-wrap">{actions}</div>
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">{actions}</div>
               )}
             </div>
           </div>
@@ -96,13 +96,13 @@ export function PageShell({
   return (
     <div className={rootCls}>
       <header className="page-header">
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div className="flex items-center gap-1.5 min-w-0">
             <h1 className="page-title">{title}</h1>
             {titleAddon}
           </div>
           {actions && (
-            <div className="flex items-center gap-2 ml-auto shrink-0 flex-wrap">{actions}</div>
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">{actions}</div>
           )}
         </div>
         {toolbar && <div className="mt-2">{toolbar}</div>}
@@ -124,9 +124,9 @@ export function PageHeader({
 }) {
   return (
     <header className="page-header">
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2.5 flex-wrap">
         <h1 className="page-title">{title}</h1>
-        {children && <div className="flex items-center gap-2 ml-auto shrink-0">{children}</div>}
+        {children && <div className="flex items-center gap-2 shrink-0">{children}</div>}
       </div>
     </header>
   );

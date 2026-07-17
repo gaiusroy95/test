@@ -350,10 +350,13 @@ export default function LocationsPage() {
         </div>
       ) : view === "grid" ? (
         /* ── Grid View ── */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
           {locations.map((loc) => (
-            <div key={loc.location_id} className="surface p-5 hover:shadow-sm transition-all duration-200 group">
-              <div className="flex justify-between items-start mb-3">
+            <div
+              key={loc.location_id}
+              className="surface p-5 h-full min-h-[160px] aspect-[4/3] flex flex-col hover:shadow-sm transition-shadow duration-200 group"
+            >
+              <div className="flex justify-between items-start mb-3 flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-sm bg-accent flex items-center justify-center flex-shrink-0">
                     <MapPin size={20} className="text-primary" />
@@ -371,8 +374,9 @@ export default function LocationsPage() {
                   </Badge>
                 )}
               </div>
-              {loc.address && <p className="text-xs text-muted-foreground mb-3 leading-relaxed">{loc.address}</p>}
-              <div className="flex justify-between items-center pt-2 border-t border-[hsl(var(--border-hairline))]">
+              {loc.address && <p className="text-xs text-muted-foreground mb-3 leading-relaxed flex-1 min-h-0 line-clamp-2">{loc.address}</p>}
+              {!loc.address && <div className="flex-1 min-h-0" />}
+              <div className="flex justify-between items-center pt-2 border-t border-[hsl(var(--border-hairline))] mt-auto flex-shrink-0">
                 <StatusBadge status={loc.is_active ? "ACTIVE" : "BLOCKED"} />
                 {isAdmin && (
                   <div className="flex gap-1">
